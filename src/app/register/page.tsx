@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
+import { useState } from 'react';
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
@@ -9,20 +9,57 @@ export default function RegisterPage() {
     emailOrPhone: '',
     password: '',
     address: '',
-  })
+  });
+
+  const [message, setMessage] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const nextStep = () => {
-    if (step < 5) setStep(step + 1)
-  }
+    // Validasi per step
+    if (step === 1 && !formData.username) {
+      setMessage('Username is required');
+      return;
+    }
+    if (step === 2 && !formData.emailOrPhone) {
+      setMessage('Email or phone is required');
+      return;
+    }
+    if (step === 3 && !formData.password) {
+      setMessage('Password is required');
+      return;
+    }
+    if (step === 4 && !formData.address) {
+      setMessage('Address is required');
+      return;
+    }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('Form submitted:', formData)
-  }
+    setMessage('');
+    if (step < 5) setStep(step + 1);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const { username, emailOrPhone, password, address } = formData;
+
+    if (!username || !emailOrPhone || !password || !address) {
+      setMessage('Please complete all fields before submitting.');
+      return;
+    }
+
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await res.json();
+    console.log("RESPONSE", data);
+    setMessage(data.message || 'Something went wrong');
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/loginbg.png')] bg-center bg-no-repeat bg-cover">
@@ -31,7 +68,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit}>
           {step === 1 && (
             <>
-              <p className="text-sm mb-2">Enter your username</p>
+              <p className="text-sm mb-2 text-white">Enter your username</p>
               <input
                 type="text"
                 name="username"
@@ -48,7 +85,7 @@ export default function RegisterPage() {
           )}
           {step === 2 && (
             <>
-              <p className="text-sm mb-2">Enter your email or phone</p>
+              <p className="text-sm mb-2 text-white">Enter your email or phone</p>
               <input
                 type="text"
                 name="emailOrPhone"
@@ -65,7 +102,7 @@ export default function RegisterPage() {
           )}
           {step === 3 && (
             <>
-              <p className="text-sm mb-2">Create a password</p>
+              <p className="text-sm mb-2 text-white">Create a password</p>
               <input
                 type="password"
                 name="password"
@@ -82,7 +119,7 @@ export default function RegisterPage() {
           )}
           {step === 4 && (
             <>
-              <p className="text-sm mb-2">Enter your address</p>
+              <p className="text-sm mb-2 text-white">Enter your address</p>
               <input
                 type="text"
                 name="address"
@@ -99,14 +136,17 @@ export default function RegisterPage() {
           )}
           {step === 5 && (
             <>
-              <p className="text-sm mb-4">Ready to register?</p>
+              <p className="text-sm mb-4 text-white">Ready to register?</p>
               <button type="submit" className="bg-white text-black w-full py-2 rounded-full font-bold">
                 Register
               </button>
+              {message && (
+                <p className="text-center text-sm text-red-500 mt-2">{message}</p>
+              )}
             </>
           )}
         </form>
       </div>
     </div>
-  )
+  );
 }
