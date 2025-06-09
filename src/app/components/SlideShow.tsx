@@ -28,7 +28,7 @@ export default function SlideShow() {
   }
 
   return (
-    <section id="upcoming" className="bg-red-950 py-20 text-white">
+    <section id="upcoming" className="bg-gradient-to-b from-black via-red-950 to-black py-20 text-white">
       <h2 className="text-3xl font-bold text-center mb-10">Upcoming Events</h2>
 
       <div className="flex items-center justify-center">
@@ -43,13 +43,13 @@ export default function SlideShow() {
 
           <button
             onClick={prevSlide}
-            className="absolute top-1/2 left-2 transform -translate-y-1/2 text-3xl bg-black bg-opacity-50 px-3 py-1 rounded-full hover:bg-red-600 transition"
+            className="absolute top-1/2 left-1 transform -translate-y-1/2 text-3xl bg-black bg-opacity-50 px-2 py-0.5 rounded-full hover:bg-red-600 transition"
           >
             ‹
           </button>
           <button
             onClick={nextSlide}
-            className="absolute top-1/2 right-2 transform -translate-y-1/2 text-3xl bg-black bg-opacity-50 px-3 py-1 rounded-full hover:bg-red-600 transition"
+            className="absolute top-1/2 right-1 transform -translate-y-1/2 text-3xl bg-black bg-opacity-50 px-2 py-0.5 rounded-full hover:bg-red-600 transition"
           >
             ›
           </button>
@@ -59,9 +59,8 @@ export default function SlideShow() {
               <div
                 key={index}
                 onClick={() => setCurrent(index)}
-                className={`w-3 h-3 rounded-full cursor-pointer transition ${
-                  current === index ? 'bg-red-600 scale-110' : 'bg-gray-400'
-                }`}
+                className={`w-3 h-3 rounded-full cursor-pointer transition ${current === index ? 'bg-red-600 scale-110' : 'bg-gray-400'
+                  }`}
               />
             ))}
           </div>

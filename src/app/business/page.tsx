@@ -13,6 +13,7 @@ const businessData = [
     title: "GP Variasi",
     description: "Jasa modifikasi, reparasi, service, dan pemasangan aksesoris mobil.",
     image: "/bisnisgp3.jpg",
+    link: "/profilebusiness/gp-variasi",
   },
   {
     title: "Spartan Cafe",

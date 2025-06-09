@@ -2,7 +2,7 @@
 import { useState } from "react"
 import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa"
 
-const images = ["/bisnisspartan2.jpg", "/bisnisspartan3.jpg", "/img3.jpg"]
+const images = ["/bisnisgp2.jpg", "/bisnisgp1.jpg", "/img3.jpg"]
 
 export default function CompanyProfile() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -13,12 +13,12 @@ export default function CompanyProfile() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
       <main className="flex-grow pt-20 px-4 pb-16">
-        <h1 className="text-center text-4xl font-extrabold mb-6">SPARTAN MODIFIED</h1>
+        <h1 className="text-center text-4xl font-extrabold mb-6">GP VARIASI</h1>
         <div className="flex justify-center mb-6">
-          <img src="/bisnisspartan1.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
+          <img src="/bisnisgp3.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
         </div>
         <p className="text-center max-w-2xl mx-auto text-sm md:text-base text-gray-200 mb-10 leading-relaxed">
-          Spartan Modified menyediakan jasa modifikasi berbagai tipe kendaraan, mulai dari tipe sedan, minibus, dan bahkan kendaraan offroad. 
+          GP Variasi menyediakan jasa modifikasi berbagai tipe kendaraan, mulai dari tipe sedan, minibus, dan bahkan kendaraan offroad. 
         </p>
 
         <div className="relative flex flex-col items-center mb-8">
@@ -55,7 +55,7 @@ export default function CompanyProfile() {
         <div className="flex justify-center">
           <iframe
             title="Company Location"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1974.1316694144484!2d114.31714162346707!3d-8.276567844809056!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd1519727c06609%3A0x2ffe2c0a66cdd7ec!2sSpartan%20Modified!5e0!3m2!1sid!2sid!4v1749088719491!5m2!1sid!2sid"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1660.098434029081!2d114.33157621117596!3d-8.262749718108791!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd1507fac0a3ba1%3A0xd2fce1f27c5434f4!2sGp%20Variasi%20Ac%20Mobil%20P.Window!5e0!3m2!1sid!2sid!4v1749476175105!5m2!1sid!2sid"
             width="100%"
             height="300"
             className="rounded-md shadow-lg max-w-md w-full"
