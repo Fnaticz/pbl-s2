@@ -12,40 +12,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // pages/api/register.ts
+  const { username, emailOrPhone, password, address } = req.body;
 
-const { username, emailOrPhone, password, address } = req.body;
-
-if (!username || !emailOrPhone || !password || !address) {
-  return res.status(400).json({ message: 'All fields are required' });
-}
-
-try {
-  await connectDB();
-
-  const existingUsername = await User.findOne({ username });
-  if (existingUsername) {
-    return res.status(400).json({ message: 'Username already taken' });
+  if (!username || !emailOrPhone || !password || !address) {
+    return res.status(400).json({ message: 'All fields are required' });
   }
 
-  const existingEmailOrPhone = await User.findOne({ emailOrPhone });
-  if (existingEmailOrPhone) {
-    return res.status(400).json({ message: 'Email or phone already in use' });
+  try {
+    await connectDB();
+
+    //buat cek user dan emailnyaa
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ message: 'Username already taken' });
+    }
+
+    const existingEmail = await User.findOne({ emailOrPhone });
+    if (existingEmail) {
+      return res.status(400).json({ message: 'Email or phone already in use' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      username,
+      emailOrPhone,
+      password: hashedPassword,
+      address,
+    });
+
+    return res.status(201).json({ message: 'User registered successfully' });
+  } catch (error: any) {
+    console.error('Register error:', error.message);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const newUser = await User.create({
-    username,
-    emailOrPhone,
-    password: hashedPassword,
-    address,
-  });
-
-  return res.status(201).json({ message: 'User registered successfully' });
-} catch (error) {
-  console.error('Register error:', error);
-  return res.status(500).json({ message: 'Internal server error' });
-}
-
 }
