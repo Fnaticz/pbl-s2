@@ -1,11 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn, useSession } from "next-auth/react";
 import Link from 'next/link'
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useRouter } from 'next/navigation';
+import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [message, setMessage] = useState('');
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -19,6 +25,21 @@ export default function LoginPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
     });
+
+    const response = await signIn("credentials", {
+      redirect: false,
+      username: formData.username,
+      password: formData.password,
+    });
+
+    if (response?.error) {
+      setMessage("Invalid email or password");
+      toast.error("Invalid email or password");
+      if (response?.url) router.replace("/dashboard");
+    } else {
+      setMessage("");
+      toast.success("Successful login");
+    }
 
     const data = await res.json();
     setMessage(data.message);
@@ -69,8 +90,13 @@ export default function LoginPage() {
         </form>
 
         <div className="flex items-center justify-between mt-4">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition">
-            <img src="/googlelogo.png" className="w-5 h-5" alt="Google" />
+          <button
+            onClick={() => {
+              signIn("google");
+            }}
+            className="flex w-full items-center border border-gray-300 justify-center gap-3 rounded-md bg-white px-3 py-1.5 text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            <FcGoogle />
             Google
           </button>
           <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition">
