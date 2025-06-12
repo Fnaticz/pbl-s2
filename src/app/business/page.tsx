@@ -67,22 +67,22 @@ export default function BusinessPage() {
       </section>
 
       <section className="py-20 bg-stone-900 px-6">
-        <h2 className="text-3xl font-bold text-center mb-8">Business</h2>
+        <h2 className="text-3xl font-bold text-center mb-8">BUSINESSES</h2>
         <div className="flex flex-col gap-10 items-center">
           {visibleBusinesses.map((business, index) => (
             <div
               key={index}
-              className="bg-stone-700 p-6 rounded-xl shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ] flex gap-6 items-center max-w-7xl w-full"
+              className="bg-stone-700 p-6 rounded-xl shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ] flex flex-col md:flex-row gap-4 md:gap-6 items-center max-w-7xl w-full"
             >
               <img
                 src={business.image}
                 alt={business.title}
-                className="w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]"
+                className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]"
               />
               <div className="flex flex-col justify-between h-auto md:h-60 max-w-full md:max-w-[calc(100%-16rem)]">
                 <p className="text-white text-2xl font-semibold break-words">{business.title}</p>
-                <p className="text-white text-lg font-regular break-words">{business.description}</p>
-                <Link href={business.link ?? "#"} className="bg-white text-black px-4 py-2 rounded-md self-start mt-4">
+                <p className="text-white text-lg font-regular break-words mt-3">{business.description}</p>
+                <Link href={business.link ?? "#"} className="bg-white text-black px-8 py-2 rounded-lg self-start mt-4 font-bold transition transform active:scale-95 active:bg-red-600 active:text-white hover:bg-red-600 hover:text-white transition">
                   More
                 </Link>
               </div>
@@ -92,7 +92,7 @@ export default function BusinessPage() {
           <div className="flex items-center justify-center gap-3 mt-8">
             <button
               className={`px-3 py-1 text-white border rounded ${
-                currentPage === 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-white hover:text-black"
+                currentPage === 0 ? "opacity-30 cursor-not-allowed" : "transition transform active:scale-95 active:bg-white active:text-black hover:bg-white hover:text-black"
               }`}
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 0}
@@ -107,7 +107,7 @@ export default function BusinessPage() {
                 className={`px-3 py-1 rounded ${
                   currentPage === index
                     ? "bg-white text-black font-bold"
-                    : "bg-gray-700 text-white hover:bg-gray-500"
+                    : "bg-gray-700 text-white transition transform active:scale-95 active:bg-gray-500 hover:bg-gray-500"
                 }`}
               >
                 {index + 1}
@@ -116,7 +116,7 @@ export default function BusinessPage() {
 
             <button
               className={`px-3 py-1 text-white border rounded ${
-                currentPage === totalPages - 1 ? "opacity-30 cursor-not-allowed" : "hover:bg-white hover:text-black"
+                currentPage === totalPages - 1 ? "opacity-30 cursor-not-allowed" : "transition transform active:scale-95 active:bg-white active:text-black hover:bg-white hover:text-black"
               }`}
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages - 1}

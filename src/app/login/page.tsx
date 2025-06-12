@@ -19,6 +19,11 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    localStorage.setItem("currentUser", JSON.stringify({
+      username: "ka",
+      email: "ka@gmail.com"
+    }))
+
 
     const res = await fetch('/api/login', {
       method: 'POST',
@@ -94,7 +99,7 @@ export default function LoginPage() {
             onClick={() => {
               signIn("google");
             }}
-            className="flex w-full items-center border border-gray-300 justify-center gap-3 rounded-md bg-white px-3 py-1.5 text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="flex items-center gap-2 px-8 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition"
           >
             <FcGoogle />
             Google

@@ -1,0 +1,77 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
+export default function MemberRegistrationForm() {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    name: '',
+    address: '',
+    phone: '',
+    hobby: '',
+    vehicleType: '',
+    vehicleSpec: '',
+  })
+  const [user, setUser] = useState<{ username: string; email: string } | null>(null)
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('currentUser')
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser)
+      setUser(parsedUser)
+      setFormData(prev => ({
+        ...prev,
+        username: parsedUser.username,
+        email: parsedUser.email
+      }))
+    }
+  }, [])
+
+  const handleChange = (e: { target: { name: any; value: any } }) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmit = (e: { preventDefault: () => void }) => {
+    e.preventDefault()
+
+    if (!user) {
+      alert("Login required to register.")
+      return
+    }
+
+    const newEntry = {
+      ...formData,
+      username: user.username,
+      email: user.email,
+      date: new Date().toLocaleString()
+    }
+
+    const existing = JSON.parse(localStorage.getItem('pendingMembers') || '[]')
+    const updated = [...existing, newEntry]
+    localStorage.setItem('pendingMembers', JSON.stringify(updated))
+
+    alert('Application submitted! Waiting for admin approval.')
+    setFormData({
+      username: '', email: '', name: '', address: '', phone: '', hobby: '', vehicleType: '', vehicleSpec: ''
+    })
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
+      <main className="flex-grow pt-20 px-4 pb-16">
+        <h1 className="text-3xl font-bold mb-6 text-center">Member Registration Form</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Full Name" className="w-full p-2 rounded bg-gray-800 border border-gray-600" required />
+          <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Address" className="w-full p-2 rounded bg-gray-800 border border-gray-600" required />
+          <input type="text" name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone Number" className="w-full p-2 rounded bg-gray-800 border border-gray-600" required />
+          <input type="text" name="hobby" value={formData.hobby} onChange={handleChange} placeholder="Hobby" className="w-full p-2 rounded bg-gray-800 border border-gray-600" />
+          <input type="text" name="vehicleType" value={formData.vehicleType} onChange={handleChange} placeholder="Vehicle Type" className="w-full p-2 rounded bg-gray-800 border border-gray-600" />
+          <input type="text" name="vehicleSpec" value={formData.vehicleSpec} onChange={handleChange} placeholder="Vehicle Specification" className="w-full p-2 rounded bg-gray-800 border border-gray-600" />
+          <button type="submit" className="w-full bg-red-600 hover:bg-red-700 py-2 rounded text-white font-semibold">Submit Application</button>
+        </form>
+      </main>
+    </div>
+  )
+}
