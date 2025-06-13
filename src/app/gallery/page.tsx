@@ -17,7 +17,6 @@ export default function GalleryPage() {
     const [fileType, setFileType] = useState<'image' | 'video'>('image')
     const [page, setPage] = useState(1)
     const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
-
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -44,6 +43,23 @@ export default function GalleryPage() {
         }
       };
       
+
+
+    // const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     const file = e.target.files?.[0]
+    //     if (!file) return
+
+    //     const url = URL.createObjectURL(file)
+    //     const newMedia: MediaItem = {
+    //         id: Date.now(),
+    //         type: fileType,
+    //         url,
+    //         username: 'spartan_user'
+    //     }
+
+    //     const newList = [newMedia, ...media]
+    //     setMedia(newList)
+    // }
 
     const totalPages = Math.ceil(media.length / ITEMS_PER_PAGE)
     const displayedMedia = media.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)

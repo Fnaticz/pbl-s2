@@ -18,38 +18,40 @@ export default function CompanyProfile() {
           <img src="/bisnisspartan1.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
         </div>
         <p className="text-center max-w-2xl mx-auto text-sm md:text-base text-gray-200 mb-10 leading-relaxed">
-          Spartan Modified menyediakan jasa modifikasi berbagai tipe kendaraan, mulai dari tipe sedan, minibus, dan bahkan kendaraan offroad. 
+          Spartan Modified menyediakan jasa modifikasi berbagai tipe kendaraan, mulai dari tipe sedan, minibus, dan bahkan kendaraan offroad.
         </p>
 
-        <div className="relative flex flex-col items-center mb-8">
-          <img src={images[currentSlide]} alt={`Slide ${currentSlide + 1}`} className="w-full max-w-md rounded-md" />
+        <div className="flex items-center justify-center">
+          <div className="relative flex flex-col items-center mb-8">
+            <img src={images[currentSlide]} alt={`Slide ${currentSlide + 1}`} className="w-full max-w-md rounded-md" />
 
-          <button onClick={prevSlide} className="absolute left-120 top-1/2 -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full hover:bg-red-600 transition">{'‹'}</button>
-          <button onClick={nextSlide} className="absolute right-120 top-1/2 -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full hover:bg-red-600 transition">{'›'}</button>
+            <button onClick={prevSlide} className="absolute top-1/2 left-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full transition transform active:scale-70 active:bg-red-600 hover:bg-red-600 transition">{'‹'}</button>
+            <button onClick={nextSlide} className="absolute top-1/2 right-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full transition transform active:scale-70 active:bg-red-600 hover:bg-red-600 transition">{'›'}</button>
 
-          <div className="mt-3 flex gap-2">
-            {images.map((_, idx) => (
-              <span
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`w-2 h-2 rounded-full ${currentSlide === idx ? 'bg-white' : 'bg-gray-500'} cursor-pointer`}
-              />
-            ))}
+            <div className="mt-3 flex gap-2">
+              {images.map((_, idx) => (
+                <span
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`w-2 h-2 rounded-full ${currentSlide === idx ? 'bg-white' : 'bg-gray-500'} cursor-pointer`}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="text-center mb-8">
           <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer">
-            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full">
+            <button className="bg-green-500 transition transform active:bg-green-600 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full">
               Contact Us
             </button>
           </a>
         </div>
 
         <div className="flex justify-center gap-4 text-xl mb-10">
-          <a href="https://facebook.com" target="_blank" className="hover:text-blue-500"><FaFacebookF /></a>
-          <a href="https://instagram.com" target="_blank" className="hover:text-pink-500"><FaInstagram /></a>
-          <a href="https://wa.me/6281234567890" target="_blank" className="hover:text-green-500"><FaWhatsapp /></a>
+          <a href="https://facebook.com" target="_blank" className="transition transform active:text-blue-500   hover:text-blue-500"><FaFacebookF /></a>
+          <a href="https://instagram.com" target="_blank" className="transition transform active:text-pink-500 hover:text-pink-500"><FaInstagram /></a>
+          <a href="https://wa.me/6281234567890" target="_blank" className="transition transform active:text-green-500 hover:text-green-500"><FaWhatsapp /></a>
         </div>
 
         <div className="flex justify-center">

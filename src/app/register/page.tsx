@@ -1,8 +1,9 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { connectDB } from '../../../lib/mongodb';
-import User from '../../../models/user';
+import { useState } from 'react'
+import Link from 'next/link'
+import { connectDB } from '../../../lib/mongodb'
+import User from '../../../models/user'
 
 
 export default function RegisterPage() {
@@ -13,20 +14,35 @@ export default function RegisterPage() {
     address: '',
   });
 
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState<'Weak' | 'Medium' | 'Strong' | ''>('')
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
+
+    if (name === 'password') {
+      if (value.length < 6) {
+        setPasswordStrength('Weak')
+      } else if (/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/.test(value)) {
+        setPasswordStrength('Strong')
+      } else {
+        setPasswordStrength('Medium')
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
+    setSubmitted(true)
+    console.log('Form submitted:', formData)
 
-    const { username, emailOrPhone, password, address } = formData;
+    const { username, emailOrPhone, password, address } = formData
 
     if (!username || !emailOrPhone || !password || !address) {
-      setMessage('Please complete all fields before submitting.');
-      return;
+      setMessage('Please complete all fields before submitting.')
+      return
     }
 
     const res = await fetch('/api/register', {
@@ -35,14 +51,27 @@ export default function RegisterPage() {
       body: JSON.stringify(formData),
     });
 
-    const data = await res.json();
-    console.log("RESPONSE", data);
-    setMessage(data.message || 'Something went wrong');
+    const data = await res.json()
+    console.log("RESPONSE", data)
+    setMessage(data.message || 'Something went wrong')
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/loginbg.png')] bg-center bg-no-repeat bg-cover">
       <div className="bg-stone-800 bg-opacity-40 backdrop-blur-md p-8 rounded-2xl shadow-lg w-full max-w-md">
+        {submitted ? (
+          <div className="text-center text-white">
+            <h1 className="text-3xl font-bold mb-4">Registration Successful!</h1>
+            <p className="text-sm">Welcome, {formData.username} 🎉</p>
+            <Link
+              href="/login"
+              className="inline-block mt-6 px-6 py-2 bg-white text-black rounded-full font-bold hover:bg-red-600 hover:text-white transition"
+            >
+              Back to Login
+            </Link>
+          </div>
+        ) : (
+          <>
         <h1 className="text-3xl font-bold text-white text-center mb-6">REGISTER</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -80,6 +109,19 @@ export default function RegisterPage() {
               className="w-full px-4 py-2 rounded-full bg-white/20 placeholder-white text-white"
               required
             />
+            {passwordStrength && (
+                  <p
+                    className={`text-xs mt-1 font-semibold ${
+                      passwordStrength === 'Strong'
+                        ? 'text-green-400'
+                        : passwordStrength === 'Medium'
+                        ? 'text-yellow-300'
+                        : 'text-red-400'
+                    }`}
+                  >
+                    Password Strength: {passwordStrength}
+                  </p>
+                )}
           </div>
           <div>
             <p className="text-sm mb-1 text-white">Address</p>
@@ -101,6 +143,8 @@ export default function RegisterPage() {
           </button>
           {message && ( <p className="text-center text-sm text-red-500 mt-2">{message}</p> )}
         </form>
+        </>
+        )}
       </div>
     </div>
   )
