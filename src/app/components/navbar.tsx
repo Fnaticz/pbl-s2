@@ -28,13 +28,6 @@ export default function Navbar() {
                 >
                   Business Page
                 </Link>
-                <Link
-                  href="#activities"
-                  className="block px-4 py-2 hover:bg-red-600 rounded-b"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Activities
-                </Link>
               </div>
             )}
           </div>

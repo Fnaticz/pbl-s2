@@ -1,162 +1,147 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
-import { FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
+import { useState } from 'react'
+import { FaPlus, FaImage, FaVideo } from 'react-icons/fa'
+import { useEffect } from 'react';
 
-type Message = {
+interface MediaItem {
     id: number
-    user: string
-    text?: string
-    mediaUrls?: { url: string; type: 'image' | 'video' }[]
-    timestamp: string
+    type: 'image' | 'video'
+    url: string
+    username: string
 }
 
-export default function ForumPage() {
-    const [messages, setMessages] = useState<Message[]>([])
-    const [input, setInput] = useState('')
-    const [previews, setPreviews] = useState<{ url: string; file: File; type: 'image' | 'video' }[]>([])
-    const fileInputRef = useRef<HTMLInputElement>(null)
-    const chatEndRef = useRef<HTMLDivElement>(null)
+const ITEMS_PER_PAGE = 6
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files
-        if (files) {
-            const newPreviews: { url: string; file: File; type: 'image' | 'video' }[] =
-                Array.from(files).map((file) => {
-                    const url = URL.createObjectURL(file)
-                    const type = file.type.startsWith('video') ? 'video' : 'image'
-                    return { url, file, type }
-                })
-            setPreviews((prev) => [...prev, ...newPreviews])
+export default function GalleryPage() {
+    const [media, setMedia] = useState<MediaItem[]>([])
+    const [fileType, setFileType] = useState<'image' | 'video'>('image')
+    const [page, setPage] = useState(1)
+    const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+      
+        const previewUrl = URL.createObjectURL(file);
+      
+        const fakeUploadedUrl = previewUrl;
+      
+        const response = await fetch('/api/media/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: fileType,
+            url: fakeUploadedUrl,
+            username: 'spartan_user',
+          }),
+        });
+      
+        if (response.ok) {
+          const newMedia = await response.json();
+          setMedia(prev => [newMedia, ...prev]);
+        } else {
+          console.error('Upload failed');
         }
-    }
+      };
+      
 
-
-    const sendMessage = () => {
-        if (!input.trim() && previews.length === 0) return
-
-        let text = input.trim()
-        text = text.replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
-        text = text.replace(/@\w+/g, (tag) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
-
-        const mediaUrls = previews.map((p) => ({ url: p.url, type: p.type }))
-
-        const newMessage: Message = {
-            id: Date.now(),
-            user: 'you',
-            text: text || undefined,
-            mediaUrls: mediaUrls.length ? mediaUrls : undefined,
-            timestamp: new Date().toLocaleString()
-        }
-
-        setMessages((prev) => [...prev, newMessage])
-        setInput('')
-        setPreviews([])
-        if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-
-    const deleteMessage = (id: number) => {
-        const confirmDelete = confirm('Are you sure you want to delete this message?')
-        if (confirmDelete) {
-            setMessages((prev) => prev.filter((msg) => msg.id !== id))
-        }
-    }
-
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+    const totalPages = Math.ceil(media.length / ITEMS_PER_PAGE)
+    const displayedMedia = media.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white flex flex-col pt-32 px-4 pb-6">
-            <h1 className="text-3xl font-bold text-center mb-6">FORUM DISCUSS</h1>
+        <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-6 pt-32 pb-10">
+            <h1 className="text-3xl font-bold text-center mb-8">GALLERY</h1>
 
-            <div className="flex flex-col bg-white text-black rounded-lg shadow-lg flex-grow max-h-[70vh] overflow-hidden">
-                <div className="bg-red-900 text-white px-4 py-3 text-lg font-semibold">Messages</div>
-
-                <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-white">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className="relative group">
-                            <p className="text-sm font-semibold mb-1 text-gray-800">{msg.user}</p>
-                            {msg.text && (
-                                <p
-                                    className="bg-gray-200 text-black px-3 py-2 rounded-lg max-w-[80%] break-words"
-                                    dangerouslySetInnerHTML={{ __html: msg.text }}
-                                ></p>
-                            )}
-                            {msg.mediaUrls && msg.mediaUrls.map((media, i) => (
-                                media.type === 'image' ? (
-                                    <img key={i} src={media.url} alt="uploaded" className="mt-2 max-w-[60%] rounded-md shadow" />
-                                ) : (
-                                    <video key={i} src={media.url} controls className="mt-2 max-w-[60%] rounded-md shadow" />
-                                )
-                            ))}
-                            <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
-
-                            <button
-                                onClick={() => deleteMessage(msg.id)}
-                                className="absolute top-0 right-0 p-1 hidden group-hover:block text-red-600 hover:text-red-800"
-                            >
-                                <FaTrash />
-                            </button>
-                        </div>
-                    ))}
-                    <div ref={chatEndRef} />
-                </div>
-
-                {previews.length > 0 && (
-                    <div className="flex items-start gap-4 flex-wrap bg-gray-300 text-black p-4">
-                        {previews.map((preview, idx) => (
-                            <div key={idx} className="relative w-24 text-center">
-                                {preview.type === 'image' ? (
-                                    <img src={preview.url} alt="Preview" className="w-24 h-24 object-cover rounded border mb-1" />
-                                ) : (
-                                    <video src={preview.url} className="w-24 h-24 object-cover rounded border mb-1" />
-                                )}
-                                <p className="text-xs break-words max-w-[6rem] truncate">{preview.file.name}</p>
-                                <button
-                                    onClick={() => setPreviews((prev) => prev.filter((_, i) => i !== idx))}
-                                    className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white rounded-full p-1"
-                                >
-                                    <FaTimes size={12} />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-
-                <div className="bg-gray-100 px-4 py-3 flex items-center gap-2">
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-gray-600 hover:text-black"
-                        title="Upload"
-                    >
-                        <FaPlus />
-                    </button>
+            <div className="flex gap-4 justify-center mb-8">
+                <label className="bg-white text-black px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 shadow">
+                    <FaPlus />
+                    <span>Add File</span>
                     <input
-                        ref={fileInputRef}
                         type="file"
-                        accept="image/*,video/*"
+                        accept={fileType === 'image' ? 'image/*' : 'video/*'}
                         className="hidden"
-                        onChange={handleFileChange}
-                        multiple
+                        onChange={handleFileUpload}
                     />
-                    <input
-                        type="text"
-                        className="flex-grow bg-white rounded px-3 py-2 text-black"
-                        placeholder="Message"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                    />
-                    <button
-                        onClick={sendMessage}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Send"
-                    >
-                        <FaPaperPlane />
-                    </button>
-                </div>
+                </label>
+
+                <button
+                    onClick={() => setFileType('image')}
+                    className={`border px-4 py-3 rounded-lg ${fileType === 'image' ? 'border-blue-400' : 'border-transparent'}`}
+                >
+                    <FaImage />
+                </button>
+
+                <button
+                    onClick={() => setFileType('video')}
+                    className={`border px-4 py-3 rounded-lg ${fileType === 'video' ? 'border-blue-400' : 'border-transparent'}`}
+                >
+                    <FaVideo />
+                </button>
             </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-white/10 p-4 rounded-xl mb-6">
+                {displayedMedia.length === 0 && (
+                    <p className="text-center col-span-full text-sm text-gray-400">No media uploaded.</p>
+                )}
+                {displayedMedia.map((item) => (
+                    <div key={item.id} className="bg-white/20 p-2 rounded-md text-center cursor-pointer" onClick={() => setSelectedMedia(item)}>
+                        {item.type === 'image' ? (
+                            <img src={item.url} alt="Uploaded" className="w-full h-48 object-cover rounded" />
+                        ) : (
+                            <video src={item.url} className="w-full h-48 rounded object-cover" muted />
+                        )}
+                        <p className="text-sm mt-2 text-gray-200 italic">Uploaded by: {item.username}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="flex justify-center gap-2 mt-4 text-sm">
+                <button
+                    className="text-gray-400 hover:text-white"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                >
+                    &lt; Prev
+                </button>
+                {[...Array(totalPages)].map((_, index) => (
+                    <button
+                        key={index + 1}
+                        onClick={() => setPage(index + 1)}
+                        className={`w-8 h-8 rounded ${page === index + 1 ? 'bg-white text-black font-bold' : 'bg-gray-700 text-white'
+                            }`}
+                    >
+                        {index + 1}
+                    </button>
+                ))}
+                <button
+                    className="text-gray-400 hover:text-white"
+                    disabled={page === totalPages}
+                    onClick={() => setPage(page + 1)}
+                >
+                    Next &gt;
+                </button>
+            </div>
+
+            {selectedMedia && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedMedia(null)}>
+                    <div className="max-w-3xl w-full p-4" onClick={(e) => e.stopPropagation()}>
+                        {selectedMedia.type === 'image' ? (
+                            <img src={selectedMedia.url} alt="Full" className="w-full max-h-[80vh] object-contain rounded" />
+                        ) : (
+                            <video src={selectedMedia.url} controls autoPlay className="w-full max-h-[80vh] object-contain rounded" />
+                        )}
+                        <p className="text-center text-sm mt-2 text-gray-300 italic">
+                            Uploaded by: {selectedMedia.username}
+                        </p>
+                        <button
+                            className="block mx-auto mt-4 px-6 py-2 bg-white text-black rounded hover:bg-gray-200"
+                            onClick={() => setSelectedMedia(null)}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
