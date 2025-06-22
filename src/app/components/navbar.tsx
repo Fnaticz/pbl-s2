@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation';
+const router = useRouter();
+
 
 export default function Navbar() {
   const [user, setUser] = useState<{ username: string; email: string } | null>(null)
@@ -37,8 +40,6 @@ export default function Navbar() {
                 >
                   Business Page
                 </Link>
-{/* <<<<<<< HEAD
-======= */}
                 {user && (
                   <Link
                     href="/forum"
@@ -48,8 +49,6 @@ export default function Navbar() {
                     Forum Page
                   </Link>
                 )}
-
-{/* >>>>>>> 9ea71456b8f0fc870f60e3615bdde7c34a917d10 */}
               </div>
             )}
           </div>
@@ -73,12 +72,24 @@ export default function Navbar() {
                 <Link href="/profile" className="block px-4 py-2 hover:bg-red-600">Profile Settings</Link>
                 <Link href="/inbox" className="block px-4 py-2 hover:bg-red-600">Inbox</Link>
                 <button
-                  onClick={() => {
-                    localStorage.removeItem('currentUser')
-                    window.location.href = '/'
+                  onClick={async () => {
+                    try {
+                      // Hapus session cookie di server
+                      await fetch('/api/logout');
+                      
+                      // Hapus cache client-side (opsional)
+                      localStorage.removeItem('currentUser');
+
+                      // Redirect ke homepage
+                      router.push('/');
+                    } catch (err) {
+                      console.error("Logout failed:", err);
+                    }
                   }}
-                  className="block w-full text-left text-red-500 px-4 py-2 hover:bg-red-600 hover:text-white"
-                >Logout</button>
+                  className="block w-full text-left text-red-500 px-4 py-2 hover:bg-red-600 hover:text-white">
+                  Logout
+                </button>
+
               </div>
             )}
           </div>
