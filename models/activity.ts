@@ -8,14 +8,12 @@ export interface IActivity extends Document {
   createdAt: Date;
 }
 
-const ActivitySchema = new Schema<IActivity>(
-  {
-    title: { type: String, required: true },
-    name: { type: String, required: true },
-    desc: { type: String, required: true },
-    imageUrl: { type: String, required: true },
-  },
-  { timestamps: true }
-);
+const ActivitySchema = new Schema<IActivity>({
+  title: { type: String, required: true },
+  name: { type: String, required: true },
+  desc: { type: String, required: true },
+  imageUrl: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
 
 export default mongoose.models.Activity || mongoose.model<IActivity>('Activity', ActivitySchema);

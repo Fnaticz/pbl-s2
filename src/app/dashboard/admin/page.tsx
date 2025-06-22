@@ -182,6 +182,17 @@ export default function AdminDashboard() {
       
         fetchBanners();
       }, []);
+
+      useEffect(() => {
+        const fetchActivities = async () => {
+          const res = await fetch('/api/activity');
+          const data = await res.json();
+          setActivityReports(data);
+        };
+      
+        fetchActivities();
+      }, []);
+      
       
 
     const renderSection = () => {
