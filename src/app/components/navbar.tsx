@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation';
-const router = useRouter();
 
 
 export default function Navbar() {
   const [user, setUser] = useState<{ username: string; email: string } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuProfile, setMenuProfile] = useState(false)
+  const router = useRouter();
 
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser')
@@ -74,13 +74,8 @@ export default function Navbar() {
                 <button
                   onClick={async () => {
                     try {
-                      // Hapus session cookie di server
                       await fetch('/api/logout');
-                      
-                      // Hapus cache client-side (opsional)
                       localStorage.removeItem('currentUser');
-
-                      // Redirect ke homepage
                       router.push('/');
                     } catch (err) {
                       console.error("Logout failed:", err);
