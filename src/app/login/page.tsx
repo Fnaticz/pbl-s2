@@ -60,7 +60,9 @@ export default function LoginPage() {
   
         toast.success("Login successful");
   
-        // Redirect berdasarkan role
+        console.log("Session:", session);
+  
+        // direct sesuai rolee
         if (session.role === 'admin') {
           router.push('/dashboard/admin');
         } else if (session.role === 'member') {
@@ -76,8 +78,6 @@ export default function LoginPage() {
       toast.error("Terjadi kesalahan saat mengambil session");
     }
   };
-  
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/loginbg.png')] bg-cover bg-center">

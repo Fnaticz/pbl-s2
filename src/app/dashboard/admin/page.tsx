@@ -7,10 +7,16 @@ import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, 
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('stats')
-    const [members, setMembers] = useState<{ username: string; email: string; date: string }[]>([])
-    const [pendingMember, setPendingMember] = useState<{
+    const [members, setMembers] = useState<{
+        _id: string;
         username: string;
-        email: string;
+        emailOrPhone: string;
+        date: string;
+    }[]>([])
+    const [pendingMember, setPendingMember] = useState<{
+        _id: string;
+        username: string;
+        emailOrPhone: string;
         name: string;
         address: string;
         phone: string;
@@ -30,6 +36,32 @@ export default function AdminDashboard() {
     const [schedules, setSchedules] = useState<{ date: string; title: string; created: string }[]>([])
     const [eventDate, setEventDate] = useState('')
     const [eventTitle, setEventTitle] = useState('')
+    const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
+
+    const fetchMembers = async () => {
+        const res = await fetch('/api/members/list');
+        const data = await res.json();
+        setPendingMember(data.pending);
+        setMembers(data.approved);
+    };
+
+    useEffect(() => {
+        const fetchStats = async () => {
+          try {
+            const res = await fetch('/api/members/stats');
+            const data = await res.json();
+            setStats(data);
+          } catch (err) {
+            console.error("Failed to fetch stats:", err);
+          }
+        };
+      
+        fetchStats();
+      }, []);
+
+    useEffect(() => {
+        fetchMembers();
+    }, []);    
 
     const calculateTotal = () => {
         const total = financeRecords.reduce((sum, record) => sum + record.amount, 0)
@@ -47,49 +79,50 @@ export default function AdminDashboard() {
         localStorage.setItem('inboxMessages', JSON.stringify(inbox))
     }
 
-    const handleAccept = (index: number) => {
-        const confirmAccept = confirm('Accept this member?')
-        if (!pendingMember) return
-        const member = pendingMember[index]
-        const newMember = {
-            username: member.username,
-            email: member.email,
-            date: new Date().toLocaleString()
+    const handleAccept = async (id: string) => {
+        try {
+          const res = await fetch('/api/members/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, action: 'accept' })
+          });
+      
+          const result = await res.json();
+          if (res.ok) {
+            setPendingMember(prev => prev.filter(m => m._id !== id));
+            fetchMembers();
+            alert('Accepted successfully');
+          } else {
+            alert(result.message || 'Failed to accept');
+          }
+        } catch (error) {
+          console.error(error);
+          alert('Error accepting application');
         }
-        const updated = [...members, newMember]
-        setMembers(updated)
-        localStorage.setItem('approvedMembers', JSON.stringify(updated))
-
-        pushInboxMessage({
-            from: 'Admin',
-            type: 'admin',
-            content: `Your application has been approved. Welcome, ${member.name}!`,
-            date: new Date().toLocaleString()
-        })
-
-
-        const updatedPending = pendingMember.filter((_, i) => i !== index)
-        setPendingMember(updatedPending)
-        localStorage.setItem('pendingMembers', JSON.stringify(updatedPending))
-    }
-
-    const handleReject = (index: number) => {
-        const member = pendingMember[index]
-        const confirmReject = confirm('Reject this application?')
-        if (!confirmReject) return
-
-        pushInboxMessage({
-            from: 'Admin',
-            type: 'admin',
-            content: `Sorry ${member.name}, your registration was rejected.`,
-            date: new Date().toLocaleString()
-        })
-
-        const updated = pendingMember.filter((_, i) => i !== index)
-        setPendingMember(updated)
-        localStorage.setItem('pendingMembers', JSON.stringify(updated))
-        alert('Application rejected.')
-    }
+      };
+      
+      const handleReject = async (id: string) => {
+        try {
+          const res = await fetch('/api/members/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, action: 'reject' })
+          });
+      
+          const result = await res.json();
+          if (res.ok) {
+            setPendingMember(prev => prev.filter(m => m._id !== id));
+            alert('Rejected successfully');
+          } else {
+            alert(result.message || 'Failed to reject');
+          }
+        } catch (error) {
+          console.error(error);
+          alert('Error rejecting application');
+        }
+      };
+      
+      
 
     const renderSection = () => {
         switch (activeTab) {
@@ -98,59 +131,60 @@ export default function AdminDashboard() {
                     <div>
                         <h2 className="text-xl font-bold mb-4">Member Statistics</h2>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-gray-700 text-white p-4 rounded shadow">Total Members: {0 + members.length}</div>
-                            <div className="bg-gray-700 text-white p-4 rounded shadow">Pending Members: {pendingMember.length}</div>
+                            <div className="bg-gray-700 text-white p-4 rounded shadow">Total Members: {stats.totalMembers}</div>
+                            <div className="bg-gray-700 text-white p-4 rounded shadow">Pending Members: {stats.pendingMembers}</div>
                         </div>
                     </div>
                 )
             case 'members':
                 return (
                     <div>
-                        <h2 className="text-xl font-bold mb-4">Member Registration Management</h2>
-                        {pendingMember.length > 0 ? (
-                            pendingMember.map((m, i) => (
-                                <div className="bg-gray-700 text-white p-4 rounded shadow mb-4">
-                                    <p><strong>Username:</strong> {m.username}</p>
-                                    <p><strong>Email:</strong> {m.email}</p>
-                                    <p><strong>Name:</strong> {m.name}</p>
-                                    <p><strong>Address:</strong> {m.address}</p>
-                                    <p><strong>Phone:</strong> {m.phone}</p>
-                                    <p><strong>Hobby:</strong> {m.hobby}</p>
-                                    <p><strong>Vehicle Type:</strong> {m.vehicleType}</p>
-                                    <p><strong>Vehicle Spec:</strong> {m.vehicleSpec}</p>
-                                    <textarea placeholder="Message to applicant..." className="w-full mt-2 p-2 border rounded"></textarea>
-                                    <div className="flex gap-2 mt-2">
-                                        <button onClick={() => handleAccept(i)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
-                                        <button onClick={() => handleReject(i)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-gray-400 mb-4">No new registration.</p>
-                        )}
+                    <h2 className="text-xl font-bold mb-4">Member Registration Management</h2>
 
-                        <h3 className="text-lg font-semibold mb-2">Approved Members</h3>
-                        {members.map((m, i) => (
-                            <div key={i} className="bg-gray-700 text-white p-3 mb-2 rounded shadow flex justify-between items-center">
-                                <div>
-                                    <p><strong>{m.username}</strong></p>
-                                    <p className="text-sm text-gray-300">{m.email}</p>
-                                    <p className="text-xs text-gray-400">Approved: {m.date}</p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        const confirmDelete = confirm('Remove member rights?')
-                                        if (confirmDelete) {
-                                            setMembers(members.filter((_, idx) => idx !== i))
-                                        }
-                                    }}
-                                    className="text-red-600 hover:text-red-800"
-                                >
-                                    <FaTrash />
-                                </button>
+                    {pendingMember.length > 0 ? (
+                        pendingMember.map((m) => (
+                        <div key={m._id} className="bg-gray-700 text-white p-4 rounded shadow mb-4">
+                            <p><strong>Username:</strong> {m.username}</p>
+                            <p><strong>Email:</strong> {m.emailOrPhone || '-'}</p>
+                            <p><strong>Name:</strong> {m.name}</p>
+                            <p><strong>Address:</strong> {m.address}</p>
+                            <p><strong>Phone:</strong> {m.phone}</p>
+                            <p><strong>Hobby:</strong> {m.hobby}</p>
+                            <p><strong>Vehicle Type:</strong> {m.vehicleType}</p>
+                            <p><strong>Vehicle Spec:</strong> {m.vehicleSpec}</p>
+                            <div className="flex gap-2 mt-2">
+                            <button onClick={() => handleAccept(m._id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
+                            <button onClick={() => handleReject(m._id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
                             </div>
-                        ))}
+                        </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-gray-400 mb-4">No new registration.</p>
+                    )}
+
+                    <h3 className="text-lg font-semibold mb-2">Approved Members</h3>
+                    {members.map((m) => (
+                        <div key={m._id} className="bg-gray-700 text-white p-3 mb-2 rounded shadow flex justify-between items-center">
+                        <div>
+                            <p><strong>{m.username}</strong></p>
+                            <p className="text-sm text-gray-300">{m.emailOrPhone || '-'}</p>
+                            <p className="text-xs text-gray-400">Approved: {m.date}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                            const confirmDelete = confirm('Remove member rights?');
+                            if (confirmDelete) {
+                                setMembers(members.filter((user) => user._id !== m._id));
+                            }
+                            }}
+                            className="text-red-600 hover:text-red-800"
+                        >
+                            <FaTrash />
+                        </button>
+                        </div>
+                    ))}
                     </div>
+
                 )
             case 'banner':
                 return (
