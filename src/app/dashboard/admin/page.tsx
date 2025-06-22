@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import type { IBanner } from '../../../../models/banner';
 import Link from 'next/link'
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
@@ -268,10 +269,10 @@ export default function AdminDashboard() {
           if (user.role === 'admin') {
             setAllowed(true)
           } else {
-            router.replace('/not-authorized')
+            notFound()
           }
         } catch {
-          router.replace('/login')
+          notFound()
         } finally {
           setAccessLoading(false)
         }
