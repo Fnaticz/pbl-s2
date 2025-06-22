@@ -31,7 +31,7 @@ export default function AdminDashboard() {
     const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
     const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string }[]>([])
-    const [financeRecords, setFinanceRecords] = useState<{ description: string; amount: number; date: string }[]>([])
+    const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
     const [totalAmount, setTotalAmount] = useState<number | null>(null)
     const [schedules, setSchedules] = useState<{ date: string; title: string; created: string }[]>([])
     const [eventDate, setEventDate] = useState('')
@@ -232,6 +232,15 @@ export default function AdminDashboard() {
       
         fetchActivities();
       }, []);
+
+      useEffect(() => {
+        const fetchRecords = async () => {
+          const res = await fetch('/api/finance');
+          const data = await res.json();
+          setFinanceRecords(data);
+        };
+        fetchRecords();
+      }, []);      
       
       
 
@@ -355,16 +364,33 @@ export default function AdminDashboard() {
                         <input id="finance-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
                         <input id="finance-amt" type="number" placeholder="Amount" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
                         <button
-                            onClick={() => {
-                                const desc = (document.getElementById("finance-desc") as HTMLInputElement)?.value
-                                const amt = parseFloat((document.getElementById("finance-amt") as HTMLInputElement)?.value || "0")
+                            onClick={async () => {
+                                const desc = (document.getElementById("finance-desc") as HTMLInputElement)?.value;
+                                const amt = parseFloat((document.getElementById("finance-amt") as HTMLInputElement)?.value || "0");
+                              
                                 if (desc && amt && confirm('Submit finance report?')) {
-                                    setFinanceRecords([...financeRecords, { description: desc, amount: amt, date: new Date().toLocaleString() }])
-                                    localStorage.setItem('financeReports', JSON.stringify([...financeRecords, { description: desc, amount: amt, date: new Date().toLocaleString() }]))
-
-                                    setTotalAmount(null)
+                                  const res = await fetch('/api/finance/upload', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      description: desc,
+                                      amount: amt,
+                                      date: new Date().toLocaleString()
+                                    }),
+                                  });
+                              
+                                  if (res.ok) {
+                                    const data = await res.json();
+                                    setFinanceRecords(prev => [...prev, {
+                                      _id: data._id || String(Date.now()),
+                                      description: desc,
+                                      amount: amt,
+                                      date: new Date().toLocaleString()
+                                    }]);
+                                    setTotalAmount(null);
+                                  }
                                 }
-                            }}
+                              }}                              
                             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                         >
                             Submit Report
@@ -386,14 +412,23 @@ export default function AdminDashboard() {
                                             <td className="py-2">Rp{f.amount.toLocaleString()}</td>
                                             <td className="py-2 text-right">
                                                 <button
-                                                    onClick={() => {
-                                                        if (confirm('Delete this finance record?')) {
-                                                            const updated = financeRecords.filter((_, idx) => idx !== i)
-                                                            setFinanceRecords(updated)
-                                                            localStorage.setItem('financeReports', JSON.stringify(updated))
-                                                            setTotalAmount(null)
+                                                    onClick={async () => {
+                                                        if (!confirm('Delete this finance record?')) return;
+                                                      
+                                                        const recordToDelete = financeRecords[i];
+                                                        const res = await fetch('/api/finance/delete', {
+                                                          method: 'DELETE',
+                                                          headers: { 'Content-Type': 'application/json' },
+                                                          body: JSON.stringify({ id: recordToDelete._id }),
+                                                        });
+                                                      
+                                                        if (res.ok) {
+                                                          const updated = financeRecords.filter((_, idx) => idx !== i);
+                                                          setFinanceRecords(updated);
+                                                          setTotalAmount(null);
                                                         }
-                                                    }}
+                                                      }}
+                                                      
                                                     className="text-red-500 hover:text-red-700"
                                                 >
                                                     <FaTrash />
