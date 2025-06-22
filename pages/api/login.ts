@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectDB } from '../../lib/mongodb';
 import User from '../../models/user';
 import bcrypt from 'bcryptjs';
+import { serialize } from 'cookie';
 
 type Data = {
   message: string;
@@ -32,7 +33,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    // bisa tambah buat token, cookie, atau session di sini
+    const sessionData = JSON.stringify({ username: user.username, role: user.role });
+    res.setHeader('Set-Cookie', serialize('session', sessionData, {
+    path: '/',
+    httpOnly: true,
+    maxAge: 60 * 60 * 24,
+    }));
 
     return res.status(200).json({ message: 'Login successful', success: true });
   } catch (error: any) {

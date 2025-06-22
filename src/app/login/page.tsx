@@ -1,3 +1,4 @@
+//src/app/login/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -19,41 +20,64 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("currentUser", JSON.stringify({
-      username: "ka",
-      email: "ka@gmail.com"
-    }))
-
-
+  
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
     });
-
+  
+    const data = await res.json();
+    if (!res.ok) {
+      setMessage(data.message || "Login failed");
+      toast.error(data.message || "Login failed");
+      return;
+    }
+  
     const response = await signIn("credentials", {
       redirect: false,
       username: formData.username,
       password: formData.password,
     });
-
+  
     if (response?.error) {
-      setMessage("Invalid email or password");
-      toast.error("Invalid email or password");
-      if (response?.url) router.replace("/dashboard");
-    } else {
-      setMessage("");
-      toast.success("Successful login");
+      toast.error("Invalid username or password");
+      setMessage("Invalid username or password");
+      return;
     }
-
-    const data = await res.json();
-    setMessage(data.message);
-
-    //direct linknya
-    if (data.success) {
-      window.location.href = '/profile';
+  
+    // buat catch session
+    try {
+      const sessionRes = await fetch('/api/session');
+      if (sessionRes.ok) {
+        const session = await sessionRes.json();
+  
+        localStorage.setItem("currentUser", JSON.stringify({
+          username: session.username,
+          email: session.email,
+          role: session.role
+        }));
+  
+        toast.success("Login successful");
+  
+        // Redirect berdasarkan role
+        if (session.role === 'admin') {
+          router.push('/dashboard/admin');
+        } else if (session.role === 'member') {
+          router.push('/dashboard/member');
+        } else {
+          toast.warning("Access denied. You're not authorized for dashboard.");
+        }
+      } else {
+        toast.error("Gagal mengambil session login");
+      }
+    } catch (err) {
+      console.error("Failed to fetch session", err);
+      toast.error("Terjadi kesalahan saat mengambil session");
     }
   };
+  
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/loginbg.png')] bg-cover bg-center">
@@ -91,7 +115,7 @@ export default function LoginPage() {
             Login
           </button>
 
-          {message && <p className="text-center text-sm text-red-500 mt-2">{message}</p>}
+          {message && <p className="text-center text-sm text-green-500 mt-2">{message}</p>}
         </form>
 
         <div className="flex items-center justify-between mt-4">
