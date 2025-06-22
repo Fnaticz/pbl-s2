@@ -33,7 +33,7 @@ export default function AdminDashboard() {
     const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string }[]>([])
     const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
     const [totalAmount, setTotalAmount] = useState<number | null>(null)
-    const [schedules, setSchedules] = useState<{ date: string; title: string; created: string }[]>([])
+    const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
     const [eventDate, setEventDate] = useState('')
     const [eventTitle, setEventTitle] = useState('')
     const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
@@ -242,7 +242,14 @@ export default function AdminDashboard() {
         fetchRecords();
       }, []);      
       
-      
+      useEffect(() => {
+        const fetchSchedules = async () => {
+          const res = await fetch('/api/schedule');
+          const data = await res.json();
+          setSchedules(data);
+        };
+        fetchSchedules();
+      }, []);      
 
     const renderSection = () => {
         switch (activeTab) {
@@ -538,23 +545,36 @@ export default function AdminDashboard() {
                             className="bg-gray-700 w-full mb-2 p-2 border rounded"
                         />
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 if (eventDate && eventTitle && confirm('Save event schedule?')) {
-                                    const newData = [...schedules, {
-                                        date: eventDate,
-                                        title: eventTitle,
-                                        created: new Date().toLocaleString()
-                                    }]
-                                    setSchedules([...schedules, {
-                                        date: eventDate,
-                                        title: eventTitle,
-                                        created: new Date().toLocaleString()
-                                    }])
-                                    localStorage.setItem('eventSchedules', JSON.stringify(newData))
-                                    setEventDate('')
-                                    setEventTitle('')
+                                  const payload = {
+                                    date: eventDate,
+                                    title: eventTitle,
+                                    created: new Date().toLocaleString(),
+                                  };
+                              
+                                  const res = await fetch('/api/schedule/upload', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload),
+                                  });
+                              
+                                  if (res.ok) {
+                                    const newEvent = await res.json();
+                                    setSchedules(prev => [...prev, {
+                                      _id: newEvent._id || String(Date.now()),
+                                      date: eventDate,
+                                      title: eventTitle,
+                                      created: new Date().toLocaleString()
+                                    }]);
+                                    setEventDate('');
+                                    setEventTitle('');
+                                  } else {
+                                    alert('Failed to save schedule');
+                                  }
                                 }
-                            }}
+                              }}
+                              
                             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                         >
                             Mark Event Date
@@ -568,13 +588,21 @@ export default function AdminDashboard() {
                                         <p className="text-xs text-gray-400">Added: {s.created}</p>
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            if (confirm('Delete this event schedule?')) {
-                                                const updated = schedules.filter((_, idx) => idx !== i)
-                                                setSchedules(updated)
-                                                localStorage.setItem('eventSchedules', JSON.stringify(updated))
+                                        onClick={async () => {
+                                            if (!confirm('Delete this event schedule?')) return;
+                                          
+                                            const recordToDelete = schedules[i];
+                                            const res = await fetch('/api/schedule/delete', {
+                                              method: 'DELETE',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ id: recordToDelete._id }),
+                                            });
+                                          
+                                            if (res.ok) {
+                                              const updated = schedules.filter((_, idx) => idx !== i);
+                                              setSchedules(updated);
                                             }
-                                        }}
+                                          }}                                          
                                         className="text-red-500 hover:text-red-700"
                                     >
                                         <FaTrash />
