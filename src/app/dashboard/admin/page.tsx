@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { IBanner } from '../../../../models/banner';
 import Link from 'next/link'
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
@@ -250,6 +251,35 @@ export default function AdminDashboard() {
         };
         fetchSchedules();
       }, []);      
+
+      const router = useRouter()
+      const [accessLoading, setAccessLoading] = useState(true)
+      const [allowed, setAllowed] = useState(false)
+
+      useEffect(() => {
+        const userString = localStorage.getItem('currentUser')
+        if (!userString) {
+          router.replace('/login')
+          return
+        }
+
+        try {
+          const user = JSON.parse(userString)
+          if (user.role === 'admin') {
+            setAllowed(true)
+          } else {
+            router.replace('/not-authorized')
+          }
+        } catch {
+          router.replace('/login')
+        } finally {
+          setAccessLoading(false)
+        }
+      }, [router])
+
+      if (accessLoading) return <p className="text-white text-center pt-32">Checking access...</p>
+      if (!allowed) return null
+
 
     const renderSection = () => {
         switch (activeTab) {
