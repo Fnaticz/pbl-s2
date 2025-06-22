@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { IBanner } from '../../../../models/banner';
 import Link from 'next/link'
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 
@@ -26,7 +27,6 @@ export default function AdminDashboard() {
     }[]>([])
     const [bannerPreview, setBannerPreview] = useState<string | null>(null)
     const [bannerName, setBannerName] = useState('')
-    const [bannerReports, setBannerReports] = useState<{ name: string; date: string; preview: string }[]>([])
     const [activityPreview, setActivityPreview] = useState<string | null>(null)
     const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
@@ -37,6 +37,10 @@ export default function AdminDashboard() {
     const [eventDate, setEventDate] = useState('')
     const [eventTitle, setEventTitle] = useState('')
     const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
+    const [bannerReports, setBannerReports] = useState<IBanner[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
 
     const fetchMembers = async () => {
         const res = await fetch('/api/members/list');
@@ -122,6 +126,62 @@ export default function AdminDashboard() {
         }
       };
       
+      const handleUpload = async () => {
+        if (bannerName && bannerPreview && confirm('Confirm to upload this banner?')) {
+          const res = await fetch('/api/banner/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: bannerName,
+              imageUrl: bannerPreview, // nanti ganti dengan URL dari storage (Cloudinary atau lainnya)
+            }),
+          });
+      
+          if (res.ok) {
+            const newBanner = await res.json();
+            setBannerReports([
+              ...bannerReports,
+              {
+                _id: String(Date.now()), // atau id lain yang unik
+                name: bannerName,
+                imageUrl: bannerPreview, // ini harus URL gambar, bukan file preview
+                uploadedAt: new Date()
+              }
+            ]);
+            alert('Banner uploaded');
+            setBannerPreview(null);
+            setBannerName('');
+          } else {
+            alert('Failed to upload banner');
+          }
+        }
+      };
+      
+      const handleDelete = async (id: string) => {
+        if (!confirm('Delete this banner?')) return;
+      
+        const res = await fetch('/api/banner/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+      
+        if (res.ok) {
+          setBannerReports(prev => prev.filter(b => b._id !== id));
+        } else {
+          alert('Failed to delete banner');
+        }
+      };
+      
+      useEffect(() => {
+        const fetchBanners = async () => {
+          const res = await fetch('/api/banner');
+          const data = await res.json();
+          setBannerReports(data);
+        };
+      
+        fetchBanners();
+      }, []);
       
 
     const renderSection = () => {
@@ -209,34 +269,24 @@ export default function AdminDashboard() {
                             </div>
                         )}
                         <button
-                            onClick={() => {
-                                if (bannerName && bannerPreview && confirm('Confirm to upload this banner?')) {
-                                    setBannerReports([...bannerReports, { name: bannerName, date: new Date().toLocaleString(), preview: bannerPreview }])
-                                    alert('Banner uploaded')
-                                    setBannerPreview(null)
-                                    setBannerName('')
-                                }
-                            }}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        onClick={handleUpload}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                         >
-                            Upload Banner
+                        Upload Banner
                         </button>
+
                         <div className="mt-4">
                             <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
-                            {bannerReports.map((b, i) => (
-                                <div key={i} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                                    <img src={b.preview} alt="Banner Preview" className="w-full max-w-sm rounded mb-2" />
+                            {bannerReports.map((b) => (
+                            <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
+                                    <img src={b.imageUrl} alt="Banner Preview" className="w-full max-w-sm rounded mb-2" />
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p>{b.name}</p>
-                                            <p className="text-xs text-gray-400">Uploaded: {b.date}</p>
+                                            <p className="text-xs text-gray-400">Uploaded: {b.uploadedAt ? new Date(b.uploadedAt).toLocaleString() : '-'}</p>
                                         </div>
                                         <button
-                                            onClick={() => {
-                                                if (confirm('Delete this banner?')) {
-                                                    setBannerReports(bannerReports.filter((_, idx) => idx !== i))
-                                                }
-                                            }}
+                                            onClick={() => handleDelete(b._id)}
                                             className="text-red-500 hover:text-red-700"
                                         >
                                             <FaTrash />
