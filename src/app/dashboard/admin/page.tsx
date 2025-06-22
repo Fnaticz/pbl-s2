@@ -30,7 +30,7 @@ export default function AdminDashboard() {
     const [activityPreview, setActivityPreview] = useState<string | null>(null)
     const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
-    const [activityReports, setActivityReports] = useState<{ title: string; name: string; desc: string; date: string; preview: string }[]>([])
+    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string }[]>([])
     const [financeRecords, setFinanceRecords] = useState<{ description: string; amount: number; date: string }[]>([])
     const [totalAmount, setTotalAmount] = useState<number | null>(null)
     const [schedules, setSchedules] = useState<{ date: string; title: string; created: string }[]>([])
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: bannerName,
-              imageUrl: bannerPreview, // nanti ganti dengan URL dari storage (Cloudinary atau lainnya)
+              imageUrl: bannerPreview,
             }),
           });
       
@@ -142,9 +142,9 @@ export default function AdminDashboard() {
             setBannerReports([
               ...bannerReports,
               {
-                _id: String(Date.now()), // atau id lain yang unik
+                _id: String(Date.now()),
                 name: bannerName,
-                imageUrl: bannerPreview, // ini harus URL gambar, bukan file preview
+                imageUrl: bannerPreview,
                 uploadedAt: new Date()
               }
             ]);
@@ -172,6 +172,46 @@ export default function AdminDashboard() {
           alert('Failed to delete banner');
         }
       };
+
+      const handleAddActivity = async () => {
+        const desc = (document.getElementById("activity-desc") as HTMLInputElement)?.value;
+      
+        if (!activityName || !activityTitle || !activityPreview || !desc) return alert("All fields required");
+      
+        if (!confirm("Add this activity?")) return;
+      
+        const res = await fetch('/api/activity/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: activityTitle,
+            name: activityName,
+            desc,
+            imageUrl: activityPreview, // sementara masih preview lokal
+          }),
+        });
+      
+        if (res.ok) {
+          const newActivity = await res.json();
+          setActivityReports(prev => [{
+            _id: newActivity._id || String(Date.now()),
+            title: activityTitle,
+            name: activityName,
+            desc,
+            imageUrl: activityPreview,
+            date: new Date().toLocaleString(),
+            preview: activityPreview
+          }, ...prev]);
+          alert('Activity added');
+          setActivityName('');
+          setActivityTitle('');
+          setActivityPreview(null);
+          (document.getElementById("activity-desc") as HTMLInputElement).value = '';
+        } else {
+          alert('Failed to add activity');
+        }
+      };
+      
       
       useEffect(() => {
         const fetchBanners = async () => {
@@ -406,19 +446,9 @@ export default function AdminDashboard() {
                         )}
                         <input id="activity-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
                         <button
-                            onClick={() => {
-                                const desc = (document.getElementById("activity-desc") as HTMLInputElement)?.value
-                                if (activityName && activityPreview && activityTitle && desc && confirm('Add this activity?')) {
-                                    setActivityReports([...activityReports, { title: activityTitle, name: activityName, desc, date: new Date().toLocaleString(), preview: activityPreview }])
-                                    alert('Activity added')
-                                    setActivityName('')
-                                    setActivityTitle('')
-                                    setActivityPreview(null)
-                                        ; (document.getElementById("activity-desc") as HTMLInputElement).value = ''
-                                }
-                            }}
+                            onClick={handleAddActivity}
                             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                        >
+                            >
                             Add Activity
                         </button>
                         <div className="mt-4">
@@ -434,11 +464,17 @@ export default function AdminDashboard() {
                                             <p className="text-xs text-gray-400">Added: {a.date}</p>
                                         </div>
                                         <button
-                                            onClick={() => {
-                                                if (confirm('Delete this activity?')) {
-                                                    setActivityReports(activityReports.filter((_, idx) => idx !== i))
+                                            onClick={async () => {
+                                                if (!confirm('Delete this activity?')) return;
+                                                const res = await fetch('/api/activity/delete', {
+                                                  method: 'DELETE',
+                                                  headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({ id: a._id }),
+                                                });
+                                                if (res.ok) {
+                                                  setActivityReports(prev => prev.filter(act => act._id !== a._id));
                                                 }
-                                            }}
+                                              }}                                              
                                             className="text-red-500 hover:text-red-700"
                                         >
                                             <FaTrash />
