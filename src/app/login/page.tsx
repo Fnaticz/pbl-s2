@@ -8,11 +8,29 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/navigation';
 import { FcGoogle } from "react-icons/fc";
+import { useEffect } from 'react'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [message, setMessage] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    const userString = localStorage.getItem('currentUser');
+    if (userString) {
+      try {
+        const user = JSON.parse(userString);
+        if (user.role === 'admin') {
+          router.push('/dashboard/admin');
+        } else if (user.role === 'member') {
+          router.push('/dashboard/member');
+        }
+      } catch (error) {
+        console.error('Failed to parse user from localStorage');
+        localStorage.removeItem('currentUser');
+      }
+    }
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
