@@ -39,7 +39,7 @@ export default function AdminDashboard() {
     const [eventDate, setEventDate] = useState('')
     const [eventTitle, setEventTitle] = useState('')
     const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
-    const [bannerReports, setBannerReports] = useState<IBanner[]>([]);
+    const [bannerReports, setBannerReports] = useState<IBanner[]>([])
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -129,56 +129,43 @@ export default function AdminDashboard() {
       };
       
       const handleUpload = async () => {
-        if (bannerName && bannerPreview && confirm('Confirm to upload this banner?')) {
+        const fileInput = document.getElementById("banner-file") as HTMLInputElement;
+        const file = fileInput?.files?.[0];
+
+        if (!file || !confirm("Upload this banner?")) return;
+
+        const reader = new FileReader();
+
+        reader.onloadend = async () => {
+          const base64 = reader.result;
+
           try {
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.onchange = async (e: any) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-      
-              const reader = new FileReader();
-              reader.onloadend = async () => {
-                const base64 = reader.result;
-      
-                const res = await fetch('/api/banner/upload', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    name: file.name,
-                    file: base64,
-                  }),
-                });
-      
-                if (res.ok) {
-                  const newBanner = await res.json();
-                  setBannerReports(prev => [
-                    ...prev,
-                    {
-                      _id: newBanner._id,
-                      name: newBanner.name,
-                      imageUrl: newBanner.imageUrl,
-                      uploadedAt: newBanner.uploadedAt,
-                    },
-                  ]);
-                  alert('Banner uploaded');
-                  setBannerPreview(null);
-                  setBannerName('');
-                } else {
-                  alert('Failed to upload banner');
-                }
-              };
-      
-              reader.readAsDataURL(file);
-            };
-      
-            fileInput.click();
-          } catch (err) {
-            console.error('Upload error:', err);
-            alert('Unexpected error occurred.');
+            const res = await fetch('/api/banner/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: file.name,
+                file: base64
+              }),
+            });
+
+            if (res.ok) {
+              const newBanner = await res.json();
+              setBannerReports(prev => [...prev, newBanner]);
+              alert("Banner uploaded!");
+              setBannerPreview(null);
+              setBannerName('');
+              fileInput.value = '';
+            } else {
+              alert("Failed to upload banner");
+            }
+          } catch (error) {
+            console.error("Upload failed:", error);
+            alert("Upload error occurred");
           }
-        }
+        };
+
+        reader.readAsDataURL(file);
       };
       
       
@@ -241,13 +228,17 @@ export default function AdminDashboard() {
       
       useEffect(() => {
         const fetchBanners = async () => {
-          const res = await fetch('/api/banner');
-          const data = await res.json();
-          setBannerReports(data);
+          try {
+            const res = await fetch('/api/banner');
+            const data = await res.json();
+            setBannerReports(data || []);
+          } catch (err) {
+            console.error('Failed to fetch banners:', err);
+          }
         };
       
         fetchBanners();
-      }, []);
+      }, []);      
 
       useEffect(() => {
         const fetchActivities = async () => {
@@ -368,62 +359,58 @@ export default function AdminDashboard() {
                     </div>
 
                 )
-            case 'banner':
-                return (
+                case 'banner':
+                  return (
                     <div>
-                        <h2 className="text-xl font-bold mb-4">Manage Slideshow Banners</h2>
-                        <input
-                            type="file"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                    const preview = URL.createObjectURL(file)
-                                    setBannerName(file.name)
-                                    setBannerPreview(preview)
-                                }
-                            }}
-                            className="mb-2 hover:text-red-500"
-                        />
-                        {bannerPreview ? (
-                          <div className="mb-4">
-                            <img src={bannerPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
-                            <p className="text-sm text-gray-700">{bannerName}</p>
-                          </div>
-                        ) : bannerReports.length > 0 && (
-                          <div className="mb-4">
-                            <img src={bannerReports[0].imageUrl} alt="Banner Preview" className="w-full max-w-md rounded mb-1" />
-                            <p className="text-sm text-gray-700">{bannerReports[0].name}</p>
-                          </div>
-                        )}
-                        <button
+                      <h2 className="text-xl font-bold mb-4">Manage Banners</h2>
+                      <input
+                        id="banner-file"
+                        type="file"
+                        className="mb-2"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setBannerName(file.name);
+                            setBannerPreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                      {bannerPreview && (
+                        <div className="mb-4">
+                          <img src={bannerPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
+                          <p className="text-sm text-gray-300">{bannerName}</p>
+                        </div>
+                      )}
+                      <button
                         onClick={handleUpload}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                        >
+                      >
                         Upload Banner
-                        </button>
-
-                        <div className="mt-4">
-                            <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
-                            {bannerReports.map((b) => (
-                            <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                                    <img src={b.imageUrl} alt="Banner Preview" className="w-full max-w-sm rounded mb-2" />
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <p>{b.name}</p>
-                                            <p className="text-xs text-gray-400">Uploaded: {b.uploadedAt ? new Date(b.uploadedAt).toLocaleString() : '-'}</p>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDelete(b._id)}
-                                            className="text-red-500 hover:text-red-700"
-                                        >
-                                            <FaTrash />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                      </button>
+                
+                      <div className="mt-4">
+                        <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
+                        {bannerReports.map((b) => (
+                          <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
+                            <img src={b.imageUrl} alt="Banner Preview" className="w-full max-w-sm rounded mb-2" />
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p>{b.name}</p>
+                                <p className="text-xs text-gray-400">Uploaded: {new Date(b.uploadedAt).toLocaleString()}</p>
+                              </div>
+                              <button
+                                onClick={() => handleDelete(b._id)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                )
+                  );
+                
             case 'finance':
                 return (
                     <div>

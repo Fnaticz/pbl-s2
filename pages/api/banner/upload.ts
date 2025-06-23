@@ -1,7 +1,6 @@
-// pages/api/banner/upload.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { join } from 'path';
 import { writeFile } from 'fs/promises';
+import { join } from 'path';
 import { connectDB } from '../../../lib/mongodb';
 import Banner from '../../../models/banner';
 
@@ -26,11 +25,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await connectDB();
 
     const buffer = Buffer.from(file.split(',')[1], 'base64');
-    const filePath = join(process.cwd(), 'public/uploads', name);
+    const fileName = `${Date.now()}-${name}`;
+    const filePath = join(process.cwd(), 'public/uploads', fileName);
 
     await writeFile(filePath, buffer);
 
-    const imageUrl = `/uploads/${name}`;
+    const imageUrl = `/uploads/${fileName}`;
+
     const newBanner = await Banner.create({
       name,
       imageUrl,
