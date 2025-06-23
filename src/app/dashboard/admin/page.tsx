@@ -32,7 +32,7 @@ export default function AdminDashboard() {
     const [activityPreview, setActivityPreview] = useState<string | null>(null)
     const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
-    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string }[]>([])
+    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string }[]>([])
     const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
     const [totalAmount, setTotalAmount] = useState<number | null>(null)
     const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
@@ -130,34 +130,57 @@ export default function AdminDashboard() {
       
       const handleUpload = async () => {
         if (bannerName && bannerPreview && confirm('Confirm to upload this banner?')) {
-          const res = await fetch('/api/banner/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: bannerName,
-              imageUrl: bannerPreview,
-            }),
-          });
+          try {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.onchange = async (e: any) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
       
-          if (res.ok) {
-            const newBanner = await res.json();
-            setBannerReports([
-              ...bannerReports,
-              {
-                _id: String(Date.now()),
-                name: bannerName,
-                imageUrl: bannerPreview,
-                uploadedAt: new Date()
-              }
-            ]);
-            alert('Banner uploaded');
-            setBannerPreview(null);
-            setBannerName('');
-          } else {
-            alert('Failed to upload banner');
+              const reader = new FileReader();
+              reader.onloadend = async () => {
+                const base64 = reader.result;
+      
+                const res = await fetch('/api/banner/upload', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: file.name,
+                    file: base64,
+                  }),
+                });
+      
+                if (res.ok) {
+                  const newBanner = await res.json();
+                  setBannerReports(prev => [
+                    ...prev,
+                    {
+                      _id: newBanner._id,
+                      name: newBanner.name,
+                      imageUrl: newBanner.imageUrl,
+                      uploadedAt: newBanner.uploadedAt,
+                    },
+                  ]);
+                  alert('Banner uploaded');
+                  setBannerPreview(null);
+                  setBannerName('');
+                } else {
+                  alert('Failed to upload banner');
+                }
+              };
+      
+              reader.readAsDataURL(file);
+            };
+      
+            fileInput.click();
+          } catch (err) {
+            console.error('Upload error:', err);
+            alert('Unexpected error occurred.');
           }
         }
       };
+      
       
       const handleDelete = async (id: string) => {
         if (!confirm('Delete this banner?')) return;
@@ -177,43 +200,44 @@ export default function AdminDashboard() {
 
       const handleAddActivity = async () => {
         const desc = (document.getElementById("activity-desc") as HTMLInputElement)?.value;
+        const fileInput = document.getElementById("activity-file") as HTMLInputElement;
+        const file = fileInput?.files?.[0];
       
-        if (!activityName || !activityTitle || !activityPreview || !desc) return alert("All fields required");
+        if (!file || !activityTitle || !desc) return alert("All fields required");
       
         if (!confirm("Add this activity?")) return;
       
-        const res = await fetch('/api/activity/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: activityTitle,
-            name: activityName,
-            desc,
-            imageUrl: activityPreview, // sementara masih preview lokal
-          }),
-        });
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = reader.result;
       
-        if (res.ok) {
-          const newActivity = await res.json();
-          setActivityReports(prev => [{
-            _id: newActivity._id || String(Date.now()),
-            title: activityTitle,
-            name: activityName,
-            desc,
-            imageUrl: activityPreview,
-            date: new Date().toLocaleString(),
-            preview: activityPreview
-          }, ...prev]);
-          alert('Activity added');
-          setActivityName('');
-          setActivityTitle('');
-          setActivityPreview(null);
-          (document.getElementById("activity-desc") as HTMLInputElement).value = '';
-        } else {
-          alert('Failed to add activity');
-        }
+          const res = await fetch('/api/activity/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: activityTitle,
+              name: file.name,
+              desc,
+              file: base64
+            }),
+          });
+      
+          if (res.ok) {
+            const newActivity = await res.json();
+            setActivityReports([...activityReports, newActivity]);
+            alert("Activity uploaded!");
+            setActivityTitle('');
+            setActivityName('');
+            setActivityPreview(null);
+            (document.getElementById("activity-desc") as HTMLInputElement).value = '';
+            fileInput.value = '';
+          } else {
+            alert("Upload failed");
+          }
+        };
+      
+        reader.readAsDataURL(file);
       };
-      
       
       useEffect(() => {
         const fetchBanners = async () => {
@@ -360,11 +384,16 @@ export default function AdminDashboard() {
                             }}
                             className="mb-2 hover:text-red-500"
                         />
-                        {bannerPreview && (
-                            <div className="mb-4">
-                                <img src={bannerPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
-                                <p className="text-sm text-gray-700">{bannerName}</p>
-                            </div>
+                        {bannerPreview ? (
+                          <div className="mb-4">
+                            <img src={bannerPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
+                            <p className="text-sm text-gray-700">{bannerName}</p>
+                          </div>
+                        ) : bannerReports.length > 0 && (
+                          <div className="mb-4">
+                            <img src={bannerReports[0].imageUrl} alt="Banner Preview" className="w-full max-w-md rounded mb-1" />
+                            <p className="text-sm text-gray-700">{bannerReports[0].name}</p>
+                          </div>
                         )}
                         <button
                         onClick={handleUpload}
@@ -493,16 +522,23 @@ export default function AdminDashboard() {
                     <div>
                         <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
                         <input
-                            type="file"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                    const preview = URL.createObjectURL(file)
-                                    setActivityName(file.name)
-                                    setActivityPreview(preview)
-                                }
-                            }}
-                            className="mb-2 hover:text-red-500"
+                          id="activity-file"
+                          type="file"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setActivityName(file.name);
+                          
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64 = reader.result as string;
+                                setActivityPreview(base64);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          
+                          className="mb-2"
                         />
                         <input
                             type="text"
@@ -512,10 +548,10 @@ export default function AdminDashboard() {
                             className="bg-gray-700 w-full mb-2 p-2 border rounded"
                         />
                         {activityPreview && (
-                            <div className="mb-4">
-                                <img src={activityPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
-                                <p className="text-sm text-gray-700">{activityName}</p>
-                            </div>
+                          <div className="mb-4">
+                            <img src={activityPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
+                            <p className="text-sm text-gray-700">{activityName}</p>
+                          </div>
                         )}
                         <input id="activity-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
                         <button
@@ -528,7 +564,7 @@ export default function AdminDashboard() {
                             <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
                             {activityReports.map((a, i) => (
                                 <div key={i} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                                    <img src={a.preview} alt="Activity Preview" className="w-full max-w-sm rounded mb-2" />
+                                    <img src={a.imageUrl} alt="Activity Preview" className="w-full max-w-sm rounded mb-2" />
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className='text-sm text-gray-400'>{a.name}</p>
