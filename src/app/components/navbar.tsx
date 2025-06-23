@@ -77,6 +77,7 @@ export default function Navbar() {
                       await fetch('/api/logout');
                       localStorage.removeItem('currentUser');
                       router.push('/');
+                      setTimeout(() => location.reload(), 100);
                     } catch (err) {
                       console.error("Logout failed:", err);
                     }
@@ -84,6 +85,7 @@ export default function Navbar() {
                   className="block w-full text-left text-red-500 px-4 py-2 hover:bg-red-600 hover:text-white">
                   Logout
                 </button>
+
 
               </div>
             )}
