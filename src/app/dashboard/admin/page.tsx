@@ -16,6 +16,7 @@ export default function AdminDashboard() {
         hobby: string;
         vehicleType: string;
         vehicleSpec: string;
+        message: string;
     }[]>([])
     const [bannerPreview, setBannerPreview] = useState<string | null>(null)
     const [bannerName, setBannerName] = useState('')
@@ -40,7 +41,7 @@ export default function AdminDashboard() {
         if (stored) setPendingMember(JSON.parse(stored))
     }, [])
 
-    const pushInboxMessage = (msg: { from: string; type: 'admin' | 'tag'; content: string; date: string }) => {
+    const pushInboxMessage = (msg: { from: string; type: 'admin' | 'tag'; content: string; message: string; date: string }) => {
         const inbox = JSON.parse(localStorage.getItem('inboxMessages') || '[]')
         inbox.push(msg)
         localStorage.setItem('inboxMessages', JSON.stringify(inbox))
@@ -48,7 +49,7 @@ export default function AdminDashboard() {
 
     const handleAccept = (index: number) => {
         const confirmAccept = confirm('Accept this member?')
-        if (!pendingMember) return
+        if (!confirmAccept) return
         const member = pendingMember[index]
         const newMember = {
             username: member.username,
@@ -63,6 +64,7 @@ export default function AdminDashboard() {
             from: 'Admin',
             type: 'admin',
             content: `Your application has been approved. Welcome, ${member.name}!`,
+            message: `${member.message}`,
             date: new Date().toLocaleString()
         })
 
@@ -81,6 +83,7 @@ export default function AdminDashboard() {
             from: 'Admin',
             type: 'admin',
             content: `Sorry ${member.name}, your registration was rejected.`,
+            message: `${member.message}`,
             date: new Date().toLocaleString()
         })
 
@@ -117,7 +120,17 @@ export default function AdminDashboard() {
                                     <p><strong>Hobby:</strong> {m.hobby}</p>
                                     <p><strong>Vehicle Type:</strong> {m.vehicleType}</p>
                                     <p><strong>Vehicle Spec:</strong> {m.vehicleSpec}</p>
-                                    <textarea placeholder="Message to applicant..." className="w-full mt-2 p-2 border rounded"></textarea>
+                                    <textarea
+                                        className="w-full p-2 rounded bg-white/10 text-white"
+                                        placeholder="Message to applicant..."
+                                        value={m.message}
+                                        onChange={(e) => {
+                                            const updated = [...pendingMember]
+                                            updated[i].message = e.target.value
+                                            setPendingMember(updated)
+                                        }}
+                                    />
+
                                     <div className="flex gap-2 mt-2">
                                         <button onClick={() => handleAccept(i)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
                                         <button onClick={() => handleReject(i)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
