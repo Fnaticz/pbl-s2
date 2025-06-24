@@ -33,30 +33,42 @@ export default function MemberRegistrationForm() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: { preventDefault: () => void }) => {
-    e.preventDefault()
-
+  const handleSubmit = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+  
     if (!user) {
-      alert("Login required to register.")
-      return
+      alert("Login required to register.");
+      return;
     }
-
+  
     const newEntry = {
       ...formData,
       username: user.username,
       email: user.email,
-      date: new Date().toLocaleString()
+    };
+  
+    try {
+      const res = await fetch('/api/member-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newEntry),
+      });      
+  
+      const result = await res.json();
+      if (res.ok) {
+        alert('Application submitted! Waiting for admin approval.');
+        setFormData({
+          username: '', email: '', name: '', address: '', phone: '', hobby: '', vehicleType: '', vehicleSpec: ''
+        });
+      } else {
+        alert(result.message || 'Submission failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Server error. Please try again later.');
     }
-
-    const existing = JSON.parse(localStorage.getItem('pendingMembers') || '[]')
-    const updated = [...existing, newEntry]
-    localStorage.setItem('pendingMembers', JSON.stringify(updated))
-
-    alert('Application submitted! Waiting for admin approval.')
-    setFormData({
-      username: '', email: '', name: '', address: '', phone: '', hobby: '', vehicleType: '', vehicleSpec: ''
-    })
-  }
+  };
+  
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">

@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation';
+
 
 export default function Navbar() {
   const [user, setUser] = useState<{ username: string; email: string } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuProfile, setMenuProfile] = useState(false)
+  const router = useRouter();
 
   useEffect(() => {
     const currentUser = localStorage.getItem('currentUser')
@@ -46,7 +49,6 @@ export default function Navbar() {
                     Forum Page
                   </Link>
                 )}
-
               </div>
             )}
           </div>
@@ -70,12 +72,21 @@ export default function Navbar() {
                 <Link href="/profile" className="block px-4 py-2 hover:bg-red-600">Profile</Link>
                 <Link href="/inbox" className="block px-4 py-2 hover:bg-red-600">Inbox</Link>
                 <button
-                  onClick={() => {
-                    localStorage.removeItem('currentUser')
-                    window.location.href = '/'
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/logout');
+                      localStorage.removeItem('currentUser');
+                      router.push('/');
+                      setTimeout(() => location.reload(), 100);
+                    } catch (err) {
+                      console.error("Logout failed:", err);
+                    }
                   }}
-                  className="block w-full text-left text-red-500 px-4 py-2 hover:bg-red-600 hover:text-white"
-                >Logout</button>
+                  className="block w-full text-left text-red-500 px-4 py-2 hover:bg-red-600 hover:text-white">
+                  Logout
+                </button>
+
+
               </div>
             )}
           </div>

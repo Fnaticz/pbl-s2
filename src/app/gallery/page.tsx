@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { FaPlus, FaImage, FaVideo } from 'react-icons/fa'
+import { useEffect } from 'react';
 
 interface MediaItem {
     id: number
@@ -16,22 +17,49 @@ export default function GalleryPage() {
     const [fileType, setFileType] = useState<'image' | 'video'>('image')
     const [page, setPage] = useState(1)
     const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null)
-
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        const url = URL.createObjectURL(file)
-        const newMedia: MediaItem = {
-            id: Date.now(),
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+      
+        const previewUrl = URL.createObjectURL(file);
+      
+        const fakeUploadedUrl = previewUrl;
+      
+        const response = await fetch('/api/media/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             type: fileType,
-            url,
-            username: 'spartan_user'
+            url: fakeUploadedUrl,
+            username: 'spartan_user',
+          }),
+        });
+      
+        if (response.ok) {
+          const newMedia = await response.json();
+          setMedia(prev => [newMedia, ...prev]);
+        } else {
+          console.error('Upload failed');
         }
+      };
+      
 
-        const newList = [newMedia, ...media]
-        setMedia(newList)
-    }
+
+    // const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     const file = e.target.files?.[0]
+    //     if (!file) return
+
+    //     const url = URL.createObjectURL(file)
+    //     const newMedia: MediaItem = {
+    //         id: Date.now(),
+    //         type: fileType,
+    //         url,
+    //         username: 'spartan_user'
+    //     }
+
+    //     const newList = [newMedia, ...media]
+    //     setMedia(newList)
+    // }
 
     const totalPages = Math.ceil(media.length / ITEMS_PER_PAGE)
     const displayedMedia = media.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
