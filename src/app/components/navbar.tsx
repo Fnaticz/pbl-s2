@@ -69,7 +69,7 @@ export default function Navbar() {
             </button>
             {menuProfile && (
               <div className="absolute top-full right-0 mt-2 w-40 bg-black text-white rounded shadow-md">
-                <Link href="/profile" className="block px-4 py-2 hover:bg-red-600">Profile Settings</Link>
+                <Link href="/profile" className="block px-4 py-2 hover:bg-red-600">Profile</Link>
                 <Link href="/inbox" className="block px-4 py-2 hover:bg-red-600">Inbox</Link>
                 <button
                   onClick={async () => {
