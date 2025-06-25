@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     try {
       await connectDB()
-      const messages = await Inbox.find().sort({ date: -1 }) // ASC/DSC
+      const messages = await Inbox.find().sort({ date: -1 })
       return res.status(200).json(messages)
     } catch (err) {
       console.error('Inbox fetch error:', err)
