@@ -2,34 +2,80 @@
 
 import { useEffect, useState } from 'react'
 
+type Message = {
+  _id: string;
+  from: string;
+  to: string;
+  type: 'admin' | 'tag';
+  content: string;
+  date: string;
+};
+
 export default function InboxPage() {
-  const [messages, setMessages] = useState<{ from: string; type: 'admin' | 'tag'; content: string; date: string }[]>([])
-  const [showPopup, setShowPopup] = useState<{ visible: boolean; message: string; type: 'approved' | 'rejected' | null } | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [showPopup, setShowPopup] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'approved' | 'rejected' | null;
+  } | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('inboxMessages')
-    if (stored) setMessages(JSON.parse(stored))
-  }, [])
+    const stored = localStorage.getItem('currentUser');
+    if (stored) {
+      setCurrentUser(JSON.parse(stored));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch('/api/inbox');
+        const data = await res.json();
+        const filtered = data.filter((msg: Message) => msg.to === currentUser.username);
+        setMessages(filtered);
+      } catch (err) {
+        console.error("Failed to fetch inbox messages:", err);
+      }
+    };
+
+    fetchMessages();
+  }, [currentUser]);
 
   const playSound = (approved: boolean) => {
-    const audio = new Audio(approved ? '/sounds/success.mp3' : '/sounds/fail.mp3')
-    audio.play()
-  }
+    const audio = new Audio(approved ? '/sounds/success.mp3' : '/sounds/fail.mp3');
+    audio.play();
+  };
 
-  const handleAccept = (index: number) => {
-    const msg = messages[index]
-    const isApproved = msg.content.toLowerCase().includes('approved')
-    const username = msg.content.split(',')[1]?.split('!')[0]?.trim() || 'Member'
-    const resultMsg = isApproved ? `Welcome, ${username}!` : `Sorry, ${username}!`
-    setShowPopup({ visible: true, message: resultMsg, type: isApproved ? 'approved' : 'rejected' })
-    playSound(isApproved)
+  const handleAccept = async (id: string) => {
+    const msg = messages.find(m => m._id === id);
+    if (!msg) return;
 
-    const updated = messages.filter((_, i) => i !== index)
-    setMessages(updated)
-    localStorage.setItem('inboxMessages', JSON.stringify(updated))
+    const isApproved = msg.content.toLowerCase().includes('approved');
+    const username = msg.content.split(',')[1]?.split('!')[0]?.trim() || 'Member';
+    const resultMsg = isApproved ? `Welcome, ${username}!` : `Sorry, ${username}!`;
 
-    setTimeout(() => setShowPopup(null), 3000)
-  }
+    setShowPopup({
+      visible: true,
+      message: resultMsg,
+      type: isApproved ? 'approved' : 'rejected'
+    });
+
+    playSound(isApproved);
+
+    await fetch('/api/inbox', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+
+    setMessages(prev => prev.filter(m => m._id !== id));
+    setTimeout(() => setShowPopup(null), 3000);
+  };
+
+  if (!currentUser) return <p className="text-white text-center pt-32">Loading user...</p>;
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10 relative">
@@ -40,17 +86,19 @@ export default function InboxPage() {
           <p className="text-center text-gray-400">No messages yet.</p>
         ) : (
           <ul className="space-y-4">
-            {messages.map((msg, index) => (
-              <li key={index} className="bg-gray-800 p-4 rounded shadow">
+            {messages.map((msg) => (
+              <li key={msg._id} className="bg-gray-800 p-4 rounded shadow">
                 <div className="flex justify-between mb-1">
-                  <span className="text-sm font-semibold text-red-400">{msg.type === 'admin' ? 'Admin' : 'Tag Mention'}</span>
+                  <span className="text-sm font-semibold text-red-400">
+                    {msg.type === 'admin' ? 'Admin' : 'Tag Mention'}
+                  </span>
                   <span className="text-xs text-gray-400">{msg.date}</span>
                 </div>
                 <p className="text-white mb-1">{msg.content}</p>
                 <p className="text-sm text-gray-400 mb-2">From: {msg.from}</p>
                 {msg.type === 'admin' && (
                   <button
-                    onClick={() => handleAccept(index)}
+                    onClick={() => handleAccept(msg._id)}
                     className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
                   >
                     Accept
@@ -97,5 +145,5 @@ export default function InboxPage() {
         </>
       )}
     </div>
-  )
+  );
 }
