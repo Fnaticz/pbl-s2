@@ -1,4 +1,3 @@
-// pages/api/members/list.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectDB } from '../../../lib/mongodb';
 import User from '../../../models/user';
