@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+
 
 
 export default function Navbar() {
@@ -53,7 +55,14 @@ export default function Navbar() {
           </div>
         </div>
 
-        <img src="/logo.png" alt="Spartan Logo" className="h-12 mx-auto absolute left-1/2 transform -translate-x-1/2" />
+        <Image
+          src="/logo.png"
+          alt="Spartan Logo"
+          width={48}
+          height={48}
+          className="h-12 mx-auto absolute left-1/2 transform -translate-x-1/2"
+        />
+
         {!user ? (
           <div className="ml-auto">
             <Link href="/login" className="bg-red-600 px-4 py-2 rounded-md transition transform active:bg-red-700 hover:bg-red-700">Sign Up</Link>

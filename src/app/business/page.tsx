@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react"
 import Link from 'next/link'
+import Image from 'next/image';
 
 const businessData = [
   {
@@ -74,11 +75,14 @@ export default function BusinessPage() {
               key={index}
               className="bg-stone-700 p-6 rounded-xl shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ] flex flex-col md:flex-row gap-4 md:gap-6 items-center max-w-7xl w-full"
             >
-              <img
+              <Image
                 src={business.image}
                 alt={business.title}
+                width={240}
+                height={240}
                 className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]"
               />
+
               <div className="flex flex-col justify-between h-auto md:h-60 max-w-full md:max-w-[calc(100%-16rem)]">
                 <p className="text-white text-2xl font-semibold break-words">{business.title}</p>
                 <p className="text-white text-lg font-regular break-words mt-3">{business.description}</p>

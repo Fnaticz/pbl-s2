@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image';
 
 const eventImages = [
   '/poster1.jpg',
@@ -35,11 +36,14 @@ export default function SlideShow() {
       <div className="flex items-center justify-center">
         <div className="relative w-full max-w-2xl px-4">
           <div onClick={() => setLightbox(true)} className="flex items-center justify-center bg-black/40 p-4 rounded-xl shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ] transition-all duration-500">
-            <img
-              src={eventImages[current]}
-              alt={`Event ${current + 1}`}
-              className="rounded-xl shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ] w-full h-[800px] object-cover transition-opacity duration-500"
-            />
+          <Image
+            src={eventImages[current]}
+            alt={`Event ${current + 1}`}
+            width={1200}
+            height={800}
+            className="rounded-xl shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ] w-full h-[800px] object-cover transition-opacity duration-500"
+            priority
+          />
           </div>
 
           <button
@@ -77,9 +81,11 @@ export default function SlideShow() {
             className="relative max-w-4xl w-full p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
+            <Image
               src={eventImages[current]}
               alt="Full preview"
+              width={1200}
+              height={800}
               className="w-full max-h-[90vh] object-contain rounded-xl shadow-xl"
             />
             <button
