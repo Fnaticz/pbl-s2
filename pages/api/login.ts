@@ -8,6 +8,7 @@ import { serialize } from 'cookie';
 type Data = {
   message: string;
   success?: boolean;
+  error?: string; // tambahkan baris ini
 };
 
 export default async function handler(
@@ -57,7 +58,7 @@ export default async function handler(
 
     return res.status(200).json({ message: 'Login successful', success: true });
   } catch (error) {
-    console.error('Login error:', (error as Error).message);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
+    console.error('Login error:', error);
+    return res.status(500).json({ message: 'Internal server error', error: (error as Error).message });
+  }  
 }
