@@ -1,41 +1,48 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { connectDB } from '../../../lib/mongodb';
-import User from '../../../models/user';
-import bcrypt from 'bcryptjs';
+import { connectDB } from "../../../lib/mongodb";
+import User from "../../../models/user";
+import bcrypt from "bcryptjs";
 
 export default NextAuth({
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
         username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.username?.trim() || !credentials?.password?.trim()) {
+        try {
+          if (!credentials?.username?.trim() || !credentials?.password?.trim()) {
+            return null;
+          }
+
+          await connectDB();
+
+          const user = await User.findOne({ username: credentials.username });
+          if (!user) return null;
+
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isValid) return null;
+
+          return {
+            id: user._id.toString(),
+            username: user.username,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error("Authorize error:", error);
           return null;
         }
-        await connectDB();
-        const user = await User.findOne({ username: credentials.username });
-        if (!user) return null;
-
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) return null;
-
-        return {
-          id: user._id.toString(),
-          username: user.username,
-          role: user.role
-        };
-      }
-    })
+      },
+    }),
   ],
   pages: {
-    signIn: '/login',
-    error: '/login?error=credentials'
+    signIn: "/login",
+    error: "/login?error=credentials",
   },
-  session: { strategy: 'jwt' },
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -50,9 +57,9 @@ export default NextAuth({
       session.user = {
         id: token.id,
         username: token.username,
-        role: token.role
+        role: token.role,
       };
       return session;
-    }
-  }
+    },
+  },
 });
