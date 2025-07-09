@@ -56,7 +56,9 @@ export default NextAuth({
     signIn: "/login",
     error: "/login?error=credentials",
   },
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -68,12 +70,18 @@ export default NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.user = {
-        id: token.id,
-        username: token.username,
-        role: token.role,
-      };
-      return session;
+      try {
+        session.user = {
+          id: token?.id ?? "",
+          username: token?.username ?? "",
+          role: token?.role ?? "",
+        };
+        return session;
+      } catch (e) {
+        console.error("❌ Session callback error:", e);
+        return session;
+      }
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 });
