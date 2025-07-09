@@ -6,7 +6,4 @@
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NEXTAUTH_URL = "https://pbl-s2.netlify.app"
-  NEXTAUTH_SECRET = "TO84gM2saVfxAR83c2Kf6JEoZltlMiom/L6kojXhNtw="
-  MONGO_URI = "mongodb+srv://pbl:QLWBINCOjBIFc6wu@cluster0.phmhqos.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
   NETLIFY_NEXT_JS_RUNTIME = "4.36.1"
