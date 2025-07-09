@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 
 
 export default function MemberDashboard() {
@@ -22,7 +21,6 @@ export default function MemberDashboard() {
     maps: '',
   })
 
-  // Load saved data from localStorage
   useEffect(() => {
     const cardData = localStorage.getItem('memberCard')
     const profileData = localStorage.getItem('memberProfile')
@@ -30,7 +28,6 @@ export default function MemberDashboard() {
     if (profileData) setProfile(JSON.parse(profileData))
   }, [])
 
-  // Image to base64
   const toBase64 = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader()
     reader.onloadend = () => {

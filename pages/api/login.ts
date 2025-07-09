@@ -1,6 +1,6 @@
 // pages/api/login.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { connectDB } from '../../lib/mongodb'; // atau '../../lib/mongoose' jika pakai mongoose
+import { connectDB } from '../../lib/mongodb';
 import User from '../../models/user';
 import bcrypt from 'bcryptjs';
 import { serialize } from 'cookie';
@@ -49,7 +49,7 @@ export default async function handler(
       serialize('session', sessionData, {
         path: '/',
         httpOnly: true,
-        maxAge: 60 * 60 * 24, // 1 day
+        maxAge: 60 * 60 * 24,
         sameSite: 'strict',
         secure: process.env.NODE_ENV === 'production',
       })

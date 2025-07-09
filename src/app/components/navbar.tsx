@@ -8,7 +8,7 @@ import Image from 'next/image';
 
 
 export default function Navbar() {
-  const [user, setUser] = useState<{ username: string; email: string } | null>(null)
+  const [user, setUser] = useState<{ username: string; email: string; role?: string } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuProfile, setMenuProfile] = useState(false)
   const router = useRouter();
@@ -49,7 +49,52 @@ export default function Navbar() {
                   >
                     Forum Page
                   </Link>
+                )}{user?.role === 'member' && (
+                  <Link
+                    href="/finance"
+                    className="block px-4 py-2 transition transform active:scale-95 active:text-red-500 hover:bg-red-600"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Finance Page
+                  </Link>
                 )}
+                {user?.role === 'member' && (
+                  <Link
+                    href="/eventschedule"
+                    className="block px-4 py-2 transition transform active:scale-95 active:text-red-500 hover:bg-red-600"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Event Schedule
+                  </Link>
+                )}
+                {user?.role === 'admin' && (
+                  <Link
+                    href="/finance"
+                    className="block px-4 py-2 transition transform active:scale-95 active:text-red-500 hover:bg-red-600"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Finance Page
+                  </Link>
+                )}
+                {user?.role === 'member' && (
+                  <Link
+                    href="/gallery"
+                    className="block px-4 py-2 transition transform active:scale-95 active:text-red-500 hover:bg-red-600"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                   Gallery
+                  </Link>
+                )}
+                {user?.role === 'admin' && (
+                  <Link
+                    href="/eventschedule"
+                    className="block px-4 py-2 transition transform active:scale-95 active:text-red-500 hover:bg-red-600"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Event Schedule
+                  </Link>
+                )}
+
               </div>
             )}
           </div>

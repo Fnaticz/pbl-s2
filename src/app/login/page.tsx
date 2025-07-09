@@ -24,10 +24,10 @@ export default function LoginPage() {
         } else if (user.role === 'member') {
           router.push('/dashboard/member');
         }
-      } catch (error) {
+      } catch {
         console.error('Failed to parse user from localStorage');
         localStorage.removeItem('currentUser');
-      }
+      }      
     }
   }, [router]);
 
