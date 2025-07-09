@@ -1,34 +1,28 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { signIn } from "next-auth/react";
-import Link from 'next/link'
+import { useState, useEffect } from 'react';
+import { signIn, getSession } from 'next-auth/react';
+import Link from 'next/link';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/navigation';
-import { FcGoogle } from "react-icons/fc";
+import { FcGoogle } from 'react-icons/fc';
 import Image from 'next/image';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
-  const [message, setMessage] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    const userString = localStorage.getItem('currentUser');
-    if (userString) {
-      try {
-        const user = JSON.parse(userString);
-        if (user.role === 'admin') {
-          router.push('/dashboard/admin');
-        } else if (user.role === 'member') {
-          router.push('/dashboard/member');
-        }
-      } catch {
-        console.error('Failed to parse user from localStorage');
-        localStorage.removeItem('currentUser');
-      }      
-    }
+    const checkSession = async () => {
+      const session = await getSession();
+      if (session?.user?.role === 'admin') {
+        router.push('/dashboard/admin');
+      } else if (session?.user?.role === 'member') {
+        router.push('/dashboard/member');
+      }
+    };
+    checkSession();
   }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,57 +32,33 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.message || "Login failed");
-      toast.error(data.message || "Login failed");
-      return;
-    }
-
-    const response = await signIn("credentials", {
+    const response = await signIn('credentials', {
       redirect: false,
       username: formData.username,
       password: formData.password,
     });
 
-    if (response?.error) {
-      toast.error("Invalid username or password");
-      setMessage("Invalid username or password");
+    if (!response || response.error) {
+      toast.error('Invalid username or password');
       return;
     }
 
-    try {
-      const sessionRes = await fetch('/api/session');
-      if (sessionRes.ok) {
-        const session = await sessionRes.json();
+    const session = await getSession();
+    if (!session?.user) {
+      toast.error('Gagal mengambil session');
+      return;
+    }
 
-        localStorage.setItem("currentUser", JSON.stringify({
-          username: session.username,
-          email: session.email,
-          role: session.role
-        }));
+    // Optional: simpan localStorage (kalau kamu memang butuh)
+    localStorage.setItem('currentUser', JSON.stringify(session.user));
+    toast.success('Login successful');
 
-        toast.success("Login successful");
-
-        if (session.role === 'admin') {
-          router.push('/dashboard/admin');
-        } else if (session.role === 'member') {
-          router.push('/dashboard/member');
-        } else {
-          toast.warning("Access denied. You're not authorized for dashboard.");
-        }
-      } else {
-        toast.error("Gagal mengambil session login");
-      }
-    } catch (err) {
-      console.error("Failed to fetch session", err);
-      toast.error("Terjadi kesalahan saat mengambil session");
+    if (session.user.role === 'admin') {
+      router.push('/dashboard/admin');
+    } else if (session.user.role === 'member') {
+      router.push('/dashboard/member');
+    } else {
+      toast.warning("Access denied.");
     }
   };
 
@@ -127,15 +97,11 @@ export default function LoginPage() {
           <button type="submit" className="w-full py-2 rounded-full bg-white text-black font-bold hover:bg-red-600 hover:text-white transition">
             Login
           </button>
-
-          {message && <p className="text-center text-sm text-green-500 mt-2">{message}</p>}
         </form>
 
         <div className="flex items-center justify-between mt-4">
           <button
-            onClick={() => {
-              signIn("google");
-            }}
+            onClick={() => signIn('google')}
             className="flex items-center gap-2 px-8 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition"
           >
             <FcGoogle />

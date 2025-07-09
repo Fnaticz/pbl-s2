@@ -1,5 +1,8 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { connectDB } from '../../../lib/mongodb';
+import User from '../../../models/user';
+import bcrypt from 'bcryptjs';
 
 export default NextAuth({
   providers: [
@@ -10,17 +13,23 @@ export default NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        const res = await fetch("https://pbl-s2.netlify.app/api/login", {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials),
-        });
+        if (!credentials?.username?.trim() || !credentials?.password?.trim()) {
+          return null;
+        }
+        await connectDB();
+        const user = await User.findOne({ username: credentials.username });
+        if (!user) return null;
 
-        const user = await res.json();
-        if (res.ok && user) return user;
-        return null;
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) return null;
+
+        return {
+          id: user._id.toString(),
+          username: user.username,
+          role: user.role
+        };
       }
-    }),
+    })
   ],
   pages: {
     signIn: '/login',
@@ -29,11 +38,20 @@ export default NextAuth({
   session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = user.role;
+      if (user) {
+        const u = user as { id: string; username: string; role: string };
+        token.id = u.id;
+        token.username = u.username;
+        token.role = u.role;
+      }
       return token;
     },
     async session({ session, token }) {
-      session.role = token.role;
+      session.user = {
+        id: token.id,
+        username: token.username,
+        role: token.role
+      };
       return session;
     }
   }

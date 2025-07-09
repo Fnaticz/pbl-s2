@@ -8,7 +8,7 @@ import { serialize } from 'cookie';
 type Data = {
   message: string;
   success?: boolean;
-  error?: string; // tambahkan baris ini
+  error?: string;
 };
 
 export default async function handler(
