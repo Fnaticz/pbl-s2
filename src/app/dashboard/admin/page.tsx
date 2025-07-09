@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import type { IBanner } from '../../../../models/banner';
-import Link from 'next/link'
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 
 export default function AdminDashboard() {
@@ -40,8 +39,6 @@ export default function AdminDashboard() {
     const [eventTitle, setEventTitle] = useState('')
     const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
     const [bannerReports, setBannerReports] = useState<IBanner[]>([])
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
 
     const fetchMembers = async () => {

@@ -2,7 +2,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import Link from 'next/link'
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

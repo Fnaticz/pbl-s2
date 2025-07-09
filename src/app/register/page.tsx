@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { connectDB } from '../../../lib/mongodb'
-import User from '../../../models/user'
 
 
 export default function RegisterPage() {

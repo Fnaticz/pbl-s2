@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { FaPlus, FaImage, FaVideo } from 'react-icons/fa'
-import { useEffect } from 'react';
 
 interface MediaItem {
     id: number
