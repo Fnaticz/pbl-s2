@@ -5,14 +5,16 @@ import { signIn, getSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FcGoogle } from 'react-icons/fc';
 import Image from 'next/image';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const router = useRouter();
+  const searchParams = useSearchParams();
 
+  // Cek session saat load
   useEffect(() => {
     const checkSession = async () => {
       const session = await getSession();
@@ -24,6 +26,19 @@ export default function LoginPage() {
     };
     checkSession();
   }, [router]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    
+    const error = searchParams.get('error');
+    if (error === 'Credentials') {
+      toast.error('Username atau password salah');
+    } else if (error === 'OAuthAccountNotLinked') {
+      toast.error('Email sudah terdaftar dengan metode login lain');
+    } else if (error === 'Configuration') {
+      toast.error('Konfigurasi login salah. Cek environment variable');
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -39,7 +54,7 @@ export default function LoginPage() {
     });
 
     if (!response || response.error) {
-      toast.error('Invalid username or password');
+      toast.error('Login gagal. Periksa kembali data Anda.');
       return;
     }
 
@@ -49,16 +64,15 @@ export default function LoginPage() {
       return;
     }
 
-    // Optional: simpan localStorage (kalau kamu memang butuh)
     localStorage.setItem('currentUser', JSON.stringify(session.user));
-    toast.success('Login successful');
+    toast.success('Login berhasil');
 
     if (session.user.role === 'admin') {
       router.push('/dashboard/admin');
     } else if (session.user.role === 'member') {
       router.push('/dashboard/member');
     } else {
-      toast.warning("Access denied.");
+      toast.warning('Akses ditolak');
     }
   };
 
