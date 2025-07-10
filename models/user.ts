@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, models, model } from 'mongoose';
+import { connectDB } from '../lib/mongodb';
 
 export interface IUser extends Document {
   username: string;
@@ -23,7 +24,6 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-// Cek apakah model sudah ada (hindari OverwriteModelError saat Hot Reloading)
 const User = models.User || model<IUser>('User', UserSchema);
 
 export default User;

@@ -1,4 +1,3 @@
-// pages/api/login.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectDB } from '../../lib/mongodb';
 import User from '../../models/user';
@@ -22,13 +21,13 @@ export default async function handler(
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res
-      .status(400)
-      .json({ message: 'Please provide username and password' });
+    return res.status(400).json({ message: 'Please provide username and password' });
   }
 
   try {
+    console.info('Connecting to MongoDB...');
     await connectDB();
+    console.info('MongoDB connected');
 
     const user = await User.findOne({ username });
     if (!user) {
@@ -60,5 +59,5 @@ export default async function handler(
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ message: 'Internal server error', error: (error as Error).message });
-  }  
+  }
 }
