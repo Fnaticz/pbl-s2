@@ -17,28 +17,28 @@ export default NextAuth({
           console.log("🔥 Starting authorize");
 
           if (!credentials?.username?.trim() || !credentials?.password?.trim()) {
-            console.log("⛔ Missing username or password");
+            console.log("Missing username or password");
             return null;
           }
 
           console.log("🔗 Connecting to MongoDB...");
           await connectDB();
-          console.log("✅ Connected to MongoDB");
+          console.log("Connected to MongoDB");
 
           const user = await User.findOne({ username: credentials.username });
           console.log("👤 Fetched user:", user);
 
           if (!user) {
-            console.log("❌ User not found");
+            console.log("User not found");
             return null;
           }
 
           const isValid = await bcrypt.compare(credentials.password, user.password);
-          console.log("🔐 Password match:", isValid);
+          console.log("Password match:", isValid);
 
           if (!isValid) return null;
 
-          console.log("✅ User authorized:", user.username);
+          console.log("User authorized:", user.username);
 
           return {
             id: user._id.toString(),
@@ -46,7 +46,7 @@ export default NextAuth({
             role: user.role,
           };
         } catch (error) {
-          console.error("❌ Authorize error:", error);
+          console.error("Authorize error:", error);
           return null;
         }
       },
@@ -78,7 +78,7 @@ export default NextAuth({
         };
         return session;
       } catch (e) {
-        console.error("❌ Session callback error:", e);
+        console.error("Session callback error:", e);
         return session;
       }
     },
