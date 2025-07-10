@@ -18,14 +18,19 @@ export default function LoginPage() {
   useEffect(() => {
     const checkSession = async () => {
       const session = await getSession();
-      if (session?.user?.role === 'admin') {
-        router.push('/dashboard/admin');
-      } else if (session?.user?.role === 'member') {
-        router.push('/dashboard/member');
+      if (!session?.user) return;
+  
+      const role = session.user.role;
+      if (role === 'admin') {
+        router.replace('/dashboard/admin');
+      } else if (role === 'member') {
+        router.replace('/dashboard/member');
       }
     };
+  
     checkSession();
   }, [router]);
+  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
