@@ -124,6 +124,7 @@ export default function Navbar() {
               <div className="absolute top-full right-0 mt-2 w-40 bg-black text-white rounded shadow-md">
                 <Link href="/profile" className="block px-4 py-2 hover:bg-red-600">Profile</Link>
                 <Link href="/inbox" className="block px-4 py-2 hover:bg-red-600">Inbox</Link>
+                {user?.role === 'admin' && (<Link href="/dashboard/admin" className="block px-4 py-2 hover:bg-red-600">Dashboard Admin</Link>)}
                 <button
                   onClick={async () => {
                     try {
