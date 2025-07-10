@@ -56,8 +56,8 @@ export default function LoginPage() {
       return;
     }
 
-    localStorage.setItem('currentUser', JSON.stringify(session.user));
     toast.success('Login berhasil');
+    router.refresh();
 
     if (session.user.role === 'admin') {
       router.push('/dashboard/admin');
@@ -66,6 +66,7 @@ export default function LoginPage() {
     } else {
       toast.warning("Access denied.");
     }
+
   };
 
   return (
