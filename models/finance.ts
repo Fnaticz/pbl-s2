@@ -9,7 +9,7 @@ export interface IFinance extends Document {
 const FinanceSchema = new Schema<IFinance>({
   description: { type: String, required: true },
   amount: { type: Number, required: true },
-  date: { type: String, required: true },
+  date: new Date()
 });
 
 export default mongoose.models.Finance || mongoose.model<IFinance>('Finance', FinanceSchema);
