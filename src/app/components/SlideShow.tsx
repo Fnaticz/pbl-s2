@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 
 export default function SlideShow() {
   const [banners, setBanners] = useState<string[]>([])
@@ -14,6 +13,7 @@ export default function SlideShow() {
       .then(data => {
         const urls = data.map((item: { imageUrl: string }) => item.imageUrl)
         setBanners(urls)
+        console.log('Fetched banners:', urls)
       })
       .catch(err => console.error('Fetch banner error:', err))
   }, [])
@@ -37,13 +37,10 @@ export default function SlideShow() {
       <div className="flex items-center justify-center">
         <div className="relative w-full max-w-2xl px-4">
           <div onClick={() => setLightbox(true)} className="flex items-center justify-center bg-black/40 p-4 rounded-xl shadow transition-all duration-500">
-            <Image
+            <img
               src={banners[current]}
               alt={`Banner ${current + 1}`}
-              width={1200}
-              height={800}
               className="rounded-xl w-full h-[800px] object-cover"
-              priority
             />
           </div>
 
@@ -65,11 +62,9 @@ export default function SlideShow() {
       {lightbox && (
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setLightbox(false)}>
           <div className="relative max-w-4xl w-full p-4" onClick={e => e.stopPropagation()}>
-            <Image
+            <img
               src={banners[current]}
               alt="Full preview"
-              width={1200}
-              height={800}
               className="w-full max-h-[90vh] object-contain rounded-xl shadow-xl"
             />
             <button onClick={() => setLightbox(false)} className="absolute top-4 right-4 text-white text-xl bg-black/50 px-3 py-1 rounded-full hover:bg-black">
