@@ -12,14 +12,14 @@ type Message = {
 };
 
 export default function InboxPage() {
-  const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
+  const [currentUser] = useState<{ username: string } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [showPopup, setShowPopup] = useState<{
     visible: boolean;
     message: string;
     type: 'approved' | 'rejected' | null;
   } | null>(null);
-  
+
   useEffect(() => {
     if (!currentUser) return;
 
