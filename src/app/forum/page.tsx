@@ -3,11 +3,9 @@
 import { useSession } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import { FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
+import socket from '../../../lib/socket'
 
 type SessionUser = {
-  name?: string
-  email?: string
-  image?: string
   username?: string
   role?: 'admin' | 'user'
 }
@@ -52,6 +50,13 @@ export default function ChatBox() {
     setInput('')
     setPreviews([])
     if (fileInputRef.current) fileInputRef.current.value = ''
+
+    socket.emit('chat-message', newMessage)
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newMessage)
+    })
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,10 +81,23 @@ export default function ChatBox() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  useEffect(() => {
+    fetch('/api/chat')
+      .then(res => res.json())
+      .then(data => setMessages(data))
+
+    socket.on('chat-message', (msg: Message) => {
+      setMessages(prev => [...prev, msg])
+    })
+
+    return () => {
+      socket.off('chat-message')
+    }
+  }, [])
+
   return (
     <div className="min-h-screen pt-24 px-4 pb-8 bg-black text-white flex flex-col">
       <h1 className="text-3xl font-bold text-center mb-4">Live Chat</h1>
-
       <div className="bg-white text-black rounded shadow flex flex-col flex-grow max-h-[70vh] overflow-hidden">
         <div className="px-4 py-3 bg-red-700 text-white font-semibold">Messages</div>
 
@@ -90,26 +108,13 @@ export default function ChatBox() {
                 {msg.user} <span className="italic text-xs text-gray-500">({msg.role})</span>
               </p>
               {msg.text && (
-                <p
-                  className="bg-gray-200 text-black p-2 rounded max-w-[80%]"
-                  dangerouslySetInnerHTML={{ __html: msg.text }}
-                />
+                <p className="bg-gray-200 text-black p-2 rounded max-w-[80%]" dangerouslySetInnerHTML={{ __html: msg.text }} />
               )}
               {msg.mediaUrls?.map((media, idx) =>
                 media.type === 'image' ? (
-                  <img
-                    key={idx}
-                    src={media.url}
-                    alt="uploaded media"
-                    className="mt-2 max-w-[60%] rounded shadow"
-                  />
+                  <img key={idx} src={media.url} alt="uploaded media" className="mt-2 max-w-[60%] rounded shadow" />
                 ) : (
-                  <video
-                    key={idx}
-                    src={media.url}
-                    controls
-                    className="mt-2 max-w-[60%] rounded shadow"
-                  />
+                  <video key={idx} src={media.url} controls className="mt-2 max-w-[60%] rounded shadow" />
                 )
               )}
               <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
@@ -129,17 +134,9 @@ export default function ChatBox() {
             {previews.map((p, idx) => (
               <div key={idx} className="relative w-24">
                 {p.type === 'image' ? (
-                  <img
-                    src={p.url}
-                    alt="preview"
-                    className="w-24 h-24 object-cover rounded"
-                  />
+                  <img src={p.url} alt="preview" className="w-24 h-24 object-cover rounded" />
                 ) : (
-                  <video
-                    src={p.url}
-                    className="w-24 h-24 object-cover rounded"
-                    controls
-                  />
+                  <video src={p.url} className="w-24 h-24 object-cover rounded" controls />
                 )}
                 <button
                   onClick={() => setPreviews((prev) => prev.filter((_, i) => i !== idx))}

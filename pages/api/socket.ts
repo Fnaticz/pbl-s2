@@ -11,11 +11,9 @@ type NextApiResponseWithSocket = NextApiResponse & {
   }
 }
 
-let io: Server
-
 export default function handler(req: NextApiRequest, res: NextApiResponseWithSocket) {
   if (!res.socket.server.io) {
-    io = new Server(res.socket.server)
+    const io = new Server(res.socket.server)
     res.socket.server.io = io
 
     io.on('connection', (socket) => {
