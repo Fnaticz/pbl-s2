@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react';
 
 type Message = {
   _id: string;
@@ -12,7 +13,9 @@ type Message = {
 };
 
 export default function InboxPage() {
-  const [currentUser] = useState<{ username: string } | null>(null);
+  const { data: session, status } = useSession();
+  const currentUser = session?.user;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [showPopup, setShowPopup] = useState<{
     visible: boolean;
@@ -21,8 +24,8 @@ export default function InboxPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!currentUser) return;
-
+    if (!currentUser?.username) return;
+  
     const fetchMessages = async () => {
       try {
         const res = await fetch('/api/inbox');
@@ -33,9 +36,9 @@ export default function InboxPage() {
         console.error("Failed to fetch inbox messages:", err);
       }
     };
-
+  
     fetchMessages();
-  }, [currentUser]);
+  }, [currentUser]);  
 
   const playSound = (approved: boolean) => {
     const audio = new Audio(approved ? '/sounds/success.mp3' : '/sounds/fail.mp3');

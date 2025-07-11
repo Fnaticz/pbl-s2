@@ -15,7 +15,6 @@ export default function Navbar() {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
-  // Tutup dropdown saat klik di luar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -38,16 +37,12 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-black bg-opacity-50 backdrop-blur-md shadow-md px-6 py-4 text-white">
       <div className="flex items-center justify-between relative">
-        {/* Left: Menu */}
         <div className="flex items-center gap-6">
           <Link href="/" className="transition active:scale-90 hover:text-red-500">Home</Link>
-
-          {/* Menu Dropdown */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(prev => !prev)}
-              className="transition active:scale-90 hover:text-red-500 focus:outline-none"
-            >
+              className="transition active:scale-90 hover:text-red-500 focus:outline-none">
               Menu ▾
             </button>
             {menuOpen && (
@@ -71,8 +66,6 @@ export default function Navbar() {
             )}
           </div>
         </div>
-
-        {/* Center Logo */}
         <Image
           src="/logo.png"
           alt="Spartan Logo"
@@ -80,8 +73,6 @@ export default function Navbar() {
           height={48}
           className="h-12 mx-auto absolute left-1/2 transform -translate-x-1/2"
         />
-
-        {/* Right: Auth */}
         {!user ? (
           <div className="ml-auto">
             <Link href="/login" className="bg-red-600 px-4 py-2 rounded-md hover:bg-red-700">Sign In</Link>
@@ -90,8 +81,7 @@ export default function Navbar() {
           <div className="relative ml-auto" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(prev => !prev)}
-              className="w-10 h-10 rounded-full overflow-hidden border border-white"
-            >
+              className="w-10 h-10 rounded-full overflow-hidden border border-white">
               <Image src="/spartanbg.jpeg" alt="avatar" width={40} height={40} className="rounded-full" />
             </button>
             {profileOpen && (
@@ -101,8 +91,7 @@ export default function Navbar() {
                 {user.role === 'admin' && <Link href="/dashboard/admin" className="block px-4 py-2 hover:bg-red-600">Dashboard Admin</Link>}
                 <button
                   onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="block w-full text-left text-red-500 px-4 py-2 hover:bg-red-600 hover:text-white"
-                >
+                  className="block w-full text-left text-red-500 px-4 py-2 hover:bg-red-600 hover:text-white">
                   Logout
                 </button>
               </div>
