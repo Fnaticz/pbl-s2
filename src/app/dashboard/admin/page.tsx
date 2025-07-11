@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import type { IBanner } from '../../../../models/banner';
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 import { useSession } from 'next-auth/react';
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('stats')
@@ -461,6 +463,34 @@ export default function AdminDashboard() {
                             {totalAmount !== null && (
                                 <p className="mt-2">Total Amount: <strong>Rp{totalAmount.toLocaleString()}</strong></p>
                             )}
+                            <button
+                            onClick={() => {
+                              const doc = new jsPDF();
+
+                              doc.setFontSize(18);
+                              doc.text('Finance Report', 14, 22);
+
+                              const tableResult = autoTable(doc, {
+                                startY: 30,
+                                head: [['Description', 'Amount (Rp)', 'Date']],
+                                body: financeRecords.map(record => [
+                                  record.description,
+                                  record.amount.toLocaleString(),
+                                  record.date
+                                ]),
+                              });
+
+                              if (totalAmount !== null) {
+                                doc.text(`Total: Rp${totalAmount.toLocaleString()}`, 14, tableResult.finalY + 10);
+                              }
+
+                              doc.save('finance_report.pdf');
+                            }}
+                            className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                          >
+                            Download PDF
+                          </button>
+
                         </div>
                     </div>
                 )
