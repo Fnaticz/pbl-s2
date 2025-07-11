@@ -1,4 +1,5 @@
 'use client'
+
 import { useState } from 'react'
 import { FaPlus, FaImage, FaVideo } from 'react-icons/fa'
 
