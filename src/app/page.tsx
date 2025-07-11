@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Slideshow from './components/SlideShow'
 
 type Activity = {
   _id: string;
@@ -58,6 +59,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <Slideshow />
+
       <section className="py-20 bg-stone-900 px-6">
         <h2 className="text-3xl font-bold text-center mb-8">ACTIVITIES</h2>
         <div className="flex flex-col gap-10 items-center">
