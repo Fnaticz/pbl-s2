@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { IBanner } from '../../../../models/banner';
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
+import { useSession } from 'next-auth/react';
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('stats')
@@ -251,11 +252,11 @@ export default function AdminDashboard() {
         fetchSchedules();
       }, []);      
 
-      const [accessLoading] = useState(true)
-      const [allowed] = useState(false)
+      const { data: session, status } = useSession();
 
-      if (accessLoading) return <p className="text-white text-center pt-32">Checking access...</p>
-      if (!allowed) return null
+      if (status === 'loading') return <p className="text-white text-center pt-32">Checking access...</p>;
+      if (!session || session.user.role !== 'admin') return <p className="text-white text-center pt-32">Access denied</p>;
+
 
 
     const renderSection = () => {
