@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import io from 'socket.io-client'
+import type { Socket } from 'socket.io-client'
 
-let socket: any;
+let socket: Socket;
+
 
 export default function LiveChat() {
   const [input, setInput] = useState('');
