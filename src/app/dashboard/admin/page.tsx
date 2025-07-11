@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic';
-
 import { useEffect, useState } from 'react'
 import type { IBanner } from '../../../../models/banner';
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'

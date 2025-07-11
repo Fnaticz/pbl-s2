@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic';
-
 import { useState, ChangeEvent, FormEvent } from 'react'
 
 type User = {
