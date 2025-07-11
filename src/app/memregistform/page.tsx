@@ -3,11 +3,6 @@
 import { useState, ChangeEvent, FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 
-type User = {
-  username: string
-  email: string
-}
-
 type FormData = {
   username: string
   email: string
