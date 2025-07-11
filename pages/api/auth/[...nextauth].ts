@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectDB } from "../../../lib/mongodb";
 import User from "../../../models/user";
@@ -24,7 +24,7 @@ declare module "next-auth/jwt" {
   }
 }
 
-export default NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -39,9 +39,7 @@ export default NextAuth({
           }
 
           await connectDB();
-
           const user = await User.findOne({ username: credentials.username });
-
           if (!user) return null;
 
           const isValid = await bcrypt.compare(credentials.password, user.password);
@@ -70,11 +68,16 @@ export default NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const u = user as { id: string; username: string; role: string; email: string };
+        const u = user as {
+          id: string;
+          username: string;
+          role: string;
+          emailOrPhone: string;
+        };
         token.id = u.id;
         token.username = u.username;
         token.role = u.role;
-        token.email = u.email;
+        token.emailOrPhone = u.emailOrPhone;
       }
       return token;
     },
@@ -83,10 +86,12 @@ export default NextAuth({
         id: token?.id ?? "",
         username: token?.username ?? "",
         role: token?.role ?? "",
-        emailOrPhone: token?.email ?? "",
+        emailOrPhone: token?.emailOrPhone ?? "",
       };
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+export default NextAuth(authOptions);

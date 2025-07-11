@@ -6,6 +6,7 @@ export interface IUser extends Document {
   emailOrPhone: string;
   password: string;
   address: string;
+  profileImage: { type: String, default: '' }
   role: 'guest' | 'member' | 'admin';
 }
 
@@ -15,6 +16,7 @@ const UserSchema = new Schema<IUser>(
     emailOrPhone: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     address: { type: String, required: true },
+    profileImage: { type: String, default: '' },
     role: {
       type: String,
       enum: ['guest', 'member', 'admin'],
