@@ -4,14 +4,13 @@ import { connectDB } from "../../../lib/mongodb";
 import User from "../../../models/user";
 import bcrypt from "bcryptjs";
 
-// OPTIONAL: Tipe deklarasi jika ingin lebih rapi (kalau kamu pakai TypeScript strict)
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
       username: string;
       role: string;
-      email: string;
+      emailOrPhone: string;
     };
   }
 }
@@ -21,7 +20,7 @@ declare module "next-auth/jwt" {
     id: string;
     username: string;
     role: string;
-    email: string;
+    emailOrPhone: string;
   }
 }
 
@@ -52,7 +51,7 @@ export default NextAuth({
             id: user._id.toString(),
             username: user.username,
             role: user.role,
-            email: user.email,
+            emailOrPhone: user.emailOrPhone,
           };
         } catch (error) {
           console.error("Authorize error:", error);
@@ -84,7 +83,7 @@ export default NextAuth({
         id: token?.id ?? "",
         username: token?.username ?? "",
         role: token?.role ?? "",
-        email: token?.email ?? "",
+        emailOrPhone: token?.email ?? "",
       };
       return session;
     },

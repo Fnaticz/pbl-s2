@@ -5,7 +5,6 @@ import { useSession } from 'next-auth/react'
 
 type User = {
   username: string
-  email: string
   emailOrPhone?: string
   role?: string
 }
