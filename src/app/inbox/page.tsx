@@ -71,7 +71,8 @@ export default function InboxPage() {
     setTimeout(() => setShowPopup(null), 3000);
   };
 
-  if (!currentUser) return <p className="text-white text-center pt-32">Loading user...</p>;
+  if (status === 'loading') return <p className="text-white text-center pt-32">Loading user...</p>;
+  if (!currentUser) return <p className="text-white text-center pt-32">Unauthorized</p>;
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10 relative">
