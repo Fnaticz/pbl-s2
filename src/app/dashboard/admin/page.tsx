@@ -30,7 +30,6 @@ export default function AdminDashboard() {
     const [activityPreview, setActivityPreview] = useState<string | null>(null)
     const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
-    const [activityDesc, setActivityDesc] = useState('');
     const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string }[]>([])
     const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
     const [totalAmount, setTotalAmount] = useState<number | null>(null)
@@ -466,118 +465,83 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                 )
-                case 'activities':
-                  return (
+            case 'activities':
+                return (
                     <div>
-                      <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
-                      <input
-                        id="activity-file"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setActivityName(file.name);
-                
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              const base64 = reader.result as string;
-                              setActivityPreview(base64);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="mb-2"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Title"
-                        value={activityTitle}
-                        onChange={(e) => setActivityTitle(e.target.value)}
-                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                      />
-                
-                      {/* Description input */}
-                      <input
-                        id="activity-desc"
-                        type="text"
-                        placeholder="Description"
-                        value={activityDesc}
-                        onChange={(e) => setActivityDesc(e.target.value)}
-                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                      />
-                
-                      {/* Preview */}
-                      {activityPreview && (
-                        <div className="mb-4">
-                          <img
-                            src={activityPreview}
-                            alt="Preview"
-                            className="w-full max-w-md rounded mb-1"
-                          />
-                          <p className="text-sm text-gray-400">{activityName}</p>
-                        </div>
-                      )}
-                
-                      {/* Add Button */}
-                      <button
-                        onClick={handleAddActivity}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                      >
-                        Add Activity
-                      </button>
-                
-                      {/* List */}
-                      <div className="mt-6">
-                        <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
-                
-                        {activityReports.length === 0 && (
-                          <p className="text-gray-400 text-sm">No activities uploaded yet.</p>
-                        )}
-                
-                        {activityReports.map((a, i) => (
-                          <div
-                            key={i}
-                            className="bg-gray-800 text-white p-4 mb-3 rounded-md shadow"
-                          >
-                            <img
-                              src={a.imageUrl}
-                              alt="Activity"
-                              className="w-full max-w-sm rounded mb-3"
-                            />
-                
-                            <div className="flex justify-between items-start">
-                              <div className="space-y-1 text-sm">
-                                <p className="text-gray-400">{a.name}</p>
-                                <p className="font-semibold">{a.title}</p>
-                                <p>{a.desc}</p>
-                                <p className="text-xs text-gray-500">Added: {a.date}</p>
-                              </div>
-                
-                              <button
-                                onClick={async () => {
-                                  if (!confirm('Delete this activity?')) return;
-                                  const res = await fetch('/api/activity/delete', {
-                                    method: 'DELETE',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ id: a._id }),
-                                  });
-                                  if (res.ok) {
-                                    setActivityReports((prev) =>
-                                      prev.filter((act) => act._id !== a._id)
-                                    );
-                                  }
-                                }}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <FaTrash />
-                              </button>
-                            </div>
+                        <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
+                        <input
+                          id="activity-file"
+                          type="file"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setActivityName(file.name);
+                          
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const base64 = reader.result as string;
+                                setActivityPreview(base64);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          
+                          className="mb-2"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Title"
+                            value={activityTitle}
+                            onChange={(e) => setActivityTitle(e.target.value)}
+                            className="bg-gray-700 w-full mb-2 p-2 border rounded"
+                        />
+                        {activityPreview && (
+                          <div className="mb-4">
+                            <img src={activityPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
+                            <p className="text-sm text-gray-700">{activityName}</p>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                        <input id="activity-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
+                        <button
+                            onClick={handleAddActivity}
+                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                            >
+                            Add Activity
+                        </button>
+                        <div className="mt-4">
+                            <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
+                            {activityReports.map((a, i) => (
+                                <div key={i} className="bg-gray-800 text-white p-3 mb-2 rounded">
+                                    <img src={a.imageUrl} alt="Activity Preview" className="w-full max-w-sm rounded mb-2" />
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className='text-sm text-gray-400'>{a.name}</p>
+                                            <p><strong>{a.title}</strong></p>
+                                            <p>{a.desc}</p>
+                                            <p className="text-xs text-gray-400">Added: {a.date}</p>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                if (!confirm('Delete this activity?')) return;
+                                                const res = await fetch('/api/activity/delete', {
+                                                  method: 'DELETE',
+                                                  headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({ id: a._id }),
+                                                });
+                                                if (res.ok) {
+                                                  setActivityReports(prev => prev.filter(act => act._id !== a._id));
+                                                }
+                                              }}                                              
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <FaTrash />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                  )                
+                )
             case 'schedule':
                 return (
                     <div>
