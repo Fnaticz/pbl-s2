@@ -4,6 +4,14 @@ import { useSession } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import { FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
 
+type SessionUser = {
+  name?: string
+  email?: string
+  image?: string
+  username?: string
+  role?: 'admin' | 'user'
+}
+
 type Message = {
   id: number
   user: string
@@ -15,6 +23,7 @@ type Message = {
 
 export default function ChatBox() {
   const { data: session } = useSession()
+  const user = session?.user as SessionUser
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [previews, setPreviews] = useState<{ url: string; file: File; type: 'image' | 'video' }[]>([])
@@ -27,13 +36,13 @@ export default function ChatBox() {
 
     const text = input
       .replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
-      .replace(/@\w+/g, (tag) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
+      .replace(/@\w+/g, (tag: string) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
 
     const mediaUrls = previews.map((p) => ({ url: p.url, type: p.type }))
     const newMessage: Message = {
       id: Date.now(),
-      user: session.user.username || 'anon',
-      role: (session.user as any).role || 'user',
+      user: user.username || 'anon',
+      role: user.role || 'user',
       text: text || undefined,
       mediaUrls: mediaUrls.length ? mediaUrls : undefined,
       timestamp: new Date().toLocaleString()
@@ -88,9 +97,19 @@ export default function ChatBox() {
               )}
               {msg.mediaUrls?.map((media, idx) =>
                 media.type === 'image' ? (
-                  <img key={idx} src={media.url} className="mt-2 max-w-[60%] rounded shadow" />
+                  <img
+                    key={idx}
+                    src={media.url}
+                    alt="uploaded media"
+                    className="mt-2 max-w-[60%] rounded shadow"
+                  />
                 ) : (
-                  <video key={idx} src={media.url} controls className="mt-2 max-w-[60%] rounded shadow" />
+                  <video
+                    key={idx}
+                    src={media.url}
+                    controls
+                    className="mt-2 max-w-[60%] rounded shadow"
+                  />
                 )
               )}
               <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
@@ -110,9 +129,17 @@ export default function ChatBox() {
             {previews.map((p, idx) => (
               <div key={idx} className="relative w-24">
                 {p.type === 'image' ? (
-                  <img src={p.url} className="w-24 h-24 object-cover rounded" />
+                  <img
+                    src={p.url}
+                    alt="preview"
+                    className="w-24 h-24 object-cover rounded"
+                  />
                 ) : (
-                  <video src={p.url} className="w-24 h-24 object-cover rounded" />
+                  <video
+                    src={p.url}
+                    className="w-24 h-24 object-cover rounded"
+                    controls
+                  />
                 )}
                 <button
                   onClick={() => setPreviews((prev) => prev.filter((_, i) => i !== idx))}
