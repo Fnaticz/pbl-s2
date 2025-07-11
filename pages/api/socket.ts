@@ -1,27 +1,30 @@
+import { Server as IOServer } from 'socket.io'
+import type { NextApiRequest, NextApiResponse } from 'next'
+import type { NextApiResponseServerIO } from '../../types/next'
 
-import { Server } from 'socket.io'
-import { NextApiRequest, NextApiResponse } from 'next'
-import { Server as HTTPServer } from 'http'
-import { Socket as NetSocket } from 'net'
-
-type NextApiResponseWithSocket = NextApiResponse & {
-  socket: NetSocket & {
-    server: HTTPServer & {
-      io?: Server
-    }
-  }
-}
+type NextApiResponseWithSocket = NextApiResponse & NextApiResponseServerIO
 
 export default function handler(req: NextApiRequest, res: NextApiResponseWithSocket) {
-  if (!res.socket.server.io) {
-    const io = new Server(res.socket.server)
-    res.socket.server.io = io
-
-    io.on('connection', (socket) => {
-      socket.on('chat-message', (msg) => {
-        io.emit('chat-message', msg)
-      })
-    })
+  if (res.socket.server.io) {
+    console.log('Socket.io server already running')
+    res.status(200).end()
+    return
   }
-  res.end()
+
+  const io = new IOServer(res.socket.server, {
+    path: '/api/socketio',
+  })
+
+  res.socket.server.io = io
+
+  io.on('connection', (socket) => {
+    console.log('New socket connection')
+
+    socket.on('chat-message', (msg) => {
+      socket.broadcast.emit('chat-message', msg)
+    })
+  })
+
+  console.log('Socket.io server initialized')
+  res.status(200).end()
 }
