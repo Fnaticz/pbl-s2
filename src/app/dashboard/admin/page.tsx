@@ -317,8 +317,7 @@ export default function AdminDashboard() {
                             </button>
                             </div>
                         ))}
-                    </div>
-
+                  </div>
                 )
                 case 'banner':
                   return (
@@ -510,8 +509,8 @@ export default function AdminDashboard() {
                         </button>
                         <div className="mt-4">
                             <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
-                            {activityReports.map((a, i) => (
-                                <div key={i} className="bg-gray-800 text-white p-3 mb-2 rounded">
+                            {activityReports.map((a) => (
+                                <div key={a._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
                                     <img src={a.imageUrl} alt="Activity Preview" className="w-full max-w-sm rounded mb-2" />
                                     <div className="flex justify-between items-center">
                                         <div>
