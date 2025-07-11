@@ -19,8 +19,6 @@ export default function FinanceReportPage() {
         const res = await fetch('/api/finance')
         const data: FinanceReport[] = await res.json()
         setFinanceReports(data)
-
-        // Hitung total
         const totalAmount = data.reduce((sum, item) => sum + item.amount, 0)
         setTotal(totalAmount)
       } catch (error) {
