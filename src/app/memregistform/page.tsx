@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, ChangeEvent, FormEvent } from 'react'
+import { useSession } from 'next-auth/react'
 
 type User = {
   username: string
@@ -30,7 +31,8 @@ export default function MemberRegistrationForm() {
     vehicleSpec: '',
   })
 
-  const [user] = useState<User | null>(null)
+  const { data: session } = useSession()
+  const user = session?.user as any
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
