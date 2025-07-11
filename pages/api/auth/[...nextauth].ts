@@ -4,6 +4,27 @@ import { connectDB } from "../../../lib/mongodb";
 import User from "../../../models/user";
 import bcrypt from "bcryptjs";
 
+// OPTIONAL: Tipe deklarasi jika ingin lebih rapi (kalau kamu pakai TypeScript strict)
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      username: string;
+      role: string;
+      email: string;
+    };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    username: string;
+    role: string;
+    email: string;
+  }
+}
+
 export default NextAuth({
   providers: [
     CredentialsProvider({
@@ -14,36 +35,24 @@ export default NextAuth({
       },
       async authorize(credentials) {
         try {
-          console.log("Starting authorize");
-
           if (!credentials?.username?.trim() || !credentials?.password?.trim()) {
-            console.log("Missing username or password");
             return null;
           }
 
-          console.log("Connecting to MongoDB...");
           await connectDB();
-          console.log("Connected to MongoDB");
 
           const user = await User.findOne({ username: credentials.username });
-          console.log("Fetched user:", user);
 
-          if (!user) {
-            console.log("User not found");
-            return null;
-          }
+          if (!user) return null;
 
           const isValid = await bcrypt.compare(credentials.password, user.password);
-          console.log("Password match:", isValid);
-
           if (!isValid) return null;
-
-          console.log("User authorized:", user.username);
 
           return {
             id: user._id.toString(),
             username: user.username,
             role: user.role,
+            email: user.email,
           };
         } catch (error) {
           console.error("Authorize error:", error);
@@ -62,25 +71,22 @@ export default NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const u = user as { id: string; username: string; role: string };
+        const u = user as { id: string; username: string; role: string; email: string };
         token.id = u.id;
         token.username = u.username;
         token.role = u.role;
+        token.email = u.email;
       }
       return token;
     },
     async session({ session, token }) {
-      try {
-        session.user = {
-          id: token?.id ?? "",
-          username: token?.username ?? "",
-          role: token?.role ?? "",
-        };
-        return session;
-      } catch (e) {
-        console.error("Session callback error:", e);
-        return session;
-      }
+      session.user = {
+        id: token?.id ?? "",
+        username: token?.username ?? "",
+        role: token?.role ?? "",
+        email: token?.email ?? "",
+      };
+      return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
