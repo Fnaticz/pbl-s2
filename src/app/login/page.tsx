@@ -58,6 +58,8 @@ export default function LoginPage() {
       router.push('/dashboard/admin');
     } else if (session.user.role === 'member') {
       router.push('/dashboard/member');
+    }else if (session.user.role === 'guest') {
+        router.push('/');
     } else {
       toast.warning("Access denied.");
     }
