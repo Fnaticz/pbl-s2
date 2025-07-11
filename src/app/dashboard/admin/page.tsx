@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import type { IBanner } from '../../../../models/banner';
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 import { useSession } from 'next-auth/react';
-import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import jsPDF from 'jspdf'
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('stats')
@@ -465,12 +465,12 @@ export default function AdminDashboard() {
                             )}
                             <button
                             onClick={() => {
-                              const doc = new jsPDF();
+                              const doc = new jsPDF()
 
-                              doc.setFontSize(18);
-                              doc.text('Finance Report', 14, 22);
+                              doc.setFontSize(18)
+                              doc.text('Finance Report', 14, 22)
 
-                              const tableResult = autoTable(doc, {
+                              autoTable(doc, {
                                 startY: 30,
                                 head: [['Description', 'Amount (Rp)', 'Date']],
                                 body: financeRecords.map(record => [
@@ -478,19 +478,19 @@ export default function AdminDashboard() {
                                   record.amount.toLocaleString(),
                                   record.date
                                 ]),
-                              });
+                              })
+                              const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
 
-                              if (totalAmount !== null) {
-                                doc.text(`Total: Rp${totalAmount.toLocaleString()}`, 14, tableResult.finalY + 10);
+                              if (totalAmount !== null && finalY !== undefined) {
+                                doc.text(`Total: Rp${totalAmount.toLocaleString()}`, 14, finalY + 10)
                               }
 
-                              doc.save('finance_report.pdf');
+                              doc.save('finance_report.pdf')
                             }}
                             className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
                           >
                             Download PDF
                           </button>
-
                         </div>
                     </div>
                 )
