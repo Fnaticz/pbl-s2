@@ -28,11 +28,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: 'File type not allowed' })
     }
 
+    const imageUrl = file
+    
     const newActivity = await Activity.create({
       title,
       name,
       desc,
-      imageBase64: file, // simpan langsung base64
+      imageUrl,
       createdAt: new Date()
     })
 

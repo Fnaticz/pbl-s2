@@ -4,7 +4,7 @@ export interface IActivity extends Document {
   title: string;
   name: string;
   desc: string;
-  imageBase64: string;
+  imageUrl: string;
   createdAt: Date;
 }
 
@@ -12,7 +12,7 @@ const ActivitySchema = new Schema<IActivity>({
   title: { type: String, required: true },
   name: { type: String, required: true },
   desc: { type: String, required: true },
-  imageBase64: { type: String, required: true },
+  imageUrl: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 
