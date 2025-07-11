@@ -34,8 +34,6 @@ export default function ForumPage() {
     if (!input.trim() && previews.length === 0) return
 
     let text = input.trim()
-    const tagMatches = text.match(/@(\w+)/g) || []
-    const taggedUsers = tagMatches.map(tag => tag.substring(1).toLowerCase())
 
     text = text.replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
     text = text.replace(/@\w+/g, (tag) => `<span class="text-blue-600 font-semibold">${tag}</span>`)

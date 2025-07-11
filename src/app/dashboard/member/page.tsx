@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 
 export default function MemberDashboard() {
@@ -65,12 +65,8 @@ export default function MemberDashboard() {
           Save Card
         </button>
       </section>
-
-      {/* PROFILE BUSINESS */}
       <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
         <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
-
-        {/* Cover Image */}
         <input
           type="file"
           accept="image/*"
@@ -83,16 +79,12 @@ export default function MemberDashboard() {
         {profile.coverImage && (
           <img src={profile.coverImage} className="w-full max-w-sm rounded mb-2" alt="Cover" />
         )}
-
-        {/* Description */}
         <textarea
           value={profile.description}
           onChange={(e) => setProfile({ ...profile, description: e.target.value })}
           placeholder="Business Profile Description"
           className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
-
-        {/* Slideshow Images */}
         <label className="block mb-1 text-sm font-medium">Slideshow Images</label>
         <input
           type="file"
@@ -115,8 +107,6 @@ export default function MemberDashboard() {
             <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
           ))}
         </div>
-
-        {/* Contact & Sosmed */}
         <input
           value={profile.contact}
           onChange={(e) => setProfile({ ...profile, contact: e.target.value })}
@@ -141,8 +131,6 @@ export default function MemberDashboard() {
           placeholder="WhatsApp URL"
           className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
-
-        {/* Maps */}
         <textarea
           value={profile.maps}
           onChange={(e) => setProfile({ ...profile, maps: e.target.value })}

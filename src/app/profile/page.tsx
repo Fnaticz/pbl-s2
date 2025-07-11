@@ -1,10 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function ProfilePage() {
     const router = useRouter()
-    const [profile, setProfile] = useState({
+    const [profile] = useState({
         username: '',
         email: '',
         address: '',

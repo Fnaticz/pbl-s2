@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, ChangeEvent, FormEvent } from 'react'
+import { useState, ChangeEvent, FormEvent } from 'react'
 
 type User = {
   username: string

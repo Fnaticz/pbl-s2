@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { notFound } from 'next/navigation'
 import type { IBanner } from '../../../../models/banner';
 import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 
@@ -254,7 +252,7 @@ export default function AdminDashboard() {
       }, []);      
 
       const [accessLoading] = useState(true)
-      const [allowed, setAllowed] = useState(false)
+      const [allowed] = useState(false)
 
       if (accessLoading) return <p className="text-white text-center pt-32">Checking access...</p>
       if (!allowed) return null
