@@ -1,3 +1,4 @@
+
 import { Server } from 'socket.io'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { Server as HTTPServer } from 'http'
@@ -18,7 +19,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponseWithSoc
 
     io.on('connection', (socket) => {
       socket.on('chat-message', (msg) => {
-        socket.broadcast.emit('chat-message', msg)
+        io.emit('chat-message', msg)
       })
     })
   }

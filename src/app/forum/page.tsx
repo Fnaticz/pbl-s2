@@ -37,26 +37,35 @@ export default function ChatBox() {
       .replace(/@\w+/g, (tag: string) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
 
     const mediaUrls = previews.map((p) => ({ url: p.url, type: p.type }))
-    const newMessage: Message = {
-      id: Date.now(),
-      user: user.username || 'anon',
-      role: user.role || 'user',
-      text: text || undefined,
-      mediaUrls: mediaUrls.length ? mediaUrls : undefined,
-      timestamp: new Date().toLocaleString()
-    }
-
-    setMessages((prev) => [...prev, newMessage])
-    setInput('')
-    setPreviews([])
-    if (fileInputRef.current) fileInputRef.current.value = ''
-
-    socket.emit('chat-message', newMessage)
-    fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMessage)
-    })
+    const sendMessage = () => {
+      if (!input.trim() && previews.length === 0) return
+      if (!session?.user) return alert('You must be logged in.')
+    
+      const text = input
+        .replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
+        .replace(/@\w+/g, (tag: string) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
+    
+      const mediaUrls = previews.map((p) => ({ url: p.url, type: p.type }))
+    
+      const newMessage: Message = {
+        id: Date.now(),
+        user: user.username || 'anon',
+        role: user.role || 'user',
+        text: text || undefined,
+        mediaUrls: mediaUrls.length ? mediaUrls : undefined,
+        timestamp: new Date().toLocaleString()
+      }
+      socket.emit('chat-message', newMessage)
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMessage)
+      })
+    
+      setInput('')
+      setPreviews([])
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }    
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
