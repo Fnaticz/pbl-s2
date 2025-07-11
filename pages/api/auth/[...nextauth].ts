@@ -14,19 +14,19 @@ export default NextAuth({
       },
       async authorize(credentials) {
         try {
-          console.log("🔥 Starting authorize");
+          console.log("Starting authorize");
 
           if (!credentials?.username?.trim() || !credentials?.password?.trim()) {
             console.log("Missing username or password");
             return null;
           }
 
-          console.log("🔗 Connecting to MongoDB...");
+          console.log("Connecting to MongoDB...");
           await connectDB();
           console.log("Connected to MongoDB");
 
           const user = await User.findOne({ username: credentials.username });
-          console.log("👤 Fetched user:", user);
+          console.log("Fetched user:", user);
 
           if (!user) {
             console.log("User not found");
