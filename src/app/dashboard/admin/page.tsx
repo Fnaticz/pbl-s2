@@ -265,7 +265,7 @@ export default function AdminDashboard() {
       useEffect(() => {
         const userString = localStorage.getItem('currentUser')
         if (!userString) {
-          router.replace('/')
+          router.replace('/login')
           return
         }
 
