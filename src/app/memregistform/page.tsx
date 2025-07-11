@@ -30,20 +30,7 @@ export default function MemberRegistrationForm() {
     vehicleSpec: '',
   })
 
-  const [user, setUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser')
-    if (storedUser) {
-      const parsedUser: User = JSON.parse(storedUser)
-      setUser(parsedUser)
-      setFormData((prev) => ({
-        ...prev,
-        username: parsedUser.username,
-        email: parsedUser.email,
-      }))
-    }
-  }, [])
+  const [user] = useState<User | null>(null)
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

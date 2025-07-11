@@ -30,18 +30,6 @@ export default function ForumPage() {
       setPreviews((prev) => [...prev, ...newPreviews])
     }
   }
-
-  const pushTagNotification = (taggedUser: string) => {
-    const inbox = JSON.parse(localStorage.getItem('inboxMessages') || '[]')
-    inbox.push({
-      from: 'Forum',
-      type: 'tag',
-      content: `You were mentioned by someone in the forum: @${taggedUser}`,
-      date: new Date().toLocaleString()
-    })
-    localStorage.setItem('inboxMessages', JSON.stringify(inbox))
-  }
-
   const sendMessage = () => {
     if (!input.trim() && previews.length === 0) return
 
@@ -66,9 +54,6 @@ export default function ForumPage() {
     setInput('')
     setPreviews([])
     if (fileInputRef.current) fileInputRef.current.value = ''
-
-    // Simpan tag notifikasi ke inbox
-    taggedUsers.forEach(user => pushTagNotification(user))
   }
 
   const deleteMessage = (id: number) => {

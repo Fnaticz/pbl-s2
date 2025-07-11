@@ -5,13 +5,6 @@ import { useEffect, useState } from 'react'
 export default function EventSchedulePage() {
     const [schedules, setSchedules] = useState<{ title: string; date: string; created: string }[]>([])
 
-    useEffect(() => {
-        const data = localStorage.getItem('eventSchedules')
-        if (data) {
-            setSchedules(JSON.parse(data))
-        }
-    }, [])
-
     return (
         <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
             <main className="flex-grow pt-20 px-4 pb-16">

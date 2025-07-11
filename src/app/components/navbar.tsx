@@ -8,16 +8,10 @@ import Image from 'next/image';
 
 
 export default function Navbar() {
-  const [user, setUser] = useState<{ username: string; email: string; role?: string } | null>(null)
+  const [user] = useState<{ username: string; email: string; role?: string } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuProfile, setMenuProfile] = useState(false)
   const router = useRouter();
-
-  useEffect(() => {
-    const currentUser = localStorage.getItem('currentUser')
-    if (currentUser) setUser(JSON.parse(currentUser))
-  }, [])
-
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-black bg-opacity-50 backdrop-blur-md shadow-md px-6 py-4 text-white">
@@ -129,7 +123,6 @@ export default function Navbar() {
                   onClick={async () => {
                     try {
                       await fetch('/api/logout');
-                      localStorage.removeItem('currentUser');
                       router.replace('/login');
                       setTimeout(() => {
                         window.location.reload();

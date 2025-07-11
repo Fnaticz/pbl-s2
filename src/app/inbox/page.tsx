@@ -19,14 +19,7 @@ export default function InboxPage() {
     message: string;
     type: 'approved' | 'rejected' | null;
   } | null>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('currentUser');
-    if (stored) {
-      setCurrentUser(JSON.parse(stored));
-    }
-  }, []);
-
+  
   useEffect(() => {
     if (!currentUser) return;
 

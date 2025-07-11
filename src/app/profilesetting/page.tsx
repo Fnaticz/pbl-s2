@@ -1,20 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export default function ProfileSettingsPage() {
     const [username, setUsername] = useState('')
     const [address, setAddress] = useState('')
     const [profileImage, setProfileImage] = useState<string | null>(null)
-
-    useEffect(() => {
-        const storedProfile = localStorage.getItem('profile')
-        if (storedProfile) {
-            const parsed = JSON.parse(storedProfile)
-            setUsername(parsed.username || '')
-            setAddress(parsed.address || '')
-            setProfileImage(parsed.profileImage === "null" ? null : parsed.profileImage)
-        }
-    }, [])
 
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,29 +18,6 @@ export default function ProfileSettingsPage() {
             reader.readAsDataURL(file)
         }
     }
-
-    const handleSave = () => {
-        localStorage.setItem(
-            'profile',
-            JSON.stringify({
-                username,
-                address,
-                profileImage: profileImage || null
-            })
-        )
-        alert('Profile updated!')
-    }
-
-
-    const handleRemoveImage = () => {
-        setProfileImage(null)
-        const current = localStorage.getItem('profile')
-        if (current) {
-            const updated = { ...JSON.parse(current), profileImage: null }
-            localStorage.setItem('profile', JSON.stringify(updated))
-        }
-    }
-
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white flex items-center justify-center px-4 py-10">
@@ -72,7 +39,6 @@ export default function ProfileSettingsPage() {
                             className="text-white hover:text-red-600"
                         />
                         <button
-                            onClick={handleRemoveImage}
                             className="text-red-400 hover:text-red-600 text-xs mt-1"
                         >
                             Remove Profile Picture
@@ -102,11 +68,7 @@ export default function ProfileSettingsPage() {
                         placeholder="Enter address"
                     />
                 </div>
-
-                <button
-                    onClick={handleSave}
-                    className="w-full py-2 bg-white text-black font-bold rounded hover:bg-red-600 hover:text-white transition"
-                >
+                <button className="w-full py-2 bg-white text-black font-bold rounded hover:bg-red-600 hover:text-white transition">
                     Save Changes
                 </button>
             </div>

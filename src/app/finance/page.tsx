@@ -9,18 +9,8 @@ type FinanceReport = {
 }
 
 export default function FinanceReportPage() {
-  const [financeReports, setFinanceReports] = useState<FinanceReport[]>([])
-  const [total, setTotal] = useState(0)
-
-  useEffect(() => {
-    const data = localStorage.getItem('financeReports')
-    if (data) {
-      const parsed: FinanceReport[] = JSON.parse(data)
-      setFinanceReports(parsed)
-      const sum = parsed.reduce((acc: number, cur: FinanceReport) => acc + cur.amount, 0)
-      setTotal(sum)
-    }
-  }, [])
+  const [financeReports] = useState<FinanceReport[]>([])
+  const [total] = useState(0)
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">

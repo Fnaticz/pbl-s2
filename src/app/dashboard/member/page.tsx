@@ -21,13 +21,6 @@ export default function MemberDashboard() {
     maps: '',
   })
 
-  useEffect(() => {
-    const cardData = localStorage.getItem('memberCard')
-    const profileData = localStorage.getItem('memberProfile')
-    if (cardData) setCard(JSON.parse(cardData))
-    if (profileData) setProfile(JSON.parse(profileData))
-  }, [])
-
   const toBase64 = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -36,22 +29,9 @@ export default function MemberDashboard() {
     reader.readAsDataURL(file)
   }
 
-  // Save handlers
-  const saveCard = () => {
-    localStorage.setItem('memberCard', JSON.stringify(card))
-    alert('Business card saved!')
-  }
-
-  const saveProfile = () => {
-    localStorage.setItem('memberProfile', JSON.stringify(profile))
-    alert('Business profile saved!')
-  }
-
   return (
     <div className="min-h-screen px-4 py-10 bg-gradient-to-b from-black via-red-950 to-black text-white">
       <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
-
-      {/* BUSINESS CARD */}
       <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
         <h2 className="text-xl font-semibold mb-4">Business Card</h2>
 
@@ -81,7 +61,7 @@ export default function MemberDashboard() {
           <img src={card.image} className="w-full max-w-sm rounded mb-2" alt="Business Cover" />
         )}
 
-        <button onClick={saveCard} className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">
+        <button className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">
           Save Card
         </button>
       </section>
@@ -170,7 +150,7 @@ export default function MemberDashboard() {
           className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
 
-        <button onClick={saveProfile} className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">
+        <button className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">
           Save Profile
         </button>
       </section>

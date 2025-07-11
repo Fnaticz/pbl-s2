@@ -71,11 +71,6 @@ export default function AdminDashboard() {
         setTotalAmount(total)
     }
 
-    useEffect(() => {
-        const stored = localStorage.getItem('pendingMembers')
-        if (stored) setPendingMember(JSON.parse(stored))
-    }, [])
-
     const handleAccept = async (id: string) => {
         try {
           const res = await fetch('/api/members/action', {
@@ -258,30 +253,8 @@ export default function AdminDashboard() {
         fetchSchedules();
       }, []);      
 
-      const router = useRouter()
-      const [accessLoading, setAccessLoading] = useState(true)
+      const [accessLoading] = useState(true)
       const [allowed, setAllowed] = useState(false)
-
-      useEffect(() => {
-        const userString = localStorage.getItem('currentUser')
-        if (!userString) {
-          router.replace('/login')
-          return
-        }
-
-        try {
-          const user = JSON.parse(userString)
-          if (user.role === 'admin') {
-            setAllowed(true)
-          } else {
-            notFound()
-          }
-        } catch {
-          notFound()
-        } finally {
-          setAccessLoading(false)
-        }
-      }, [router])
 
       if (accessLoading) return <p className="text-white text-center pt-32">Checking access...</p>
       if (!allowed) return null

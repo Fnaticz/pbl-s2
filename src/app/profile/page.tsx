@@ -11,21 +11,6 @@ export default function ProfilePage() {
         profileImage: '',
     })
 
-    useEffect(() => {
-        const currentUser = localStorage.getItem('currentUser')
-        const savedProfile = localStorage.getItem('profile')
-
-        const parsedUser = currentUser ? JSON.parse(currentUser) : {}
-        const parsedProfile = savedProfile ? JSON.parse(savedProfile) : {}
-
-        setProfile({
-            username: parsedProfile.username || parsedUser.username || 'Guest',
-            email: parsedUser.email || '-',
-            address: parsedProfile.address || '-',
-            profileImage: parsedProfile.profileImage || '',
-        })
-    }, [])
-
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white flex items-center justify-center px-4 py-10">
             <div className="bg-stone-800 p-8 rounded-xl shadow-xl w-full max-w-md text-center space-y-6">
