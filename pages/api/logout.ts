@@ -7,7 +7,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     'Set-Cookie',
     serialize('session', '', {
       path: '/',
-      maxAge: -1, // langsung kadaluwarsa
+      maxAge: -1,
       httpOnly: true,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
