@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import { FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
-import { ref, onChildAdded, push } from 'firebase/database'
+import { ref, onChildAdded, push, remove } from 'firebase/database'
 import { db } from '../../../lib/firebase'
 
 type SessionUser = {
@@ -46,11 +46,10 @@ export default function ForumPage() {
       text: text || undefined,
       timestamp: new Date().toLocaleString()
     }
-    
+
     if (mediaUrls.length > 0) {
       newMessage.mediaUrls = mediaUrls
     }
-    
 
     push(ref(db, 'messages'), newMessage)
     setInput('')
@@ -71,9 +70,18 @@ export default function ForumPage() {
   }
 
   const deleteMessage = (id: number) => {
-    if (confirm('Delete message?')) {
-      setMessages((prev) => prev.filter((msg) => msg.id !== id))
-    }
+    if (!session?.user || user.role !== 'admin') return alert('Only admin can delete messages.')
+    if (!confirm('Delete message?')) return
+
+    // Cari key dari pesan berdasarkan ID (karena ID disimpan dalam value, bukan key)
+    const messagesRef = ref(db, 'messages')
+    onChildAdded(messagesRef, (snapshot) => {
+      const msg = snapshot.val()
+      if (msg.id === id) {
+        remove(snapshot.ref)
+        setMessages((prev) => prev.filter((m) => m.id !== id))
+      }
+    })
   }
 
   useEffect(() => {
@@ -84,7 +92,10 @@ export default function ForumPage() {
     const messagesRef = ref(db, 'messages')
     onChildAdded(messagesRef, (snapshot) => {
       const msg = snapshot.val()
-      setMessages((prev) => [...prev, msg])
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === msg.id)) return prev
+        return [...prev, msg]
+      })
     })
   }, [])
 
@@ -114,12 +125,14 @@ export default function ForumPage() {
                 )
               )}
               <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
-              <button
-                onClick={() => deleteMessage(msg.id)}
-                className="absolute top-0 right-0 p-1 text-red-600 hidden group-hover:block"
-              >
-                <FaTrash />
-              </button>
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => deleteMessage(msg.id)}
+                  className="absolute top-0 right-0 p-1 text-red-600 hidden group-hover:block"
+                >
+                  <FaTrash />
+                </button>
+              )}
             </div>
           ))}
           <div ref={chatEndRef} />
