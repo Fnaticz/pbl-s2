@@ -107,7 +107,9 @@ export default function ForumPage() {
           {messages.map((msg) => (
             <div key={msg.id} className="relative group">
               <p className="font-semibold text-gray-800 text-sm">
-                {msg.user} <span className="italic text-xs text-gray-500">({msg.role})</span>
+              {msg.role && (
+                <span className="italic text-xs text-gray-500">({msg.role})</span>
+              )}
               </p>
               {msg.text && (
                 <p
