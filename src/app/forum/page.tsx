@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import { FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
-import { ref, onChildAdded, push, remove } from 'firebase/database'
+import { ref, onChildAdded, push, remove, get } from 'firebase/database'
 import { db } from '../../../lib/firebase'
 
 type SessionUser = {
@@ -69,14 +69,17 @@ export default function ForumPage() {
     }
   }
 
-  const deleteMessage = (id: number) => {
+  const deleteMessage = async (id: number) => {
     if (!session?.user || user.role !== 'admin') return alert('Only admin can delete messages.')
     if (!confirm('Delete message?')) return
+
     const messagesRef = ref(db, 'messages')
-    onChildAdded(messagesRef, (snapshot) => {
-      const msg = snapshot.val()
+    const snapshot = await get(messagesRef)
+
+    snapshot.forEach((child) => {
+      const msg = child.val()
       if (msg.id === id) {
-        remove(snapshot.ref)
+        remove(child.ref)
         setMessages((prev) => prev.filter((m) => m.id !== id))
       }
     })
@@ -90,6 +93,7 @@ export default function ForumPage() {
     const messagesRef = ref(db, 'messages')
     onChildAdded(messagesRef, (snapshot) => {
       const msg = snapshot.val()
+      if (!msg || !msg.id || !msg.user || !msg.role) return // validasi data rusak
       setMessages((prev) => {
         if (prev.find((m) => m.id === msg.id)) return prev
         return [...prev, msg]
@@ -107,9 +111,9 @@ export default function ForumPage() {
           {messages.map((msg) => (
             <div key={msg.id} className="relative group">
               <p className="font-semibold text-gray-800 text-sm">
-              {msg.role && (
-                <span className="italic text-xs text-gray-500">({msg.role})</span>
-              )}
+                {msg.user} {msg.role && (
+                  <span className="italic text-xs text-gray-500">({msg.role})</span>
+                )}
               </p>
               {msg.text && (
                 <p
@@ -125,7 +129,7 @@ export default function ForumPage() {
                 )
               )}
               <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
-              {user.role === 'admin' && (
+              {user?.role === 'admin' && (
                 <button
                   onClick={() => deleteMessage(msg.id)}
                   className="absolute top-0 right-0 p-1 text-red-600 hidden group-hover:block"
