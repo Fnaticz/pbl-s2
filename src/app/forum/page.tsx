@@ -55,20 +55,19 @@ export default function ForumPage() {
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+    const files = e.target.files
     if (files) {
       const newPreviews = Array.from(files).map((file) => {
-        const type = file.type.startsWith('video') ? 'video' : 'image';
+        const type = file.type.startsWith('video') ? 'video' : 'image'
         return {
           url: URL.createObjectURL(file),
           file,
-          type: type as 'image' | 'video',
-        };
-      });
-      setPreviews((prev) => [...prev, ...newPreviews]);
+          type: type as 'image' | 'video'
+        }
+      })
+      setPreviews((prev) => [...prev, ...newPreviews])
     }
-  };
-  
+  }
 
   const deleteMessage = async (id: number) => {
     if (user?.role !== 'admin') return alert('Only admin can delete messages.')
@@ -86,7 +85,7 @@ export default function ForumPage() {
   }
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    chatEndRef.current?.scrollIntoView({ behavior: 'auto' })
   }, [messages])
 
   useEffect(() => {
