@@ -1,8 +1,8 @@
-// lib/socket.ts
-import { io } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 
-const socket = io({
-  path: '/api/socketio',
+const socket: Socket = io({
+  path: '/api/socket',
+  autoConnect: false,
 })
 
 export default socket

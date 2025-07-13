@@ -19,7 +19,7 @@ type Message = {
   timestamp: string
 }
 
-export default function ChatBox() {
+export default function ForumPage() {
   const { data: session } = useSession()
   const user = session?.user as SessionUser
   const [messages, setMessages] = useState<Message[]>([])
@@ -31,13 +31,13 @@ export default function ChatBox() {
   const sendMessage = () => {
     if (!input.trim() && previews.length === 0) return
     if (!session?.user) return alert('You must be logged in.')
-  
+
     const text = input
       .replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
       .replace(/@\w+/g, (tag: string) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
-  
+
     const mediaUrls = previews.map((p) => ({ url: p.url, type: p.type }))
-  
+
     const newMessage: Message = {
       id: Date.now(),
       user: user.username || 'anon',
@@ -46,13 +46,14 @@ export default function ChatBox() {
       mediaUrls: mediaUrls.length ? mediaUrls : undefined,
       timestamp: new Date().toLocaleString()
     }
+
     socket.emit('chat-message', newMessage)
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newMessage)
     })
-  
+
     setInput('')
     setPreviews([])
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -81,32 +82,27 @@ export default function ChatBox() {
   }, [messages])
 
   useEffect(() => {
-    fetch('/api/chat')
-      .then(res => res.json())
-      .then(data => setMessages(data))
-
-    socket.on('chat-message', (msg: Message) => {
-      setMessages(prev => [...prev, msg])
-    })
-
-    return () => {
-      socket.off('chat-message')
-    }
-  }, [])
-
-  useEffect(() => {
+    // Init Socket.IO server
     fetch('/api/socket')
+
+    // Fetch pesan awal dari DB
     fetch('/api/chat')
       .then(res => res.json())
       .then(data => setMessages(data))
-    socket.on('chat-message', (msg: Message) => {
+
+    // Connect dan listen socket
+    if (!socket.connected) socket.connect()
+
+    const handleNewMessage = (msg: Message) => {
       setMessages(prev => [...prev, msg])
-    })
+    }
+
+    socket.on('chat-message', handleNewMessage)
+
     return () => {
-      socket.off('chat-message')
+      socket.off('chat-message', handleNewMessage)
     }
   }, [])
-  
 
   return (
     <div className="min-h-screen pt-24 px-4 pb-8 bg-black text-white flex flex-col">
@@ -121,7 +117,10 @@ export default function ChatBox() {
                 {msg.user} <span className="italic text-xs text-gray-500">({msg.role})</span>
               </p>
               {msg.text && (
-                <p className="bg-gray-200 text-black p-2 rounded max-w-[80%]" dangerouslySetInnerHTML={{ __html: msg.text }} />
+                <p
+                  className="bg-gray-200 text-black p-2 rounded max-w-[80%]"
+                  dangerouslySetInnerHTML={{ __html: msg.text }}
+                />
               )}
               {msg.mediaUrls?.map((media, idx) =>
                 media.type === 'image' ? (
