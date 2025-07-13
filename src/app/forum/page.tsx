@@ -3,7 +3,8 @@
 import { useSession } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import { FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
-import socket from '../../../lib/socket'
+import { ref, onChildAdded, push } from 'firebase/database'
+import { db } from '../../../lib/firebase'
 
 type SessionUser = {
   username?: string
@@ -47,13 +48,7 @@ export default function ForumPage() {
       timestamp: new Date().toLocaleString()
     }
 
-    socket.emit('chat-message', newMessage)
-    fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMessage)
-    })
-
+    push(ref(db, 'messages'), newMessage)
     setInput('')
     setPreviews([])
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -82,26 +77,11 @@ export default function ForumPage() {
   }, [messages])
 
   useEffect(() => {
-    // Init Socket.IO server
-    fetch('/api/socket')
-
-    // Fetch pesan awal dari DB
-    fetch('/api/chat')
-      .then(res => res.json())
-      .then(data => setMessages(data))
-
-    // Connect dan listen socket
-    if (!socket.connected) socket.connect()
-
-    const handleNewMessage = (msg: Message) => {
-      setMessages(prev => [...prev, msg])
-    }
-
-    socket.on('chat-message', handleNewMessage)
-
-    return () => {
-      socket.off('chat-message', handleNewMessage)
-    }
+    const messagesRef = ref(db, 'messages')
+    onChildAdded(messagesRef, (snapshot) => {
+      const msg = snapshot.val()
+      setMessages((prev) => [...prev, msg])
+    })
   }, [])
 
   return (
