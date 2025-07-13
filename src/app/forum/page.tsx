@@ -72,8 +72,6 @@ export default function ForumPage() {
   const deleteMessage = (id: number) => {
     if (!session?.user || user.role !== 'admin') return alert('Only admin can delete messages.')
     if (!confirm('Delete message?')) return
-
-    // Cari key dari pesan berdasarkan ID (karena ID disimpan dalam value, bukan key)
     const messagesRef = ref(db, 'messages')
     onChildAdded(messagesRef, (snapshot) => {
       const msg = snapshot.val()
