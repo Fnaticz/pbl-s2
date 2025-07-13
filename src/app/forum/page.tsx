@@ -44,9 +44,13 @@ export default function ForumPage() {
       user: user.username || 'anon',
       role: user.role || 'user',
       text: text || undefined,
-      mediaUrls: mediaUrls.length ? mediaUrls : undefined,
       timestamp: new Date().toLocaleString()
     }
+    
+    if (mediaUrls.length > 0) {
+      newMessage.mediaUrls = mediaUrls
+    }
+    
 
     push(ref(db, 'messages'), newMessage)
     setInput('')
