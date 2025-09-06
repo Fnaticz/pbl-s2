@@ -57,34 +57,6 @@ export default function MemberDashboard() {
       <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
 
       <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
-        <h2 className="text-xl font-semibold mb-4">Business Card</h2>
-        <input
-          type="text"
-          value={card.name}
-          onChange={(e) => setCard({ ...card, name: e.target.value })}
-          placeholder="Business Name"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <textarea
-          value={card.description}
-          onChange={(e) => setCard({ ...card, description: e.target.value })}
-          placeholder="Business Description"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) toBase64(file, (base64) => setCard({ ...card, image: base64 }))
-          }}
-          className="mb-3"
-        />
-        {card.image && <img src={card.image} className="w-full max-w-sm rounded mb-2" alt="Business Cover" />}
-        <button onClick={handleSaveCard} className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">Save Card</button>
-      </section>
-
-      <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
         <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
         <input
           type="file"
