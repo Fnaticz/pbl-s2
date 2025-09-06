@@ -41,16 +41,6 @@ export default function MemberDashboard() {
 
       <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
         <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) toBase64(file, (base64) => setProfile({ ...profile, coverImage: base64 }))
-          }}
-          className="mb-3"
-        />
-        {profile.coverImage && <img src={profile.coverImage} className="w-full max-w-sm rounded mb-2" alt="Cover" />}
         <textarea
           value={profile.description}
           onChange={(e) => setProfile({ ...profile, description: e.target.value })}
