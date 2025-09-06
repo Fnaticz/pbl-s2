@@ -7,12 +7,6 @@ export default function MemberDashboard() {
   const { data: session } = useSession()
   const user = session?.user as { username: string; email: string } | undefined
 
-  const [card, setCard] = useState({
-    name: '',
-    description: '',
-    image: '',
-  })
-
   const [profile, setProfile] = useState({
     coverImage: '',
     description: '',
@@ -28,17 +22,6 @@ export default function MemberDashboard() {
     const reader = new FileReader()
     reader.onloadend = () => callback(reader.result as string)
     reader.readAsDataURL(file)
-  }
-
-  const handleSaveCard = async () => {
-    if (!user) return alert('Login required')
-    const res = await fetch('/api/save-card', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...card, username: user.username }),
-    })
-    const data = await res.json()
-    alert(data.message || 'Card saved')
   }
 
   const handleSaveProfile = async () => {
