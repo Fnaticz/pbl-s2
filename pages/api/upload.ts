@@ -22,10 +22,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (err) return res.status(500).json({ error: err.message })
 
     const uploadedFiles = Array.isArray(files.file) ? files.file : [files.file]
-    const urls = uploadedFiles.map((file) => ({
-      url: `/uploads/${path.basename(file.filepath)}`,
-      type: file.mimetype?.startsWith('video') ? 'video' : 'image',
-    }))
+    const urls = uploadedFiles
+      .filter((file): file is NonNullable<typeof file> => file != null)
+      .map((file) => ({
+        url: `/uploads/${path.basename(file.filepath)}`,
+        type: file.mimetype?.startsWith('video') ? 'video' : 'image',
+      }))
     return res.status(200).json({ urls })
   })
 }
