@@ -8,37 +8,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { method } = req;
 
   try {
-    switch (method) {
-      case "GET": {
-        const { owner } = req.query;
-        if (!owner) return res.status(400).json({ message: "Owner required" });
-        const businesses = await Business.find({ owner });
-        return res.status(200).json(businesses);
-      }
-      case "POST": {
-        const { owner, name, description, category, coverImage } = req.body;
-        if (!owner || !name || !description || !category) {
-          return res.status(400).json({ message: "Missing required fields" });
-        }
-        const business = await Business.create({ owner, name, description, category, coverImage });
-        return res.status(201).json(business);
-      }
-      case "PUT": {
-        const { id, ...updates } = req.body;
-        const updated = await Business.findByIdAndUpdate(id, updates, { new: true });
-        return res.status(200).json(updated);
-      }
-      case "DELETE": {
-        const { id } = req.query;
-        await Business.findByIdAndDelete(id);
-        return res.status(200).json({ message: "Business deleted" });
-      }
-      default:
-        res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
-        return res.status(405).end(`Method ${method} Not Allowed`);
+    if (method === "GET") {
+      const { username } = req.query;
+      if (!username) return res.status(400).json({ message: "Username required" });
+
+      const business = await Business.findOne({ username });
+      return res.status(200).json(business || {});
     }
+
+    if (method === "POST") {
+      const { username, ...rest } = req.body;
+      if (!username) return res.status(400).json({ message: "Username required" });
+
+      // pastikan hanya 1 bisnis per user
+      const existing = await Business.findOne({ username });
+      if (existing) {
+        return res.status(400).json({ message: "Business already exists, use PUT to update." });
+      }
+
+      const business = await Business.create({ username, ...rest });
+      return res.status(201).json({ message: "Business created", business });
+    }
+
+    if (method === "PUT") {
+      const { username, ...updates } = req.body;
+      if (!username) return res.status(400).json({ message: "Username required" });
+
+      const business = await Business.findOneAndUpdate({ username }, updates, { new: true });
+      return res.status(200).json({ message: "Business updated", business });
+    }
+
+    if (method === "DELETE") {
+      const { username } = req.query;
+      if (!username) return res.status(400).json({ message: "Username required" });
+
+      await Business.findOneAndDelete({ username });
+      return res.status(200).json({ message: "Business deleted" });
+    }
+
+    res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
+    return res.status(405).end(`Method ${method} Not Allowed`);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 }

@@ -1,96 +1,211 @@
 'use client'
 
-import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
-
-type Business = {
-  _id: string;
-  name: string;
-  description: string;
-  category: string;
-  coverImage?: string;
-};
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
 export default function MemberDashboard() {
-  const { data: session } = useSession();
-  const user = session?.user as { username: string };
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [form, setForm] = useState({ name: "", description: "", category: "", coverImage: "" });
+  const { data: session } = useSession()
+  const user = session?.user as { username: string; email: string } | undefined
 
-  // Fetch data business milik user
+  const [profile, setProfile] = useState({
+    name: '',
+    category: '',
+    description: '',
+    address: '',
+    phone: '',
+    facebook: '',
+    instagram: '',
+    whatsapp: '',
+    maps: '',
+    slideshow: [] as string[],
+  })
+
+  const [loading, setLoading] = useState(false)
+
   useEffect(() => {
-    if (user?.username) {
-      fetch(`/api/business?owner=${user.username}`)
-        .then((res) => res.json())
-        .then((data) => setBusinesses(data));
+    if (!user?.username) return
+
+    const fetchBusiness = async () => {
+      try {
+        const res = await fetch(`/api/business?username=${user.username}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data && data.username) {
+          setProfile({
+            name: data.name || '',
+            category: data.category || '',
+            description: data.description || '',
+            address: data.address || '',
+            phone: data.phone || '',
+            facebook: data.facebook || '',
+            instagram: data.instagram || '',
+            whatsapp: data.whatsapp || '',
+            maps: data.maps || '',
+            slideshow: data.slideshow || [],
+          })
+        }
+      } catch (err) {
+        console.error('Failed to load business', err)
+      }
     }
-  }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
+    fetchBusiness()
+  }, [user])
 
-    const res = await fetch("/api/business", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ owner: user.username, ...form }),
-    });
+  const toBase64 = (file: File, callback: (base64: string) => void) => {
+    const reader = new FileReader()
+    reader.onloadend = () => callback(reader.result as string)
+    reader.readAsDataURL(file)
+  }
 
-    if (res.ok) {
-      const newBusiness = await res.json();
-      setBusinesses((prev) => [...prev, newBusiness]);
-      setForm({ name: "", description: "", category: "", coverImage: "" });
+  const handleSaveProfile = async () => {
+    if (!user) return alert('Login required')
+    setLoading(true)
+
+    try {
+      const method = profile.name ? 'PUT' : 'POST'
+      const res = await fetch('/api/business', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...profile, username: user.username }),
+      })
+      const data = await res.json()
+      alert(data.message || 'Saved')
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
+  
+  const handleDelete = async () => {
+    if (!user) return
+    if (!confirm('Are you sure you want to delete your business?')) return
 
-  const handleDelete = async (id: string) => {
-    await fetch(`/api/business?id=${id}`, { method: "DELETE" });
-    setBusinesses((prev) => prev.filter((b) => b._id !== id));
-  };
+    try {
+      const res = await fetch(`/api/business?username=${user.username}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      alert(data.message || 'Deleted')
+      setProfile({
+        name: '',
+        category: '',
+        description: '',
+        address: '',
+        phone: '',
+        facebook: '',
+        instagram: '',
+        whatsapp: '',
+        maps: '',
+        slideshow: [],
+      })
+    } catch (err) {
+      console.error(err)
+      alert('Failed to delete')
+    }
+  }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">My Businesses</h1>
+    <div className="min-h-screen px-4 py-10 bg-gradient-to-b from-black via-red-950 to-black text-white">
+      <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-2 my-4">
+      <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
+        <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
+
         <input
-          className="border p-2 w-full"
-          placeholder="Name"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          value={profile.name}
+          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+          placeholder="Business Name"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
         <input
-          className="border p-2 w-full"
+          value={profile.category}
+          onChange={(e) => setProfile({ ...profile, category: e.target.value })}
           placeholder="Category"
-          value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
         <textarea
-          className="border p-2 w-full"
-          placeholder="Description"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          value={profile.description}
+          onChange={(e) => setProfile({ ...profile, description: e.target.value })}
+          placeholder="Business Profile Description"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-          Add Business
-        </button>
-      </form>
-
-      <div className="grid gap-4">
-        {businesses.map((b) => (
-          <div key={b._id} className="border p-4 rounded shadow">
-            <h2 className="font-semibold">{b.name}</h2>
-            <p>{b.description}</p>
-            <p className="text-sm text-gray-500">{b.category}</p>
-            <button
-              onClick={() => handleDelete(b._id)}
-              className="text-red-600 mt-2"
-            >
-              Delete
-            </button>
-          </div>
-        ))}
-      </div>
+        <input
+          value={profile.address}
+          onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+          placeholder="Address"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+        />
+        <input
+          value={profile.phone}
+          onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+          placeholder="Phone"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+        />
+        <label className="block mb-1 text-sm font-medium">Slideshow Images</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => {
+            const files = e.target.files
+            if (files) {
+              Array.from(files).forEach((file) => {
+                toBase64(file, (base64) => {
+                  setProfile((prev) => ({ ...prev, slideshow: [...prev.slideshow, base64] }))
+                })
+              })
+            }
+          }}
+          className="mb-3"
+        />
+        <div className="flex gap-2 flex-wrap mb-3">
+          {profile.slideshow.map((src, i) => (
+            <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
+          ))}
+        </div>
+        <input
+          value={profile.facebook}
+          onChange={(e) => setProfile({ ...profile, facebook: e.target.value })}
+          placeholder="Facebook URL"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+        />
+        <input
+          value={profile.instagram}
+          onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+          placeholder="Instagram URL"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+        />
+        <input
+          value={profile.whatsapp}
+          onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
+          placeholder="WhatsApp URL"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+        />
+        <textarea
+          value={profile.maps}
+          onChange={(e) => setProfile({ ...profile, maps: e.target.value })}
+          placeholder="Embed map iframe"
+          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+        />
+        <div className="flex gap-4">
+          <button
+            onClick={handleSaveProfile}
+            disabled={loading}
+            className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition"
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+          <button
+            onClick={handleDelete}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-800 transition"
+          >
+            Delete
+          </button>
+        </div>
+      </section>
     </div>
-  );
+  )
 }

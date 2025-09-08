@@ -1,22 +1,32 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBusiness extends Document {
-  owner: string;
+  username: string;
   name: string;
-  description: string;
   category: string;
-  coverImage?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  description: string;
+  address: string;
+  phone: string;
+  facebook?: string;
+  instagram?: string;
+  whatsapp?: string;
+  maps?: string;
+  slideshow: string[];
 }
 
 const BusinessSchema: Schema = new Schema(
   {
-    owner: { type: String, required: true },
+    username: { type: String, required: true, unique: true }, // satu user, satu bisnis
     name: { type: String, required: true },
-    description: { type: String, required: true },
     category: { type: String, required: true },
-    coverImage: { type: String },
+    description: { type: String, required: true },
+    address: { type: String, required: true },
+    phone: { type: String, required: true },
+    facebook: String,
+    instagram: String,
+    whatsapp: String,
+    maps: String,
+    slideshow: [String],
   },
   { timestamps: true }
 );
