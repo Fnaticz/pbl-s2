@@ -4,8 +4,13 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
 export default function MemberDashboard() {
-  const { data: session } = useSession()
-  const user = session?.user as { username: string; email: string } | undefined
+  const { data: session, status } = useSession()
+  const user = session?.user as {
+    id: string
+    username: string
+    role: string
+    emailOrPhone: string
+  } | undefined
 
   const [profile, setProfile] = useState({
     name: '',
@@ -22,6 +27,7 @@ export default function MemberDashboard() {
 
   const [loading, setLoading] = useState(false)
 
+  // Fetch business data milik user
   useEffect(() => {
     if (!user?.username) return
 
@@ -64,11 +70,14 @@ export default function MemberDashboard() {
 
     try {
       const method = profile.name ? 'PUT' : 'POST'
+      console.log("Saving business with user:", user)
+
       const res = await fetch('/api/business', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...profile, username: user.username }),
       })
+
       const data = await res.json()
       alert(data.message || 'Saved')
     } catch (err) {
@@ -78,7 +87,7 @@ export default function MemberDashboard() {
       setLoading(false)
     }
   }
-  
+
   const handleDelete = async () => {
     if (!user) return
     if (!confirm('Are you sure you want to delete your business?')) return
@@ -105,6 +114,16 @@ export default function MemberDashboard() {
       console.error(err)
       alert('Failed to delete')
     }
+  }
+
+  // Loading session
+  if (status === 'loading') {
+    return <p className="text-white">Loading session...</p>
+  }
+
+  // Belum login
+  if (!user) {
+    return <p className="text-white">You must be logged in</p>
   }
 
   return (
@@ -144,6 +163,7 @@ export default function MemberDashboard() {
           placeholder="Phone"
           className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
+
         <label className="block mb-1 text-sm font-medium">Slideshow Images</label>
         <input
           type="file"
@@ -166,6 +186,7 @@ export default function MemberDashboard() {
             <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
           ))}
         </div>
+
         <input
           value={profile.facebook}
           onChange={(e) => setProfile({ ...profile, facebook: e.target.value })}
@@ -190,6 +211,7 @@ export default function MemberDashboard() {
           placeholder="Embed map iframe"
           className="w-full p-2 mb-3 bg-white/20 rounded text-white"
         />
+
         <div className="flex gap-4">
           <button
             onClick={handleSaveProfile}

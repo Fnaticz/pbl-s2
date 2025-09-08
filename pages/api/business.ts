@@ -20,7 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { username, ...rest } = req.body;
       if (!username) return res.status(400).json({ message: "Username required" });
 
-      // pastikan hanya 1 bisnis per user
       const existing = await Business.findOne({ username });
       if (existing) {
         return res.status(400).json({ message: "Business already exists, use PUT to update." });
