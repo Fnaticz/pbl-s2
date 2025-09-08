@@ -28,6 +28,7 @@ export default function MemberDashboard() {
   const [loading, setLoading] = useState(false)
   const [hasBusiness, setHasBusiness] = useState(false)
 
+  // === ambil data business ===
   useEffect(() => {
     if (!user?.username) return
 
@@ -59,15 +60,17 @@ export default function MemberDashboard() {
     fetchBusiness()
   }, [user])
 
+  // === file convert ke base64 ===
   const toBase64 = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader()
     reader.onloadend = () => callback(reader.result as string)
     reader.readAsDataURL(file)
   }
 
+  // === simpan business (POST / PUT) ===
   const handleSaveProfile = async () => {
     if (!user?.username) return alert('Login required')
-  
+
     setLoading(true)
     try {
       const method = hasBusiness ? 'PUT' : 'POST'
@@ -89,6 +92,7 @@ export default function MemberDashboard() {
     }
   }
 
+  // === hapus business ===
   const handleDelete = async () => {
     if (!user) return
     if (!confirm('Are you sure you want to delete your business?')) return
@@ -111,6 +115,7 @@ export default function MemberDashboard() {
         maps: '',
         slideshow: [],
       })
+      setHasBusiness(false)
     } catch (err) {
       console.error(err)
       alert('Failed to delete')
@@ -131,6 +136,7 @@ export default function MemberDashboard() {
     <div className="min-h-screen px-4 py-10 bg-gradient-to-b from-black via-red-950 to-black text-white">
       <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
 
+      {/* === Form Business === */}
       <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
         <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
 
@@ -229,6 +235,44 @@ export default function MemberDashboard() {
           </button>
         </div>
       </section>
+
+      {/* === Tabel Business === */}
+      {hasBusiness && (
+        <section className="bg-stone-900 p-6 rounded-xl shadow">
+          <h2 className="text-xl font-semibold mb-4">Your Business Data</h2>
+          <table className="w-full border border-stone-700 text-sm">
+            <thead>
+              <tr className="bg-stone-700">
+                <th className="p-2 border border-stone-600">Name</th>
+                <th className="p-2 border border-stone-600">Category</th>
+                <th className="p-2 border border-stone-600">Phone</th>
+                <th className="p-2 border border-stone-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="p-2 border border-stone-700">{profile.name}</td>
+                <td className="p-2 border border-stone-700">{profile.category}</td>
+                <td className="p-2 border border-stone-700">{profile.phone}</td>
+                <td className="p-2 border border-stone-700">
+                  <button
+                    onClick={() => alert('Edit langsung di form di atas')}
+                    className="bg-blue-600 px-2 py-1 rounded text-white mr-2"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="bg-red-600 px-2 py-1 rounded text-white"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      )}
     </div>
   )
 }
