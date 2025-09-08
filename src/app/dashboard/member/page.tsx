@@ -1,106 +1,96 @@
 'use client'
 
-import { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+
+type Business = {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  coverImage?: string;
+};
 
 export default function MemberDashboard() {
-  const { data: session } = useSession()
-  const user = session?.user as { username: string; email: string } | undefined
+  const { data: session } = useSession();
+  const user = session?.user as { username: string };
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [form, setForm] = useState({ name: "", description: "", category: "", coverImage: "" });
 
-  const [profile, setProfile] = useState({
-    coverImage: '',
-    description: '',
-    slideshow: [] as string[],
-    contact: '',
-    facebook: '',
-    instagram: '',
-    whatsapp: '',
-    maps: '',
-  })
+  // Fetch data business milik user
+  useEffect(() => {
+    if (user?.username) {
+      fetch(`/api/business?owner=${user.username}`)
+        .then((res) => res.json())
+        .then((data) => setBusinesses(data));
+    }
+  }, [user]);
 
-  const toBase64 = (file: File, callback: (base64: string) => void) => {
-    const reader = new FileReader()
-    reader.onloadend = () => callback(reader.result as string)
-    reader.readAsDataURL(file)
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
 
-  const handleSaveProfile = async () => {
-    if (!user) return alert('Login required')
-    const res = await fetch('/api/save-profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...profile, username: user.username }),
-    })
-    const data = await res.json()
-    alert(data.message || 'Profile saved')
-  }
+    const res = await fetch("/api/business", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ owner: user.username, ...form }),
+    });
+
+    if (res.ok) {
+      const newBusiness = await res.json();
+      setBusinesses((prev) => [...prev, newBusiness]);
+      setForm({ name: "", description: "", category: "", coverImage: "" });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/business?id=${id}`, { method: "DELETE" });
+    setBusinesses((prev) => prev.filter((b) => b._id !== id));
+  };
 
   return (
-    <div className="min-h-screen px-4 py-10 bg-gradient-to-b from-black via-red-950 to-black text-white">
-      <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">My Businesses</h1>
 
-      <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
-        <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
-        <textarea
-          value={profile.description}
-          onChange={(e) => setProfile({ ...profile, description: e.target.value })}
-          placeholder="Business Profile Description"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <label className="block mb-1 text-sm font-medium">Slideshow Images</label>
+      <form onSubmit={handleSubmit} className="space-y-2 my-4">
         <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => {
-            const files = e.target.files
-            if (files) {
-              Array.from(files).forEach((file) => {
-                toBase64(file, (base64) => {
-                  setProfile((prev) => ({ ...prev, slideshow: [...prev.slideshow, base64] }))
-                })
-              })
-            }
-          }}
-          className="mb-3"
-        />
-        <div className="flex gap-2 flex-wrap mb-3">
-          {profile.slideshow.map((src, i) => (
-            <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
-          ))}
-        </div>
-        <input
-          value={profile.contact}
-          onChange={(e) => setProfile({ ...profile, contact: e.target.value })}
-          placeholder="Contact (e.g., WhatsApp link)"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+          className="border p-2 w-full"
+          placeholder="Name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
         <input
-          value={profile.facebook}
-          onChange={(e) => setProfile({ ...profile, facebook: e.target.value })}
-          placeholder="Facebook URL"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <input
-          value={profile.instagram}
-          onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
-          placeholder="Instagram URL"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <input
-          value={profile.whatsapp}
-          onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
-          placeholder="WhatsApp URL"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+          className="border p-2 w-full"
+          placeholder="Category"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
         />
         <textarea
-          value={profile.maps}
-          onChange={(e) => setProfile({ ...profile, maps: e.target.value })}
-          placeholder="Embed map iframe"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+          className="border p-2 w-full"
+          placeholder="Description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
-        <button onClick={handleSaveProfile} className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">Save Profile</button>
-      </section>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+          Add Business
+        </button>
+      </form>
+
+      <div className="grid gap-4">
+        {businesses.map((b) => (
+          <div key={b._id} className="border p-4 rounded shadow">
+            <h2 className="font-semibold">{b.name}</h2>
+            <p>{b.description}</p>
+            <p className="text-sm text-gray-500">{b.category}</p>
+            <button
+              onClick={() => handleDelete(b._id)}
+              className="text-red-600 mt-2"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
-  )
+  );
 }
