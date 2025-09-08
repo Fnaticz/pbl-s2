@@ -26,8 +26,8 @@ export default function MemberDashboard() {
   })
 
   const [loading, setLoading] = useState(false)
+  const [hasBusiness, setHasBusiness] = useState(false)
 
-  // Fetch business data milik user
   useEffect(() => {
     if (!user?.username) return
 
@@ -49,6 +49,7 @@ export default function MemberDashboard() {
             maps: data.maps || '',
             slideshow: data.slideshow || [],
           })
+          setHasBusiness(true)
         }
       } catch (err) {
         console.error('Failed to load business', err)
@@ -65,20 +66,20 @@ export default function MemberDashboard() {
   }
 
   const handleSaveProfile = async () => {
-    if (!user) return alert('Login required')
+    if (!user?.username) return alert('Login required')
+  
     setLoading(true)
-
     try {
-      const method = profile.name ? 'PUT' : 'POST'
-      console.log("Saving business with user:", user)
-
+      const method = hasBusiness ? 'PUT' : 'POST'
       const res = await fetch('/api/business', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...profile, username: user.username }),
       })
-
       const data = await res.json()
+      if (res.ok) {
+        setHasBusiness(true)
+      }
       alert(data.message || 'Saved')
     } catch (err) {
       console.error(err)
