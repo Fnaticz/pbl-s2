@@ -1,28 +1,63 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
 export default function MemberDashboard() {
-  const { data: session } = useSession()
-  const user = session?.user as { username: string; email: string } | undefined
-
-  const [card, setCard] = useState({
-    name: '',
-    description: '',
-    image: '',
-  })
+  const { data: session, status } = useSession()
+  const user = session?.user as {
+    id: string
+    username: string
+    role: string
+    emailOrPhone: string
+  } | undefined
 
   const [profile, setProfile] = useState({
-    coverImage: '',
+    name: '',
+    category: '',
     description: '',
-    slideshow: [] as string[],
-    contact: '',
+    address: '',
+    phone: '',
     facebook: '',
     instagram: '',
     whatsapp: '',
     maps: '',
+    slideshow: [] as string[],
   })
+
+  const [loading, setLoading] = useState(false)
+  const [hasBusiness, setHasBusiness] = useState(false)
+
+  useEffect(() => {
+    if (!user?.username) return
+
+    const fetchBusiness = async () => {
+      try {
+        const res = await fetch(`/api/business?username=${user.username}`)
+        if (!res.ok) return
+        const data = await res.json()
+        if (data && data.username) {
+          setProfile({
+            name: data.name || '',
+            category: data.category || '',
+            description: data.description || '',
+            address: data.address || '',
+            phone: data.phone || '',
+            facebook: data.facebook || '',
+            instagram: data.instagram || '',
+            whatsapp: data.whatsapp || '',
+            maps: data.maps || '',
+            slideshow: data.slideshow || [],
+          })
+          setHasBusiness(true)
+        }
+      } catch (err) {
+        console.error('Failed to load business', err)
+      }
+    }
+
+    fetchBusiness()
+  }, [user])
 
   const toBase64 = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader()
@@ -30,132 +65,220 @@ export default function MemberDashboard() {
     reader.readAsDataURL(file)
   }
 
-  const handleSaveCard = async () => {
-    if (!user) return alert('Login required')
-    const res = await fetch('/api/save-card', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...card, username: user.username }),
-    })
-    const data = await res.json()
-    alert(data.message || 'Card saved')
+  const handleSaveProfile = async () => {
+    if (!user?.username) return alert('Login required')
+
+    setLoading(true)
+    try {
+      const method = hasBusiness ? 'PUT' : 'POST'
+      const res = await fetch('/api/business', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...profile, username: user.username }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setHasBusiness(true)
+      }
+      alert(data.message || 'Saved')
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSaveProfile = async () => {
-    if (!user) return alert('Login required')
-    const res = await fetch('/api/save-profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...profile, username: user.username }),
-    })
-    const data = await res.json()
-    alert(data.message || 'Profile saved')
+  const handleDelete = async () => {
+    if (!user) return
+    if (!confirm('Are you sure you want to delete your business?')) return
+
+    try {
+      const res = await fetch(`/api/business?username=${user.username}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      alert(data.message || 'Deleted')
+      setProfile({
+        name: '',
+        category: '',
+        description: '',
+        address: '',
+        phone: '',
+        facebook: '',
+        instagram: '',
+        whatsapp: '',
+        maps: '',
+        slideshow: [],
+      })
+      setHasBusiness(false)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to delete')
+    }
+  }
+
+  if (status === 'loading') {
+    return <p className="text-white">Loading session...</p>
+  }
+
+  if (!user) {
+    return <p className="text-white">You must be logged in</p>
   }
 
   return (
     <div className="min-h-screen px-4 py-10 bg-gradient-to-b from-black via-red-950 to-black text-white">
       <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
 
-      <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
-        <h2 className="text-xl font-semibold mb-4">Business Card</h2>
-        <input
-          type="text"
-          value={card.name}
-          onChange={(e) => setCard({ ...card, name: e.target.value })}
-          placeholder="Business Name"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <textarea
-          value={card.description}
-          onChange={(e) => setCard({ ...card, description: e.target.value })}
-          placeholder="Business Description"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) toBase64(file, (base64) => setCard({ ...card, image: base64 }))
-          }}
-          className="mb-3"
-        />
-        {card.image && <img src={card.image} className="w-full max-w-sm rounded mb-2" alt="Business Cover" />}
-        <button onClick={handleSaveCard} className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">Save Card</button>
-      </section>
+      {/* Siapkan section form sebagai satu variabel untuk dipakai di dua kondisi */}
+      {(() => {
+        const formSection = (
+          <section className="bg-stone-800 p-6 rounded-xl shadow">
+            <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
 
-      <section className="bg-stone-800 p-6 rounded-xl shadow mb-10">
-        <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) toBase64(file, (base64) => setProfile({ ...profile, coverImage: base64 }))
-          }}
-          className="mb-3"
-        />
-        {profile.coverImage && <img src={profile.coverImage} className="w-full max-w-sm rounded mb-2" alt="Cover" />}
-        <textarea
-          value={profile.description}
-          onChange={(e) => setProfile({ ...profile, description: e.target.value })}
-          placeholder="Business Profile Description"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <label className="block mb-1 text-sm font-medium">Slideshow Images</label>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => {
-            const files = e.target.files
-            if (files) {
-              Array.from(files).forEach((file) => {
-                toBase64(file, (base64) => {
-                  setProfile((prev) => ({ ...prev, slideshow: [...prev.slideshow, base64] }))
-                })
-              })
-            }
-          }}
-          className="mb-3"
-        />
-        <div className="flex gap-2 flex-wrap mb-3">
-          {profile.slideshow.map((src, i) => (
-            <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
-          ))}
-        </div>
-        <input
-          value={profile.contact}
-          onChange={(e) => setProfile({ ...profile, contact: e.target.value })}
-          placeholder="Contact (e.g., WhatsApp link)"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <input
-          value={profile.facebook}
-          onChange={(e) => setProfile({ ...profile, facebook: e.target.value })}
-          placeholder="Facebook URL"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <input
-          value={profile.instagram}
-          onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
-          placeholder="Instagram URL"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <input
-          value={profile.whatsapp}
-          onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
-          placeholder="WhatsApp URL"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <textarea
-          value={profile.maps}
-          onChange={(e) => setProfile({ ...profile, maps: e.target.value })}
-          placeholder="Embed map iframe"
-          className="w-full p-2 mb-3 bg-white/20 rounded text-white"
-        />
-        <button onClick={handleSaveProfile} className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition">Save Profile</button>
-      </section>
+            <input
+              value={profile.name}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              placeholder="Business Name"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.category}
+              onChange={(e) => setProfile({ ...profile, category: e.target.value })}
+              placeholder="Category"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <textarea
+              value={profile.description}
+              onChange={(e) => setProfile({ ...profile, description: e.target.value })}
+              placeholder="Business Profile Description"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.address}
+              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+              placeholder="Address"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.phone}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+              placeholder="Phone"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+
+            <label className="block mb-1 text-sm font-medium">Slideshow Images</label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = e.target.files
+                if (files) {
+                  Array.from(files).forEach((file) => {
+                    toBase64(file, (base64) => {
+                      setProfile((prev) => ({ ...prev, slideshow: [...prev.slideshow, base64] }))
+                    })
+                  })
+                }
+              }}
+              className="mb-3"
+            />
+            <div className="flex gap-2 flex-wrap mb-3">
+              {profile.slideshow.map((src, i) => (
+                <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
+              ))}
+            </div>
+
+            <input
+              value={profile.facebook}
+              onChange={(e) => setProfile({ ...profile, facebook: e.target.value })}
+              placeholder="Facebook URL"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.instagram}
+              onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+              placeholder="Instagram URL"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.whatsapp}
+              onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
+              placeholder="WhatsApp URL"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <textarea
+              value={profile.maps}
+              onChange={(e) => setProfile({ ...profile, maps: e.target.value })}
+              placeholder="Embed map iframe"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+
+            <div className="flex gap-4">
+              <button
+                onClick={handleSaveProfile}
+                disabled={loading}
+                className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition"
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-800 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </section>
+        )
+
+        const dataSection = (
+          <section className="bg-stone-900 p-6 rounded-xl shadow">
+            <h2 className="text-xl font-semibold mb-4">Your Business Data</h2>
+            <table className="w-full border border-stone-700 text-sm">
+              <thead>
+                <tr className="bg-stone-700">
+                  <th className="p-2 border border-stone-600">Name</th>
+                  <th className="p-2 border border-stone-600">Category</th>
+                  <th className="p-2 border border-stone-600">Phone</th>
+                  <th className="p-2 border border-stone-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-2 border border-stone-700">{profile.name}</td>
+                  <td className="p-2 border border-stone-700">{profile.category}</td>
+                  <td className="p-2 border border-stone-700">{profile.phone}</td>
+                  <td className="p-2 border border-stone-700">
+                    <button
+                      onClick={() => alert('Edit langsung di form di kiri')}
+                      className="bg-blue-600 px-2 py-1 rounded text-white mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="bg-red-600 px-2 py-1 rounded text-white"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        )
+
+        return hasBusiness ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {formSection}
+            {dataSection}
+          </div>
+        ) : (
+          <div className="mb-10">{formSection}</div>
+        )
+      })()}
     </div>
   )
 }

@@ -68,28 +68,20 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const u = user as {
-          id: string;
-          username: string;
-          role: string;
-          emailOrPhone: string;
-        };
-        token.id = u.id;
-        token.username = u.username;
-        token.role = u.role;
-        token.emailOrPhone = u.emailOrPhone;
+        token.id = user.id
+        token.username = user.username   // tambahkan
+        token.role = user.role
       }
-      return token;
+      return token
     },
     async session({ session, token }) {
-      session.user = {
-        id: token?.id ?? "",
-        username: token?.username ?? "",
-        role: token?.role ?? "",
-        emailOrPhone: token?.emailOrPhone ?? "",
-      };
-      return session;
-    },
+      if (session.user) {
+        session.user.id = token.id as string
+        session.user.username = token.username as string // tambahkan
+        session.user.role = token.role as string
+      }
+      return session
+    }
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
