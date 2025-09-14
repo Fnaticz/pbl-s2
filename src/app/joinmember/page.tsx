@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import Image from "next/image";
+
 
 export default function JoinMemberPage() {
     const [agreed, setAgreed] = useState(false)
@@ -10,7 +12,7 @@ export default function JoinMemberPage() {
             <main className="flex-grow pt-20 px-4 pb-16">
                 <h1 className="text-3xl font-bold mb-6 text-center">Join Spartan Offroad Community</h1>
 
-                <img
+                <Image
                     src="/event.jpg"
                     alt="Spartan Picture"
                     className="w-full rounded-lg mb-6 shadow-lg"

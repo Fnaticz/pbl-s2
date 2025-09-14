@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { FaPlus, FaImage, FaVideo } from 'react-icons/fa'
+import Image from "next/image";
+
 
 interface MediaItem {
     id: number
@@ -102,7 +104,7 @@ export default function GalleryPage() {
                 {displayedMedia.map((item) => (
                     <div key={item.id} className="bg-white/20 p-2 rounded-md text-center cursor-pointer" onClick={() => setSelectedMedia(item)}>
                         {item.type === 'image' ? (
-                            <img src={item.url} alt="Uploaded" className="w-full h-48 object-cover rounded" />
+                            <Image src={item.url} alt="Uploaded" className="w-full h-48 object-cover rounded" />
                         ) : (
                             <video src={item.url} className="w-full h-48 rounded object-cover" muted />
                         )}
@@ -142,7 +144,7 @@ export default function GalleryPage() {
                 <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedMedia(null)}>
                     <div className="max-w-3xl w-full p-4" onClick={(e) => e.stopPropagation()}>
                         {selectedMedia.type === 'image' ? (
-                            <img src={selectedMedia.url} alt="Full" className="w-full max-h-[80vh] object-contain rounded" />
+                            <Image src={selectedMedia.url} alt="Full" className="w-full max-h-[80vh] object-contain rounded" />
                         ) : (
                             <video src={selectedMedia.url} controls autoPlay className="w-full max-h-[80vh] object-contain rounded" />
                         )}

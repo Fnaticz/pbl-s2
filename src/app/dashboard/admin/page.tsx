@@ -6,6 +6,8 @@ import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, 
 import { useSession } from 'next-auth/react';
 import autoTable from 'jspdf-autotable'
 import jsPDF from 'jspdf'
+import Image from "next/image";
+
 
 export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState('stats')
@@ -339,7 +341,7 @@ export default function AdminDashboard() {
                       />
                       {bannerPreview && (
                         <div className="mb-4">
-                          <img src={bannerPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
+                          <Image src={bannerPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
                           <p className="text-sm text-gray-300">{bannerName}</p>
                         </div>
                       )}
@@ -354,7 +356,7 @@ export default function AdminDashboard() {
                         <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
                         {bannerReports.map((b) => (
                           <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                            <img src={b.imageUrl} alt="Banner Preview" className="w-full max-w-sm rounded mb-2" />
+                            <Image src={b.imageUrl} alt="Banner Preview" className="w-full max-w-sm rounded mb-2" />
                             <div className="flex justify-between items-center">
                               <div>
                                 <p>{b.name}</p>
@@ -526,7 +528,7 @@ export default function AdminDashboard() {
                         />
                         {activityPreview && (
                           <div className="mb-4">
-                            <img src={activityPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
+                            <Image src={activityPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
                             <p className="text-sm text-gray-700">{activityName}</p>
                           </div>
                         )}
@@ -541,7 +543,7 @@ export default function AdminDashboard() {
                             <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
                             {activityReports.map((a) => (
                                 <div key={a._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                                    <img src={a.imageUrl} alt="Activity Preview" className="w-full max-w-sm rounded mb-2" />
+                                    <Image src={a.imageUrl} alt="Activity Preview" className="w-full max-w-sm rounded mb-2" />
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className='text-sm text-gray-400'>{a.name}</p>

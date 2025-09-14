@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa"
+import Image from "next/image";
+
 
 const images = ["/bisnisspartan2.jpg", "/bisnisspartan3.jpg", "/img3.jpg"]
 
@@ -16,7 +18,7 @@ export default function CompanyProfile() {
       <main className="flex-grow pt-20 px-4 pb-16">
         <h1 className="text-center text-4xl font-extrabold mb-6">SPARTAN MODIFIED</h1>
         <div className="flex justify-center mb-6">
-          <img src="/bisnisspartan1.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
+          <Image src="/bisnisspartan1.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
         </div>
         <p className="text-center max-w-2xl mx-auto text-sm md:text-base text-gray-200 mb-10 leading-relaxed">
           Spartan Modified menyediakan jasa modifikasi berbagai tipe kendaraan, mulai dari tipe sedan, minibus, dan bahkan kendaraan offroad.
@@ -24,7 +26,7 @@ export default function CompanyProfile() {
 
         <div className="flex items-center justify-center">
           <div className="relative flex flex-col items-center mb-8">
-            <img src={images[currentSlide]} alt={`Slide ${currentSlide + 1}`} className="w-full max-w-md rounded-md" />
+            <Image src={images[currentSlide]} alt={`Slide ${currentSlide + 1}`} className="w-full max-w-md rounded-md" />
 
             <button onClick={prevSlide} className="absolute top-1/2 left-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full transition transform active:scale-70 active:bg-red-600 hover:bg-red-600 transition">{'‹'}</button>
             <button onClick={nextSlide} className="absolute top-1/2 right-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full transition transform active:scale-70 active:bg-red-600 hover:bg-red-600 transition">{'›'}</button>

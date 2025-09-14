@@ -6,6 +6,8 @@ import { FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
 import { ref, onChildAdded, onChildRemoved, push, remove, get } from 'firebase/database'
 import { db } from '../../../lib/firebase'
 import type { DataSnapshot } from 'firebase/database'
+import Image from "next/image";
+
 
 interface SessionUser {
   username?: string
@@ -125,7 +127,7 @@ export default function ForumPage() {
               )}
               {msg.mediaUrls?.map((media, idx) => (
                 media.type === 'image' ? (
-                  <img
+                  <Image
                     key={idx}
                     src={media.url}
                     alt="media"
@@ -159,7 +161,7 @@ export default function ForumPage() {
             {previews.map((p, idx) => (
               <div key={idx} className="relative w-24 h-24">
                 {p.type === 'image' ? (
-                  <img src={p.url} className="w-full h-full object-cover rounded" />
+                  <Image src={p.url} alt="Preview" width={96} height={96} className="w-full h-full object-cover rounded" />
                 ) : (
                   <video src={p.url} className="w-full h-full object-cover rounded" controls />
                 )}

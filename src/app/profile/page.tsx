@@ -4,6 +4,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import Image from "next/image";
+
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -45,7 +47,7 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold mb-4">My Profile</h1>
 
         <div className="flex justify-center">
-          <img
+          <Image
             src={profile.profileImage || '/defaultavatar.png'}
             alt="Profile"
             className="w-32 h-32 rounded-full object-cover border aspect-square"

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import Image from "next/image";
+
 
 export default function ProfileSettingsPage() {
     const [username, setUsername] = useState('')
@@ -26,7 +28,7 @@ export default function ProfileSettingsPage() {
                 <h1 className="text-2xl font-bold text-center">Edit Profile</h1>
 
                 <div className="flex flex-col items-center gap-2">
-                    <img
+                    <Image
                         src={(!profileImage || profileImage === "null") ? "/defaultavatar.png" : profileImage}
                         alt="Profile"
                         className="w-32 h-32 rounded-full object-cover border aspect-square"

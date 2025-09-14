@@ -34,7 +34,7 @@ export default function Home() {
 
   const totalPages = Math.ceil(activities.length / itemPerPage);
   const start = currentPage * itemPerPage;
-  const visibleActivities = activities.slice(start, start + itemPerPage);
+  // const visibleActivities = activities.slice(start, start + itemPerPage);
 
   const goToPage = (page: number) => {
     if (page >= 0 && page < totalPages) {

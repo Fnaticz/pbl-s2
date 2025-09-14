@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import Image from "next/image";
+
 
 export default function MemberDashboard() {
   const { data: session, status } = useSession()
@@ -130,7 +132,6 @@ export default function MemberDashboard() {
     <div className="min-h-screen px-4 py-10 bg-gradient-to-b from-black via-red-950 to-black text-white">
       <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
 
-      {/* Siapkan section form sebagai satu variabel untuk dipakai di dua kondisi */}
       {(() => {
         const formSection = (
           <section className="bg-stone-800 p-6 rounded-xl shadow">
@@ -186,7 +187,7 @@ export default function MemberDashboard() {
             />
             <div className="flex gap-2 flex-wrap mb-3">
               {profile.slideshow.map((src, i) => (
-                <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
+                <Image key={i} src={src} alt={`Slideshow ${i + 1}`} width={96} height={96} className="w-24 h-24 object-cover rounded" />
               ))}
             </div>
 
