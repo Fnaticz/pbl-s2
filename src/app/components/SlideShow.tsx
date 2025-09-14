@@ -1,78 +1,146 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from "react"
+import Image from "next/image"
 
-export default function SlideShow() {
-  const [banners, setBanners] = useState<string[]>([])
-  const [current, setCurrent] = useState(0)
-  const [lightbox, setLightbox] = useState(false)
+const events = [
+  {
+    title: "EXTREME ADVENTURE HARI JADI PONDOK PESANTREN WALI SONGO GOMANG KE 48",
+    location: "Tuban, Jawa Timur",
+    date: "20-21 September 2025",
+    poster: "/poster4.jpg",
+  },
+  {
+    title: "JEJAC MERAH PUTIH ADVENTURE CHALLENGE 2",
+    location: "Negare, Bali",
+    date: "2-3 Agustus 2025",
+    poster: "/poster5.jpg",
+  },
+  {
+    title: "JOP Adventure Challenge Xtreme 1",
+    location: "Pasuruan, Jawa Timur",
+    date: "26-27 April 2025",
+    poster: "/poster6.jpg",
+  },
+]
+
+export default function UpcomingEvents() {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
-    fetch('/api/banner')
-      .then(res => res.json())
-      .then(data => {
-        const urls = data.map((item: { imageUrl: string }) => item.imageUrl)
-        setBanners(urls)
-        console.log('Fetched banners:', urls)
-      })
-      .catch(err => console.error('Fetch banner error:', err))
-  }, [])
-
-  useEffect(() => {
+    if (lightboxOpen) return
     const timer = setInterval(() => {
-      setCurrent(prev => (prev === banners.length - 1 ? 0 : prev + 1))
-    }, 4000)
+      nextSlide()
+    }, 5000)
     return () => clearInterval(timer)
-  }, [banners])
+  }, [lightboxOpen])
 
-  const prevSlide = () => setCurrent(prev => (prev === 0 ? banners.length - 1 : prev - 1))
-  const nextSlide = () => setCurrent(prev => (prev === banners.length - 1 ? 0 : prev + 1))
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev === 0 ? events.length - 1 : prev - 1))
+  }
 
-  if (banners.length === 0) return null
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev === events.length - 1 ? 0 : prev + 1))
+  }
 
   return (
-    <section id="upcoming" className="bg-gradient-to-b from-black via-red-950 to-black py-20 text-white">
-      <h2 className="text-3xl font-bold text-center mb-10">UPCOMING EVENTS</h2>
+    <div className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-black to-stone-950">
+      <h1 className="text-3xl md:text-4xl font-bold mb-10 bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent">
+        UPCOMING EVENTS
+      </h1> 
 
-      <div className="flex items-center justify-center">
-        <div className="relative w-full max-w-2xl px-4">
-          <div onClick={() => setLightbox(true)} className="flex items-center justify-center bg-black/40 p-4 rounded-xl shadow transition-all duration-500">
-            <img
-              src={banners[current]}
-              alt={`Banner ${current + 1}`}
-              className="rounded-xl w-full h-[800px] object-cover"
-            />
-          </div>
+      <div className="relative max-w-5xl w-full overflow-hidden rounded-2xl shadow-2xl">
+        <div
+          className="flex transition-transform duration-700 ease-in-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+        >
+          {events.map((event, idx) => (
+            <div
+              key={idx}
+              className="w-full flex-shrink-0 grid md:grid-cols-2 gap-8 p-8 bg-cover bg-center relative"
+              style={{
+                backgroundImage: `url('/loginbg.png')`,
+              }}
+            >
+              <div className="absolute inset-0 bg-black/60"></div>
 
-          <button onClick={prevSlide} className="absolute top-1/2 left-1 transform -translate-y-1/2 text-3xl bg-black/50 px-2 py-0.5 rounded-full hover:bg-red-600">‹</button>
-          <button onClick={nextSlide} className="absolute top-1/2 right-1 transform -translate-y-1/2 text-3xl bg-black/50 px-2 py-0.5 rounded-full hover:bg-red-600">›</button>
+              <div className="relative z-10 flex flex-col justify-center space-y-4">
+                <h2 className="text-2xl font-bold text-red-500">{event.title}</h2>
+                <div className="flex items-center space-x-2 text-gray-200">
+                  <span>📍</span>
+                  <span>{event.location}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-gray-200">
+                  <span>📅</span>
+                  <span>{event.date}</span>
+                </div>
+              </div>
 
-          <div className="flex justify-center mt-4 gap-2">
-            {banners.map((_, index) => (
               <div
-                key={index}
-                onClick={() => setCurrent(index)}
-                className={`w-3 h-3 rounded-full cursor-pointer ${current === index ? 'bg-red-600 scale-110' : 'bg-gray-400'}`}
-              />
-            ))}
-          </div>
+                className="relative z-10 flex justify-center items-center cursor-pointer"
+                onClick={() => setLightboxOpen(true)}
+              >
+                <Image
+                  src={event.poster}
+                  alt={event.title}
+                  width={320}
+                  height={320}
+                  className="rounded-xl w-80 h-80 object-cover border-4 border-stone-700 shadow-xl"
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {lightbox && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setLightbox(false)}>
-          <div className="relative max-w-4xl w-full p-4" onClick={e => e.stopPropagation()}>
-            <img
-              src={banners[current]}
-              alt="Full preview"
-              className="w-full max-h-[90vh] object-contain rounded-xl shadow-xl"
+      <div className="flex items-center justify-center mt-6 space-x-6">
+        <button
+          onClick={prevSlide}
+          className="bg-stone-700 hover:bg-stone-600 px-4 py-2 rounded-full shadow-lg"
+        >
+          ◀
+        </button>
+
+        <div className="flex space-x-2">
+          {events.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`w-3 h-3 rounded-full transition ${
+                currentIndex === idx ? "bg-red-600" : "bg-gray-500"
+              }`}
+            ></button>
+          ))}
+        </div>
+
+        <button
+          onClick={nextSlide}
+          className="bg-stone-700 hover:bg-stone-600 px-4 py-2 rounded-full shadow-lg"
+        >
+          ▶
+        </button>
+      </div>
+
+      {lightboxOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="relative">
+            <Image
+              src={events[currentIndex].poster}
+              alt="Full Poster"
+              width={800}
+              height={800}
+              className="max-h-[80vh] w-auto rounded-xl shadow-2xl"
             />
-            <button onClick={() => setLightbox(false)} className="absolute top-4 right-4 text-white text-xl bg-black/50 px-3 py-1 rounded-full hover:bg-black">
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-full"
+            >
               ✕
             </button>
           </div>
         </div>
       )}
-    </section>
+    </div>
   )
 }

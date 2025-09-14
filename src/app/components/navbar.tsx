@@ -74,7 +74,7 @@ export default function Navbar() {
           </div>
         </div>
         <Image
-          src="/logo.png"
+          src="/logospartannew.png"
           alt="Spartan Logo"
           width={100}
           height={50}
