@@ -1,38 +1,38 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+// import { useEffect, useState } from 'react'
 import Slideshow from './components/SlideShow'
 import ActivityCard from "./components/Activities";
 
-type Activity = {
-  _id: string;
-  title: string;
-  desc: string;
-  name: string;
-  imageUrl: string;
-  date: string;
-};
+// type Activity = {
+//   _id: string;
+//   title: string;
+//   desc: string;
+//   name: string;
+//   imageUrl: string;
+//   date: string;
+// };
 
-const itemPerPage = 2;
+// const itemPerPage = 2;
 
 export default function Home() {
-  const [activities, setActivities] = useState<Activity[]>([]);
+  // const [activities, setActivities] = useState<Activity[]>([]);
   // const [currentPage, setCurrentPage] = useState(0);
 
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const res = await fetch('/api/activity');
-        const data = await res.json();
-        setActivities(data);
-      } catch (error) {
-        console.error('Failed to load activities:', error);
-      }
-    };
-    fetchActivities();
-  }, []);
+  // useEffect(() => {
+  //   const fetchActivities = async () => {
+  //     try {
+  //       const res = await fetch('/api/activity');
+  //       const data = await res.json();
+  //       setActivities(data);
+  //     } catch (error) {
+  //       console.error('Failed to load activities:', error);
+  //     }
+  //   };
+  //   fetchActivities();
+  // }, []);
 
-  const totalPages = Math.ceil(activities.length / itemPerPage);
+  // const totalPages = Math.ceil(activities.length / itemPerPage);
   // const start = currentPage * itemPerPage;
   // const visibleActivities = activities.slice(start, start + itemPerPage);
 
@@ -62,7 +62,6 @@ export default function Home() {
 
       <Slideshow />
       <ActivityCard />
-
     </div>
   );
 }
