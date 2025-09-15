@@ -16,7 +16,7 @@ export interface IBusiness extends Document {
 
 const BusinessSchema: Schema = new Schema(
   {
-    username: { type: String, required: true, unique: true }, // satu user, satu bisnis
+    username: { type: String, required: true },
     name: { type: String, required: true },
     category: { type: String, required: true },
     description: { type: String, required: true },

@@ -23,11 +23,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "Username required" });
       }
 
-      const existing = await Business.findOne({ username });
-      if (existing) {
-        return res.status(400).json({ message: "Business already exists, use PUT to update." });
-      }
-
       const business = await Business.create({ username, ...rest });
       return res.status(201).json({ message: "Business created", business });
     }
