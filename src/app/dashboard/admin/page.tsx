@@ -323,7 +323,7 @@ export default function AdminDashboard() {
                         ))}
                   </div>
                 )
-                case 'banner':
+                case "banner":
                   return (
                     <div>
                       <h2 className="text-xl font-bold mb-4">Manage Banners</h2>
@@ -339,28 +339,46 @@ export default function AdminDashboard() {
                           }
                         }}
                       />
+
                       {bannerPreview && (
                         <div className="mb-4">
-                          <Image src={bannerPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
+                          <Image
+                            src={bannerPreview}
+                            alt="Preview"
+                            width={600}
+                            height={300}
+                            unoptimized
+                            className="w-full max-w-md rounded mb-1"
+                          />
                           <p className="text-sm text-gray-300">{bannerName}</p>
                         </div>
                       )}
+
                       <button
                         onClick={handleUpload}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                       >
                         Upload Banner
                       </button>
-                
+
                       <div className="mt-4">
                         <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
                         {bannerReports.map((b) => (
                           <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                            <Image src={b.imageUrl} alt="Banner Preview" className="w-full max-w-sm rounded mb-2" />
+                            <Image
+                              src={b.imageUrl}
+                              alt="Banner Preview"
+                              width={600}
+                              height={300}
+                              unoptimized={b.imageUrl.startsWith("data:") || b.imageUrl.startsWith("blob:")}
+                              className="w-full max-w-sm rounded mb-2"
+                            />
                             <div className="flex justify-between items-center">
                               <div>
                                 <p>{b.name}</p>
-                                <p className="text-xs text-gray-400">Uploaded: {new Date(b.uploadedAt).toLocaleString()}</p>
+                                <p className="text-xs text-gray-400">
+                                  Uploaded: {new Date(b.uploadedAt).toLocaleString()}
+                                </p>
                               </div>
                               <button
                                 onClick={() => handleDelete(b._id)}
@@ -496,83 +514,117 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                 )
-            case 'activities':
-                return (
+                case "activities":
+                  return (
                     <div>
-                        <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
-                        <input
-                          id="activity-file"
-                          type="file"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setActivityName(file.name);
-                          
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                const base64 = reader.result as string;
-                                setActivityPreview(base64);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          
-                          className="mb-2"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Title"
-                            value={activityTitle}
-                            onChange={(e) => setActivityTitle(e.target.value)}
-                            className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                        />
-                        {activityPreview && (
-                          <div className="mb-4">
-                            <Image src={activityPreview} alt="Preview" className="w-full max-w-md rounded mb-1" />
-                            <p className="text-sm text-gray-700">{activityName}</p>
-                          </div>
-                        )}
-                        <input id="activity-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
-                        <button
-                            onClick={handleAddActivity}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                            >
-                            Add Activity
-                        </button>
-                        <div className="mt-4">
-                            <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
-                            {activityReports.map((a) => (
-                                <div key={a._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                                    <Image src={a.imageUrl} alt="Activity Preview" className="w-full max-w-sm rounded mb-2" />
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <p className='text-sm text-gray-400'>{a.name}</p>
-                                            <p><strong>{a.title}</strong></p>
-                                            <p>{a.desc}</p>
-                                            <p className="text-xs text-gray-400">Added: {a.date}</p>
-                                        </div>
-                                        <button
-                                            onClick={async () => {
-                                                if (!confirm('Delete this activity?')) return;
-                                                const res = await fetch('/api/activity/delete', {
-                                                  method: 'DELETE',
-                                                  headers: { 'Content-Type': 'application/json' },
-                                                  body: JSON.stringify({ id: a._id }),
-                                                });
-                                                if (res.ok) {
-                                                  setActivityReports(prev => prev.filter(act => act._id !== a._id));
-                                                }
-                                              }}                                              
-                                            className="text-red-500 hover:text-red-700"
-                                        >
-                                            <FaTrash />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                      <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
+                      <input
+                        id="activity-file"
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setActivityName(file.name);
+                
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const base64 = reader.result as string;
+                              setActivityPreview(base64);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="mb-2"
+                      />
+                
+                      <input
+                        type="text"
+                        placeholder="Title"
+                        value={activityTitle}
+                        onChange={(e) => setActivityTitle(e.target.value)}
+                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
+                      />
+                
+                      {activityPreview && (
+                        <div className="mb-4">
+                          <Image
+                            src={activityPreview}
+                            alt="Preview"
+                            width={600}
+                            height={400}
+                            unoptimized
+                            className="w-full max-w-md rounded mb-1"
+                          />
+                          <p className="text-sm text-gray-700">{activityName}</p>
                         </div>
+                      )}
+                
+                      <input
+                        id="activity-desc"
+                        type="text"
+                        placeholder="Description"
+                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
+                      />
+                
+                      <button
+                        onClick={handleAddActivity}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                      >
+                        Add Activity
+                      </button>
+                
+                      <div className="mt-4">
+                        <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
+                        {activityReports.map((a) => (
+                          <div
+                            key={a._id}
+                            className="bg-gray-800 text-white p-3 mb-2 rounded"
+                          >
+                            <Image
+                              src={a.imageUrl}
+                              alt="Activity Preview"
+                              width={600}
+                              height={400}
+                              unoptimized={a.imageUrl.startsWith("data:") || a.imageUrl.startsWith("blob:")}
+                              className="w-full max-w-sm rounded mb-2"
+                            />
+                
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm text-gray-400">{a.name}</p>
+                                <p>
+                                  <strong>{a.title}</strong>
+                                </p>
+                                <p>{a.desc}</p>
+                                <p className="text-xs text-gray-400">
+                                  Added: {new Date(a.date).toLocaleString()}
+                                </p>
+                              </div>
+                
+                              <button
+                                onClick={async () => {
+                                  if (!confirm("Delete this activity?")) return;
+                                  const res = await fetch("/api/activity/delete", {
+                                    method: "DELETE",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: a._id }),
+                                  });
+                                  if (res.ok) {
+                                    setActivityReports((prev) =>
+                                      prev.filter((act) => act._id !== a._id)
+                                    );
+                                  }
+                                }}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                )
+                  );
             case 'schedule':
                 return (
                     <div>
