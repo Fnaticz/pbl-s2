@@ -4,6 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+type RawBusiness = {
+  _id?: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  desc?: string;
+  image?: string;
+  slideshow?: string[];
+  link?: string;
+  username?: string;
+};
+
 type Business = {
   _id: string;
   title: string;
@@ -24,21 +36,21 @@ export default function BusinessPage() {
     const fetchBusinesses = async () => {
       try {
         const res = await fetch("/api/business/public");
-        const data = await res.json();
+        const data: RawBusiness[] = await res.json();
         if (!Array.isArray(data)) {
           setBusinesses([]);
           setFilteredBusinesses([]);
           return;
         }
 
-        const mapped: Business[] = data.map((b: any) => {
+        const mapped: Business[] = data.map((b) => {
           const img =
             (Array.isArray(b.slideshow) && b.slideshow.length > 0 && b.slideshow[0]) ||
             b.image ||
             "/placeholder.jpg";
 
           return {
-            _id: b._id ?? b._id?.toString() ?? String(Date.now()),
+            _id: b._id ?? String(Date.now()),
             title: b.name || b.title || "Untitled Business",
             description: b.description || b.desc || "",
             image: img,
@@ -87,28 +99,31 @@ export default function BusinessPage() {
   };
 
   const renderThumbnail = (src: string, alt: string) => {
+    const commonClass =
+      "w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]";
+
     if (!src) {
-      return <img src="/placeholder.jpg" alt={alt} className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]" />;
-    }
-
-    if (src.startsWith("data:")) {
-      return <img src={src} alt={alt} className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]" />;
-    }
-
-    try {
       return (
         <Image
-          src={src}
+          src="/placeholder.jpg"
           alt={alt}
           width={240}
           height={240}
-          className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]"
+          className={commonClass}
         />
       );
-    } catch (e) {
-      // fallback
-      return <img src={src} alt={alt} className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]" />;
     }
+
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        width={240}
+        height={240}
+        className={commonClass}
+        unoptimized={src.startsWith("data:")}
+      />
+    );
   };
 
   return (
@@ -149,7 +164,6 @@ export default function BusinessPage() {
                       transition duration-200"
           />
         </div>
-
 
         <div className="flex flex-col gap-10 items-center">
           {visibleBusinesses.length > 0 ? (
