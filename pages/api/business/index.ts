@@ -4,53 +4,44 @@ import Business from "../../../models/business";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectDB();
+
   const { method } = req;
 
   try {
     if (method === "GET") {
       const { username } = req.query;
-      if (!username) {
-        return res.status(400).json({ message: "Username required" });
-      }
+      if (!username) return res.status(400).json({ message: "Username required" });
 
-      const business = await Business.findOne({ username });
-      return res.status(200).json(business || {});
+      const businesses = await Business.find({ username });
+      return res.status(200).json(businesses);
     }
 
     if (method === "POST") {
-      const { username, ...rest } = req.body;
-      if (!username) {
-        return res.status(400).json({ message: "Username required" });
-      }
-
-      const business = await Business.create({ username, ...rest });
+      const business = new Business(req.body);
+      await business.save();
       return res.status(201).json({ message: "Business created", business });
     }
 
     if (method === "PUT") {
-      const { username, ...updates } = req.body;
-      if (!username) {
-        return res.status(400).json({ message: "Username required" });
-      }
+      const { _id } = req.body;
+      if (!_id) return res.status(400).json({ message: "Business ID required" });
 
-      const business = await Business.findOneAndUpdate({ username }, updates, { new: true });
-      return res.status(200).json({ message: "Business updated", business });
+      const updated = await Business.findByIdAndUpdate(_id, req.body, { new: true });
+      return res.status(200).json({ message: "Business updated", business: updated });
     }
 
     if (method === "DELETE") {
-      const { username } = req.query;
-      if (!username) {
-        return res.status(400).json({ message: "Username required" });
-      }
+      const { id } = req.query;
+      if (!id) return res.status(400).json({ message: "Business ID required" });
 
-      await Business.findOneAndDelete({ username });
+      await Business.findByIdAndDelete(id);
       return res.status(200).json({ message: "Business deleted" });
     }
 
     res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
     return res.status(405).end(`Method ${method} Not Allowed`);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
+  } catch (err: any) {
+    console.error("Business API error:", err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 }

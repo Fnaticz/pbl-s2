@@ -8,7 +8,7 @@ type Business = {
   _id: string;
   title: string;
   description: string;
-  image: string; // bisa data:..., path lokal, atau https://...
+  image: string;
   link?: string;
 };
 
@@ -31,9 +31,7 @@ export default function BusinessPage() {
           return;
         }
 
-        // normalisasi shape data dari DB ke yang dibutuhkan UI
         const mapped: Business[] = data.map((b: any) => {
-          // pilih gambar: slideshow[0] jika ada, fallback ke b.image, fallback placeholder
           const img =
             (Array.isArray(b.slideshow) && b.slideshow.length > 0 && b.slideshow[0]) ||
             b.image ||
@@ -84,24 +82,19 @@ export default function BusinessPage() {
   const goToPage = (page: number) => {
     if (page >= 0 && page < totalPages) {
       setCurrentPage(page);
-      // scroll to top of list for UX
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  // helper: render thumbnail using next/image when safe, otherwise fallback <img>
   const renderThumbnail = (src: string, alt: string) => {
     if (!src) {
       return <img src="/placeholder.jpg" alt={alt} className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]" />;
     }
 
-    // If data URL (base64) -> <img> (next/image may not support data:)
     if (src.startsWith("data:")) {
       return <img src={src} alt={alt} className="w-full md:w-60 h-60 object-cover rounded shadow-[ -17px_17px_10px_rgba(0,0,0,0.5) ]" />;
     }
 
-    // If external hostname not configured in next.config.js, next/image may throw at runtime/build.
-    // We optimistically use <Image /> for typical hosted images; fallback to <img /> if any runtime issues occur.
     try {
       return (
         <Image

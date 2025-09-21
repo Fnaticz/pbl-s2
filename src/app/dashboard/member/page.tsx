@@ -14,6 +14,7 @@ export default function MemberDashboard() {
   } | undefined
 
   const emptyProfile = {
+    _id: undefined as string | undefined,
     name: '',
     category: '',
     description: '',
@@ -27,7 +28,7 @@ export default function MemberDashboard() {
   }
 
   const [profile, setProfile] = useState(emptyProfile)
-  const [businessData, setBusinessData] = useState<typeof emptyProfile | null>(null) // data dari DB
+  const [businesses, setBusinesses] = useState<typeof emptyProfile[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -38,22 +39,9 @@ export default function MemberDashboard() {
         const res = await fetch(`/api/business?username=${user.username}`)
         if (!res.ok) return
         const data = await res.json()
-        if (data && data.username) {
-          setBusinessData({
-            name: data.name || '',
-            category: data.category || '',
-            description: data.description || '',
-            address: data.address || '',
-            phone: data.phone || '',
-            facebook: data.facebook || '',
-            instagram: data.instagram || '',
-            whatsapp: data.whatsapp || '',
-            maps: data.maps || '',
-            slideshow: data.slideshow || [],
-          })
-        }
+        setBusinesses(data || [])
       } catch (err) {
-        console.error('Failed to load business', err)
+        console.error('Failed to load businesses', err)
       }
     }
 
@@ -71,16 +59,23 @@ export default function MemberDashboard() {
 
     setLoading(true)
     try {
-      const method = businessData ? 'PUT' : 'POST'
+      const method = profile._id ? 'PUT' : 'POST'
       const res = await fetch('/api/business', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...profile, username: user.username }),
       })
       const data = await res.json()
+
       if (res.ok) {
-        setBusinessData(profile) // update tampilan tabel
-        setProfile(emptyProfile) // reset form
+        if (method === "POST") {
+          setBusinesses((prev) => [...prev, data.business])
+        } else {
+          setBusinesses((prev) =>
+            prev.map((b) => (b._id === data.business._id ? data.business : b))
+          )
+        }
+        setProfile(emptyProfile)
       }
       alert(data.message || 'Saved')
     } catch (err) {
@@ -91,17 +86,16 @@ export default function MemberDashboard() {
     }
   }
 
-  const handleDelete = async () => {
-    if (!user) return
-    if (!confirm('Are you sure you want to delete your business?')) return
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this business?')) return
 
     try {
-      const res = await fetch(`/api/business?username=${user.username}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/business?id=${id}`, { method: 'DELETE' })
       const data = await res.json()
+      if (res.ok) {
+        setBusinesses((prev) => prev.filter((b) => b._id !== id))
+      }
       alert(data.message || 'Deleted')
-      setBusinessData(null)
     } catch (err) {
       console.error(err)
       alert('Failed to delete')
@@ -124,7 +118,7 @@ export default function MemberDashboard() {
         {/* FORM SECTION */}
         <section className="bg-stone-800 p-6 rounded-xl shadow">
           <h2 className="text-xl font-semibold mb-4">
-            {businessData ? 'Edit Business' : 'Add New Business'}
+            {profile._id ? "Edit Business" : "Add New Business"}
           </h2>
 
           <input
@@ -222,11 +216,10 @@ export default function MemberDashboard() {
             </button>
           </div>
         </section>
-
-        {/* DATA SECTION */}
-        {businessData && (
+        
+        {businesses.length > 0 && (
           <section className="bg-stone-900 p-6 rounded-xl shadow">
-            <h2 className="text-xl font-semibold mb-4">Your Business Data</h2>
+            <h2 className="text-xl font-semibold mb-4">Your Businesses</h2>
             <table className="w-full border border-stone-700 text-sm">
               <thead>
                 <tr className="bg-stone-700">
@@ -237,25 +230,27 @@ export default function MemberDashboard() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="p-2 border border-stone-700">{businessData.name}</td>
-                  <td className="p-2 border border-stone-700">{businessData.category}</td>
-                  <td className="p-2 border border-stone-700">{businessData.phone}</td>
-                  <td className="p-2 border border-stone-700">
-                    <button
-                      onClick={() => setProfile(businessData)}
-                      className="bg-blue-600 px-2 py-1 rounded text-white mr-2"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className="bg-red-600 px-2 py-1 rounded text-white"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+                {businesses.map((biz) => (
+                  <tr key={biz._id}>
+                    <td className="p-2 border border-stone-700">{biz.name}</td>
+                    <td className="p-2 border border-stone-700">{biz.category}</td>
+                    <td className="p-2 border border-stone-700">{biz.phone}</td>
+                    <td className="p-2 border border-stone-700">
+                      <button
+                        onClick={() => setProfile(biz)}
+                        className="bg-blue-600 px-2 py-1 rounded text-white mr-2"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(biz._id!)}
+                        className="bg-red-600 px-2 py-1 rounded text-white"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </section>
