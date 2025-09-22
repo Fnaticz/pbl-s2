@@ -45,7 +45,9 @@ export default function BusinessPage() {
 
         const mapped: Business[] = data.map((b) => {
           const img =
-            (Array.isArray(b.slideshow) && b.slideshow.length > 0 && b.slideshow[0]) ||
+            (Array.isArray(b.slideshow) &&
+              b.slideshow.length > 0 &&
+              b.slideshow[0]) ||
             b.image ||
             "/placeholder.jpg";
 
@@ -54,9 +56,9 @@ export default function BusinessPage() {
             title: b.name || b.title || "Untitled Business",
             description: b.description || b.desc || "",
             image: img,
-            link:
-              b.link ||
-              (b.username ? `/profilebusiness/${encodeURIComponent(b.username)}` : undefined),
+            link: b.username
+              ? `/profilebusiness/${encodeURIComponent(b.username)}`
+              : undefined,
           };
         });
 
@@ -87,9 +89,15 @@ export default function BusinessPage() {
     setCurrentPage(0);
   }, [searchQuery, businesses]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredBusinesses.length / itemPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredBusinesses.length / itemPerPage)
+  );
   const start = currentPage * itemPerPage;
-  const visibleBusinesses = filteredBusinesses.slice(start, start + itemPerPage);
+  const visibleBusinesses = filteredBusinesses.slice(
+    start,
+    start + itemPerPage
+  );
 
   const goToPage = (page: number) => {
     if (page >= 0 && page < totalPages) {
@@ -181,12 +189,14 @@ export default function BusinessPage() {
                   <p className="text-white text-lg mt-3 break-words">
                     {business.description}
                   </p>
-                  <Link
-                    href={business.link ?? "#"}
-                    className="bg-white text-black px-8 py-2 rounded-lg self-start mt-4 font-bold transition transform active:scale-95 active:bg-red-600 active:text-white hover:bg-red-600 hover:text-white"
-                  >
-                    More
-                  </Link>
+                  {business.link && (
+                    <Link
+                      href={business.link}
+                      className="bg-white text-black px-8 py-2 rounded-lg self-start mt-4 font-bold transition transform active:scale-95 active:bg-red-600 active:text-white hover:bg-red-600 hover:text-white"
+                    >
+                      More
+                    </Link>
+                  )}
                 </div>
               </div>
             ))

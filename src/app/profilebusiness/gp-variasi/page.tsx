@@ -1,80 +1,173 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa"
+import { useState, useEffect } from "react";
+import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import Image from "next/image";
 
-
-const images = ["/bisnisgp2.jpg", "/bisnisgp1.jpg", "/img3.jpg"]
+interface Business {
+  _id: string;
+  username: string;
+  name: string;
+  category?: string;
+  description?: string;
+  address?: string;
+  phone?: string;
+  facebook?: string;
+  instagram?: string;
+  whatsapp?: string;
+  maps?: string;
+  slideshow: string[];
+}
 
 export default function CompanyProfile() {
+  const [business, setBusiness] = useState<Business | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % images.length)
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + images.length) % images.length)
+  useEffect(() => {
+    const fetchBusiness = async () => {
+      try {
+        const res = await fetch("/api/business");
+        if (res.ok) {
+          const data: Business[] = await res.json();
+          if (data.length > 0) setBusiness(data[0]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch business:", err);
+      }
+    };
+
+    fetchBusiness();
+  }, []);
+
+  const nextSlide = () =>
+    setCurrentSlide((prev) =>
+      business ? (prev + 1) % business.slideshow.length : 0
+    );
+  const prevSlide = () =>
+    setCurrentSlide((prev) =>
+      business ? (prev - 1 + business.slideshow.length) % business.slideshow.length : 0
+    );
+
+  if (!business) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400">
+        Loading business profile...
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
       <main className="flex-grow pt-20 px-4 pb-16">
-        <h1 className="text-center text-4xl font-extrabold mb-6">GP VARIASI</h1>
-        <div className="flex justify-center mb-6">
-          <Image src="/bisnisgp3.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
-        </div>
-        <p className="text-center max-w-2xl mx-auto text-sm md:text-base text-gray-200 mb-10 leading-relaxed">
-          GP Variasi menyediakan jasa modifikasi berbagai tipe kendaraan, mulai dari tipe sedan, minibus, dan bahkan kendaraan offroad. 
-        </p>
+        <h1 className="text-center text-4xl font-extrabold mb-6">
+          {business.name}
+        </h1>
 
-        <div className="flex items-center justify-center">
-          <div className="relative flex flex-col items-center mb-8">
-            {/* <Image src={images[currentSlide]} alt={`Slide ${currentSlide + 1}`} className="w-full max-w-md rounded-md" /> */}
+        {/* Slideshow */}
+        {business.slideshow.length > 0 && (
+          <div className="flex items-center justify-center mb-6 relative">
             <Image
-              src={images[currentSlide]}
+              src={business.slideshow[currentSlide]}
               alt={`Slide ${currentSlide + 1}`}
               width={600}
               height={400}
-              className="w-full max-w-md rounded-md"
+              unoptimized={business.slideshow[currentSlide].startsWith("data:")}
+              className="w-full max-w-md rounded-md shadow-lg"
             />
-            <button onClick={prevSlide} className="absolute top-1/2 left-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full transition transform active:scale-70 active:bg-red-600 hover:bg-red-600 transition">{'‹'}</button>
-            <button onClick={nextSlide} className="absolute top-1/2 right-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-1 py-0.2 rounded-full transition transform active:scale-70 active:bg-red-600 hover:bg-red-600 transition">{'›'}</button>
+            <button
+              onClick={prevSlide}
+              className="absolute top-1/2 left-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-2 py-1 rounded-full hover:bg-red-600"
+            >
+              ‹
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute top-1/2 right-0 transform -translate-y-1/2 text-2xl bg-black bg-opacity-50 px-2 py-1 rounded-full hover:bg-red-600"
+            >
+              ›
+            </button>
 
-            <div className="mt-3 flex gap-2">
-              {images.map((_, idx) => (
+            <div className="absolute bottom-2 flex gap-2">
+              {business.slideshow.map((_, idx) => (
                 <span
                   key={idx}
                   onClick={() => setCurrentSlide(idx)}
-                  className={`w-2 h-2 rounded-full ${currentSlide === idx ? 'bg-white' : 'bg-gray-500'} cursor-pointer`}
+                  className={`w-2 h-2 rounded-full cursor-pointer ${
+                    currentSlide === idx ? "bg-white" : "bg-gray-500"
+                  }`}
                 />
               ))}
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="text-center mb-8">
-          <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer">
-            <button className="bg-green-500 transition transform active:bg-green-600 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full">
-              Contact Us
-            </button>
-          </a>
-        </div>
+        {/* Description */}
+        {business.description && (
+          <p className="text-center max-w-2xl mx-auto text-sm md:text-base text-gray-200 mb-10 leading-relaxed">
+            {business.description}
+          </p>
+        )}
 
+        {/* Contact Button */}
+        {business.whatsapp && (
+          <div className="text-center mb-8">
+            <a
+              href={`https://wa.me/${business.whatsapp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full">
+                Contact Us
+              </button>
+            </a>
+          </div>
+        )}
+
+        {/* Social Media */}
         <div className="flex justify-center gap-4 text-xl mb-10">
-          <a href="https://facebook.com" target="_blank" className="transition transform active:text-blue-500 hover:text-blue-500"><FaFacebookF /></a>
-          <a href="https://instagram.com" target="_blank" className="transition transform active:text-pink-500 hover:text-pink-500"><FaInstagram /></a>
-          <a href="https://wa.me/6281234567890" target="_blank" className="transition transform active:text-green-500 hover:text-green-500"><FaWhatsapp /></a>
+          {business.facebook && (
+            <a
+              href={business.facebook}
+              target="_blank"
+              className="hover:text-blue-500"
+            >
+              <FaFacebookF />
+            </a>
+          )}
+          {business.instagram && (
+            <a
+              href={business.instagram}
+              target="_blank"
+              className="hover:text-pink-500"
+            >
+              <FaInstagram />
+            </a>
+          )}
+          {business.whatsapp && (
+            <a
+              href={`https://wa.me/${business.whatsapp}`}
+              target="_blank"
+              className="hover:text-green-500"
+            >
+              <FaWhatsapp />
+            </a>
+          )}
         </div>
 
-        <div className="flex justify-center">
-          <iframe
-            title="Company Location"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1660.098434029081!2d114.33157621117596!3d-8.262749718108791!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd1507fac0a3ba1%3A0xd2fce1f27c5434f4!2sGp%20Variasi%20Ac%20Mobil%20P.Window!5e0!3m2!1sid!2sid!4v1749476175105!5m2!1sid!2sid"
-            width="100%"
-            height="300"
-            className="rounded-md shadow-lg max-w-md w-full"
-            loading="lazy"
-          />
-        </div>
+        {/* Maps */}
+        {business.maps && (
+          <div className="flex justify-center">
+            <iframe
+              title="Company Location"
+              src={business.maps}
+              width="100%"
+              height="300"
+              className="rounded-md shadow-lg max-w-md w-full"
+              loading="lazy"
+            />
+          </div>
+        )}
       </main>
-
     </div>
-  )
+  );
 }
