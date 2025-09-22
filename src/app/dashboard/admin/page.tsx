@@ -123,43 +123,54 @@ export default function AdminDashboard() {
       };
       
       const handleUpload = async () => {
+        if (!bannerTitle || !bannerDate || !bannerLocation || !bannerName) {
+          return alert("All fields required");
+        }
+      
         const fileInput = document.getElementById("banner-file") as HTMLInputElement;
         const file = fileInput?.files?.[0];
-        if (!file || !confirm("Upload this banner?")) return;
-
+        if (!file) return alert("No file selected");
+      
         const reader = new FileReader();
-
         reader.onloadend = async () => {
           const base64 = reader.result;
-
+      
           try {
-            const res = await fetch('/api/banner/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/banner/upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                name: file.name,
-                file: base64
+                name: bannerName,
+                title: bannerTitle,
+                eventDate: bannerDate,
+                location: bannerLocation,
+                file: base64,
               }),
             });
-
+      
             if (res.ok) {
               const newBanner = await res.json();
-              setBannerReports(prev => [...prev, newBanner]);
+              setBannerReports((prev) => [...prev, newBanner]);
+      
               alert("Banner uploaded!");
+              setBannerTitle("");
+              setBannerDate("");
+              setBannerLocation("");
+              setBannerName("");
               setBannerPreview(null);
-              setBannerName('');
-              fileInput.value = '';
+              fileInput.value = "";
             } else {
-              alert("Failed to upload banner");
+              alert("Upload failed");
             }
-          } catch (error) {
-            console.error("Upload failed:", error);
-            alert("Upload error occurred");
+          } catch (err) {
+            console.error("Upload error:", err);
+            alert("Server error");
           }
         };
-
+      
         reader.readAsDataURL(file);
       };
+      
       
       
       const handleDelete = async (id: string) => {
@@ -419,7 +430,7 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     </div>
-                  );            
+                  );
             case 'finance':
                 return (
                     <div>
