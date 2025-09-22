@@ -35,7 +35,7 @@ export default function AdminDashboard() {
     const [bannerDate, setBannerDate] = useState('')
     const [bannerLocation, setBannerLocation] = useState('')
     // const [activityPreview, setActivityPreview] = useState<string | null>(null)
-    // const [activityName, setActivityName] = useState('')
+    const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
     const [activityDesc, setActivityDesc] = useState('')
     const [activityImages, setActivityImages] = useState<string[]>([])
@@ -179,45 +179,42 @@ export default function AdminDashboard() {
       };
 
       const handleAddActivity = async () => {
-        const desc = (document.getElementById("activity-desc") as HTMLInputElement)?.value;
-        const fileInput = document.getElementById("activity-file") as HTMLInputElement;
-        const file = fileInput?.files?.[0];
-      
-        if (!file || !activityTitle || !desc) return alert("All fields required");
+        if (activityImages.length === 0 || !activityTitle || !activityDesc) {
+          return alert("All fields required");
+        }
       
         if (!confirm("Add this activity?")) return;
       
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64 = reader.result;
-      
-          const res = await fetch('/api/activity/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        try {
+          const res = await fetch("/api/activity/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               title: activityTitle,
-              name: file.name,
-              desc,
-              file: base64
+              name: activityName || "activity",
+              desc: activityDesc,
+              images: activityImages,
             }),
           });
       
           if (res.ok) {
             const newActivity = await res.json();
-            setActivityReports([...activityReports, newActivity]);
+            setActivityReports((prev) => [...prev, newActivity]);
+      
             alert("Activity uploaded!");
-            setActivityTitle('');
-            // setActivityName('');
-            // setActivityPreview(null);
-            (document.getElementById("activity-desc") as HTMLInputElement).value = '';
-            fileInput.value = '';
+            setActivityTitle("");
+            setActivityName("");
+            setActivityDesc("");
+            setActivityImages([]);
           } else {
             alert("Upload failed");
           }
-        };
-      
-        reader.readAsDataURL(file);
+        } catch (error) {
+          console.error("Upload error:", error);
+          alert("Server error");
+        }
       };
+      
       
       useEffect(() => {
         const fetchBanners = async () => {

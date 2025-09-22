@@ -11,11 +11,14 @@ export const config = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
+  }
 
-  const { title, name, desc, files } = req.body;
+  const { title, name, desc, images } = req.body;
 
-  if (!title || !name || !desc || !files || !Array.isArray(files)) {
+  if (!title || !name || !desc || !images || !Array.isArray(images) || images.length === 0) {
     return res.status(400).json({ message: "Missing fields" });
   }
 
@@ -26,13 +29,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       title,
       name,
       desc,
-      images: files,
+      images,
       createdAt: new Date(),
     });
 
     res.status(201).json(newActivity);
   } catch (err) {
-    console.error("Upload error:", err);
+    console.error("Activity upload error:", err);
     res.status(500).json({ message: "Server error" });
   }
 }
