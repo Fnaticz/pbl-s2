@@ -11,7 +11,10 @@ export const config = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
+  }
 
   const { name, title, eventDate, location, file } = req.body;
 
