@@ -1,41 +1,22 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Activity {
+  _id: string;
+  title: string;
+  desc: string;
+  name: string;
+  images: string[];
+  createdAt: string;
+}
+
+function ActivityCard({ id, title, description, images, expanded, onToggle }: {
   id: string;
   title: string;
   description: string;
   images: string[];
-}
-
-const activities: Activity[] = [
-  {
-    id: "bali012025",
-    title: "Offroad Event Palasari Bali 2025",
-    description:
-      "Offroad event yang diikuti Spartan yang berlokasi di bendungan Palasari Bali. Acara ini mempertemukan para pecinta offroad dari berbagai daerah dengan penuh tantangan lintasan dan suasana kekeluargaan.",
-    images: ["/offroad.jpg", "/offroad pic 3.jpg", "/offroad pic 4.jpg", "/offroad pic 5.jpg"],
-  },
-  {
-    id: "bali082025",
-    title: "Offroad Event Rambut Siwi Bali 2025",
-    description:
-      "Offroad event yang diikuti Spartan yang berlokasi di Rambut Siwi, Negare, Bali. Acara ini mempertemukan para pecinta offroad dari berbagai daerah dengan penuh tantangan lintasan dan suasana kekeluargaan.",
-    images: ["/offroad pic 6.jpg", "/offroad pic 7.jpg", "/offroad pic 8.jpg", "/offroad pic 9.jpg"],
-  },
-];
-
-//CARD
-function ActivityCard({
-  id,
-  title,
-  description,
-  images,
-  expanded,
-  onToggle,
-}: Activity & {
   expanded: boolean;
   onToggle: (id: string) => void;
 }) {
@@ -83,6 +64,7 @@ function ActivityCard({
                     alt={`Activity image ${idx}`}
                     fill
                     className="object-cover rounded-xl shadow-lg"
+                    unoptimized={img.startsWith("data:") || img.startsWith("blob:")}
                   />
                 </motion.div>
               );
@@ -108,6 +90,7 @@ function ActivityCard({
                   alt={`Activity expanded ${idx}`}
                   fill
                   className="object-cover rounded-xl shadow-lg"
+                  unoptimized={img.startsWith("data:") || img.startsWith("blob:")}
                 />
               </motion.div>
             ))}
@@ -139,22 +122,34 @@ function ActivityCard({
   );
 }
 
-//SECTION
 export default function ActivitiesSection() {
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const activitiesPerPage = 2;
   const totalPages = Math.ceil(activities.length / activitiesPerPage);
   const startIndex = (currentPage - 1) * activitiesPerPage;
-  const visibleActivities = activities.slice(
-    startIndex,
-    startIndex + activitiesPerPage
-  );
+  const visibleActivities = activities.slice(startIndex, startIndex + activitiesPerPage);
 
   const handleToggle = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch("/api/activity");
+        if (res.ok) {
+          const data = await res.json();
+          setActivities(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch activities:", error);
+      }
+    };
+    fetchActivities();
+  }, []);
 
   return (
     <section className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-stone-950 to-red-950">
@@ -167,9 +162,12 @@ export default function ActivitiesSection() {
         >
           {visibleActivities.map((activity) => (
             <ActivityCard
-              key={activity.id}
-              {...activity}
-              expanded={expandedId === activity.id}
+              key={activity._id}
+              id={activity._id}
+              title={activity.title}
+              description={activity.desc}
+              images={activity.images}
+              expanded={expandedId === activity._id}
               onToggle={handleToggle}
             />
           ))}
