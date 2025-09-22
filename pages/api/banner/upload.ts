@@ -13,9 +13,9 @@ export const config = {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { name, file, title, eventDate, locationUrl } = req.body;
+  const { name, title, eventDate, location, file } = req.body;
 
-  if (!name || !file) {
+  if (!name || !title || !eventDate || !location || !file) {
     return res.status(400).json({ message: "Missing fields" });
   }
 
@@ -24,11 +24,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const newBanner = await Banner.create({
       name,
+      title,
+      eventDate,
+      location,
       imageUrl: file,
       uploadedAt: new Date(),
-      title: title || "",
-      eventDate: eventDate ? new Date(eventDate) : null,
-      locationUrl: locationUrl || "",
     });
 
     res.status(201).json(newBanner);

@@ -34,12 +34,12 @@ export default function AdminDashboard() {
     const [bannerTitle, setBannerTitle] = useState('')
     const [bannerDate, setBannerDate] = useState('')
     const [bannerLocation, setBannerLocation] = useState('')
-    const [activityPreview, setActivityPreview] = useState<string | null>(null)
-    const [activityName, setActivityName] = useState('')
+    // const [activityPreview, setActivityPreview] = useState<string | null>(null)
+    // const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
     const [activityDesc, setActivityDesc] = useState('')
     const [activityImages, setActivityImages] = useState<string[]>([])
-    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string; images?: string[] }[]>([])
+    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string; images?: string[]; createdAt: Date }[]>([])
     const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
     const [totalAmount, setTotalAmount] = useState<number | null>(null)
     const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
@@ -207,8 +207,8 @@ export default function AdminDashboard() {
             setActivityReports([...activityReports, newActivity]);
             alert("Activity uploaded!");
             setActivityTitle('');
-            setActivityName('');
-            setActivityPreview(null);
+            // setActivityName('');
+            // setActivityPreview(null);
             (document.getElementById("activity-desc") as HTMLInputElement).value = '';
             fileInput.value = '';
           } else {
@@ -332,6 +332,7 @@ export default function AdminDashboard() {
                   return (
                     <div>
                       <h2 className="text-xl font-bold mb-4">Manage Banners</h2>
+
                       <input
                         type="text"
                         placeholder="Event Title"
@@ -403,7 +404,9 @@ export default function AdminDashboard() {
                             />
                             <div className="flex justify-between items-center">
                               <div>
-                                <p>{b.name}</p>
+                                <p className="font-bold">{b.title}</p>
+                                <p className="text-sm">{b.location}</p>
+                                <p className="text-xs text-gray-400">Event Date: {b.eventDate}</p>
                                 <p className="text-xs text-gray-400">
                                   Uploaded: {new Date(b.uploadedAt).toLocaleString()}
                                 </p>
@@ -419,8 +422,7 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     </div>
-                  );
-                
+                  );            
             case 'finance':
                 return (
                     <div>
@@ -641,7 +643,7 @@ export default function AdminDashboard() {
                                 </p>
                                 <p>{a.desc}</p>
                                 <p className="text-xs text-gray-400">
-                                  Added: {new Date(a.date).toLocaleString()}
+                                  Added: {new Date(a.createdAt).toLocaleString()}
                                 </p>
                               </div>
 
@@ -669,7 +671,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   );
-
             case 'schedule':
                 return (
                     <div>
