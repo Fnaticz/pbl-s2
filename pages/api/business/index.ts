@@ -2,6 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "../../../lib/mongodb";
 import Business from "../../../models/business";
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "20mb",
+    },
+  },
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectDB();
 

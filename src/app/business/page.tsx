@@ -45,22 +45,18 @@ export default function BusinessPage() {
 
         const mapped: Business[] = data.map((b) => {
           const img =
-            (Array.isArray(b.slideshow) &&
-              b.slideshow.length > 0 &&
-              b.slideshow[0]) ||
+            (Array.isArray(b.slideshow) && b.slideshow.length > 0 && b.slideshow[0]) ||
             b.image ||
             "/placeholder.jpg";
-
+        
           return {
             _id: b._id ?? String(Date.now()),
             title: b.name || b.title || "Untitled Business",
             description: b.description || b.desc || "",
             image: img,
-            link: b.username
-              ? `/profilebusiness/${encodeURIComponent(b.username)}`
-              : undefined,
+            link: b._id ? `/business/${b._id}` : undefined,
           };
-        });
+        });        
 
         setBusinesses(mapped);
         setFilteredBusinesses(mapped);
