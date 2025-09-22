@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
 interface Banner {
@@ -23,7 +23,7 @@ export default function UpcomingEvents() {
       try {
         const res = await fetch("/api/banner");
         if (res.ok) {
-          const data = await res.json();
+          const data = (await res.json()) as Banner[];
           setBanners(data);
         }
       } catch (err) {
@@ -33,21 +33,21 @@ export default function UpcomingEvents() {
     fetchBanners();
   }, []);
 
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev === banners.length - 1 ? 0 : prev + 1));
+  }, [banners.length]);
+
+  const prevSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
+  }, [banners.length]);
+
   useEffect(() => {
     if (lightboxOpen || banners.length === 0) return;
     const timer = setInterval(() => {
       nextSlide();
     }, 5000);
     return () => clearInterval(timer);
-  }, [lightboxOpen, banners, currentIndex]);
-
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
-  };
-
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev === banners.length - 1 ? 0 : prev + 1));
-  };
+  }, [lightboxOpen, banners.length, nextSlide]);
 
   if (banners.length === 0) {
     return (
@@ -68,7 +68,7 @@ export default function UpcomingEvents() {
           className="flex transition-transform duration-700 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
-          {banners.map((event, idx) => (
+          {banners.map((event) => (
             <div
               key={event._id}
               className="w-full flex-shrink-0 grid md:grid-cols-2 gap-8 p-8 bg-cover bg-center relative"
@@ -105,6 +105,8 @@ export default function UpcomingEvents() {
           ))}
         </div>
       </div>
+
+      {/* Controls */}
       <div className="flex items-center justify-center mt-6 space-x-6">
         <button
           onClick={prevSlide}
@@ -130,6 +132,8 @@ export default function UpcomingEvents() {
           ▶
         </button>
       </div>
+
+      {/* Lightbox */}
       {lightboxOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="relative">
