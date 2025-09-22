@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react"; // ✅ ambil user dari NextAuth
 import { FaPlus, FaImage, FaVideo } from "react-icons/fa";
 import Image from "next/image";
 
@@ -15,6 +16,7 @@ interface MediaItem {
 const ITEMS_PER_PAGE = 6;
 
 export default function GalleryPage() {
+  const { data: session } = useSession(); // ✅ akses user session
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [fileType, setFileType] = useState<"image" | "video">("image");
   const [page, setPage] = useState(1);
@@ -41,7 +43,6 @@ export default function GalleryPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // convert file ke base64 biar bisa dikirim ke DB atau Cloudinary
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result;
@@ -52,7 +53,7 @@ export default function GalleryPage() {
         body: JSON.stringify({
           type: fileType,
           url: base64,
-          username: "spartan_user",
+          username: session?.user?.username || session?.user?.emailOrPhone || "guest",
         }),
       });
 
