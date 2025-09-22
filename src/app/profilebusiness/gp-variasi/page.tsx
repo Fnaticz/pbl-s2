@@ -18,7 +18,7 @@ export default function CompanyProfile() {
       <main className="flex-grow pt-20 px-4 pb-16">
         <h1 className="text-center text-4xl font-extrabold mb-6">GP VARIASI</h1>
         <div className="flex justify-center mb-6">
-          <img src="/bisnisgp3.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
+          <Image src="/bisnisgp3.jpg" alt="Company" className="w-full max-w-md rounded-md shadow-lg" />
         </div>
         <p className="text-center max-w-2xl mx-auto text-sm md:text-base text-gray-200 mb-10 leading-relaxed">
           GP Variasi menyediakan jasa modifikasi berbagai tipe kendaraan, mulai dari tipe sedan, minibus, dan bahkan kendaraan offroad. 
