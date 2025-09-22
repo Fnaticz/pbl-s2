@@ -31,10 +31,15 @@ export default function AdminDashboard() {
     }[]>([])
     const [bannerPreview, setBannerPreview] = useState<string | null>(null)
     const [bannerName, setBannerName] = useState('')
+    const [bannerTitle, setBannerTitle] = useState('')
+    const [bannerDate, setBannerDate] = useState('')
+    const [bannerLocation, setBannerLocation] = useState('')
     const [activityPreview, setActivityPreview] = useState<string | null>(null)
     const [activityName, setActivityName] = useState('')
     const [activityTitle, setActivityTitle] = useState('')
-    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string }[]>([])
+    const [activityDesc, setActivityDesc] = useState('')
+    const [activityImages, setActivityImages] = useState<string[]>([])
+    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string; images?: string[] }[]>([])
     const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
     const [totalAmount, setTotalAmount] = useState<number | null>(null)
     const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
@@ -328,6 +333,29 @@ export default function AdminDashboard() {
                     <div>
                       <h2 className="text-xl font-bold mb-4">Manage Banners</h2>
                       <input
+                        type="text"
+                        placeholder="Event Title"
+                        value={bannerTitle}
+                        onChange={(e) => setBannerTitle(e.target.value)}
+                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
+                      />
+
+                      <input
+                        type="date"
+                        value={bannerDate}
+                        onChange={(e) => setBannerDate(e.target.value)}
+                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Google Maps URL"
+                        value={bannerLocation}
+                        onChange={(e) => setBannerLocation(e.target.value)}
+                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
+                      />
+
+                      <input
                         id="banner-file"
                         type="file"
                         className="mb-2"
@@ -518,25 +546,33 @@ export default function AdminDashboard() {
                   return (
                     <div>
                       <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
+
+                      {/* Multiple file input */}
                       <input
-                        id="activity-file"
+                        id="activity-files"
                         type="file"
+                        multiple
                         onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setActivityName(file.name);
-                
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              const base64 = reader.result as string;
-                              setActivityPreview(base64);
-                            };
-                            reader.readAsDataURL(file);
+                          const files = e.target.files;
+                          if (files) {
+                            const readers: Promise<string>[] = [];
+                            Array.from(files).forEach((file) => {
+                              readers.push(
+                                new Promise((resolve) => {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => resolve(reader.result as string);
+                                  reader.readAsDataURL(file);
+                                })
+                              );
+                            });
+                            Promise.all(readers).then((base64Images) => {
+                              setActivityImages(base64Images);
+                            });
                           }
                         }}
                         className="mb-2"
                       />
-                
+
                       <input
                         type="text"
                         placeholder="Title"
@@ -544,35 +580,39 @@ export default function AdminDashboard() {
                         onChange={(e) => setActivityTitle(e.target.value)}
                         className="bg-gray-700 w-full mb-2 p-2 border rounded"
                       />
-                
-                      {activityPreview && (
-                        <div className="mb-4">
-                          <Image
-                            src={activityPreview}
-                            alt="Preview"
-                            width={600}
-                            height={400}
-                            unoptimized
-                            className="w-full max-w-md rounded mb-1"
-                          />
-                          <p className="text-sm text-gray-700">{activityName}</p>
+
+                      {activityImages.length > 0 && (
+                        <div className="mb-4 flex flex-wrap gap-4">
+                          {activityImages.map((img, idx) => (
+                            <Image
+                              key={idx}
+                              src={img}
+                              alt={`Preview ${idx}`}
+                              width={400}
+                              height={300}
+                              unoptimized
+                              className="w-full max-w-md rounded mb-1"
+                            />
+                          ))}
                         </div>
                       )}
-                
+
                       <input
                         id="activity-desc"
                         type="text"
                         placeholder="Description"
+                        value={activityDesc}
+                        onChange={(e) => setActivityDesc(e.target.value)}
                         className="bg-gray-700 w-full mb-2 p-2 border rounded"
                       />
-                
+
                       <button
                         onClick={handleAddActivity}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                       >
                         Add Activity
                       </button>
-                
+
                       <div className="mt-4">
                         <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
                         {activityReports.map((a) => (
@@ -580,15 +620,19 @@ export default function AdminDashboard() {
                             key={a._id}
                             className="bg-gray-800 text-white p-3 mb-2 rounded"
                           >
-                            <Image
-                              src={a.imageUrl}
-                              alt="Activity Preview"
-                              width={600}
-                              height={400}
-                              unoptimized={a.imageUrl.startsWith("data:") || a.imageUrl.startsWith("blob:")}
-                              className="w-full max-w-sm rounded mb-2"
-                            />
-                
+                            {/* render multiple images */}
+                            {a.images?.map((img: string, idx: number) => (
+                              <Image
+                                key={idx}
+                                src={img}
+                                alt={`Activity ${idx}`}
+                                width={600}
+                                height={400}
+                                unoptimized={img.startsWith("data:") || img.startsWith("blob:")}
+                                className="w-full max-w-sm rounded mb-2"
+                              />
+                            ))}
+
                             <div className="flex justify-between items-center">
                               <div>
                                 <p className="text-sm text-gray-400">{a.name}</p>
@@ -600,7 +644,7 @@ export default function AdminDashboard() {
                                   Added: {new Date(a.date).toLocaleString()}
                                 </p>
                               </div>
-                
+
                               <button
                                 onClick={async () => {
                                   if (!confirm("Delete this activity?")) return;
@@ -625,6 +669,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   );
+
             case 'schedule':
                 return (
                     <div>

@@ -1,21 +1,21 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface IActivity extends Document {
-  title: string;
+  _id: string;
   name: string;
+  title: string;
   desc: string;
-  imageUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
+  images: string[];
+  date: Date;
 }
 
 const ActivitySchema = new Schema<IActivity>({
-  title: { type: String, required: true },
   name: { type: String, required: true },
+  title: { type: String, required: true },
   desc: { type: String, required: true },
-  imageUrl: { type: String, required: true },
-}, {
-  timestamps: true,
+  images: [{ type: String, required: true }],
+  date: { type: Date, default: Date.now },
 });
 
-export default mongoose.models.Activity || mongoose.model<IActivity>('Activity', ActivitySchema);
+export default mongoose.models.Activity ||
+  mongoose.model<IActivity>("Activity", ActivitySchema);

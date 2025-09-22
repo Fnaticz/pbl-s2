@@ -1,46 +1,39 @@
-// pages/api/activity/upload.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { connectDB } from '../../../lib/mongodb'
-import Activity from '../../../models/activity'
+import type { NextApiRequest, NextApiResponse } from "next";
+import { connectDB } from "../../../lib/mongodb";
+import Banner from "../../../models/banner";
 
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '100mb'
-    }
-  }
-}
+      sizeLimit: "100mb",
+    },
+  },
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).end()
+  if (req.method !== "POST") return res.status(405).end();
 
-  const { title, name, desc, file } = req.body
-  if (!title || !name || !desc || !file) {
-    return res.status(400).json({ message: 'Missing fields' })
+  const { name, file, title, eventDate, locationUrl } = req.body;
+
+  if (!name || !file) {
+    return res.status(400).json({ message: "Missing fields" });
   }
 
   try {
-    await connectDB()
+    await connectDB();
 
-    const ext = name.split('.').pop()
-    const allowedTypes = ['png', 'jpg', 'jpeg', 'webp']
-    if (!ext || !allowedTypes.includes(ext.toLowerCase())) {
-      return res.status(400).json({ message: 'File type not allowed' })
-    }
-
-    const imageUrl = file
-    
-    const newActivity = await Activity.create({
-      title,
+    const newBanner = await Banner.create({
       name,
-      desc,
-      imageUrl,
-      createdAt: new Date()
-    })
+      imageUrl: file,
+      uploadedAt: new Date(),
+      title: title || "",
+      eventDate: eventDate ? new Date(eventDate) : null,
+      locationUrl: locationUrl || "",
+    });
 
-    res.status(201).json(newActivity)
+    res.status(201).json(newBanner);
   } catch (err) {
-    console.error('Upload error:', err)
-    res.status(500).json({ message: 'Server error' })
+    console.error("Banner upload error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 }
