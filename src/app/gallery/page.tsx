@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react"; // ✅ ambil user dari NextAuth
+import { useSession } from "next-auth/react";
 import { FaPlus, FaImage, FaVideo } from "react-icons/fa";
 import Image from "next/image";
 
@@ -16,13 +16,12 @@ interface MediaItem {
 const ITEMS_PER_PAGE = 6;
 
 export default function GalleryPage() {
-  const { data: session } = useSession(); // ✅ akses user session
+  const { data: session } = useSession();
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [fileType, setFileType] = useState<"image" | "video">("image");
   const [page, setPage] = useState(1);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
-
-  // Fetch semua media dari DB
+  
   useEffect(() => {
     const fetchMedia = async () => {
       try {
@@ -38,7 +37,6 @@ export default function GalleryPage() {
     fetchMedia();
   }, []);
 
-  // Upload file ke DB
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -77,8 +75,6 @@ export default function GalleryPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-6 pt-32 pb-10">
       <h1 className="text-3xl font-bold text-center mb-8">GALLERY</h1>
-
-      {/* Upload */}
       <div className="flex gap-4 justify-center mb-8">
         <label className="bg-white text-black px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 shadow">
           <FaPlus />
@@ -90,7 +86,6 @@ export default function GalleryPage() {
             onChange={handleFileUpload}
           />
         </label>
-
         <button
           onClick={() => setFileType("image")}
           className={`border px-4 py-3 rounded-lg ${
@@ -101,7 +96,6 @@ export default function GalleryPage() {
         >
           <FaImage />
         </button>
-
         <button
           onClick={() => setFileType("video")}
           className={`border px-4 py-3 rounded-lg ${
@@ -113,8 +107,6 @@ export default function GalleryPage() {
           <FaVideo />
         </button>
       </div>
-
-      {/* Gallery grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-white/10 p-4 rounded-xl mb-6">
         {displayedMedia.length === 0 && (
           <p className="text-center col-span-full text-sm text-gray-400">
@@ -149,8 +141,6 @@ export default function GalleryPage() {
           </div>
         ))}
       </div>
-
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-4 text-sm">
           <button
@@ -182,8 +172,6 @@ export default function GalleryPage() {
           </button>
         </div>
       )}
-
-      {/* Lightbox */}
       {selectedMedia && (
         <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
