@@ -58,7 +58,7 @@ export default function UpcomingEvents() {
   }
 
   return (
-    <div className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-black to-stone-950">
+    <section id="activities"  className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-black to-stone-950">
       <h1 className="text-3xl md:text-4xl font-bold mb-10 bg-gradient-to-r from-red-600 to-red-400 bg-clip-text text-transparent">
         UPCOMING EVENTS
       </h1>
@@ -154,6 +154,6 @@ export default function UpcomingEvents() {
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

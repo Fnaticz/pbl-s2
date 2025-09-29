@@ -7,783 +7,791 @@ import { useSession } from 'next-auth/react';
 import autoTable from 'jspdf-autotable'
 import jsPDF from 'jspdf'
 import Image from "next/image";
+import Loading from '../../components/Loading';
 
 
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState('stats')
-    const [members, setMembers] = useState<{
-        _id: string;
-        username: string;
-        emailOrPhone: string;
-        date: string;
-    }[]>([])
-    const [pendingMember, setPendingMember] = useState<{
-        _id: string;
-        username: string;
-        emailOrPhone: string;
-        name: string;
-        address: string;
-        phone: string;
-        hobby: string;
-        vehicleType: string;
-        vehicleSpec: string;
-        message: string;
-    }[]>([])
-    const [bannerPreview, setBannerPreview] = useState<string | null>(null)
-    const [bannerName, setBannerName] = useState('')
-    const [bannerTitle, setBannerTitle] = useState('')
-    const [bannerDate, setBannerDate] = useState('')
-    const [bannerLocation, setBannerLocation] = useState('')
-    // const [activityPreview, setActivityPreview] = useState<string | null>(null)
-    const [activityName, setActivityName] = useState('')
-    const [activityTitle, setActivityTitle] = useState('')
-    const [activityDesc, setActivityDesc] = useState('')
-    const [activityImages, setActivityImages] = useState<string[]>([])
-    const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string; images?: string[]; createdAt: Date }[]>([])
-    const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
-    const [totalAmount, setTotalAmount] = useState<number | null>(null)
-    const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
-    const [eventDate, setEventDate] = useState('')
-    const [eventTitle, setEventTitle] = useState('')
-    const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
-    const [bannerReports, setBannerReports] = useState<IBanner[]>([])
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('stats')
+  const [members, setMembers] = useState<{
+    _id: string;
+    username: string;
+    emailOrPhone: string;
+    date: string;
+  }[]>([])
+  const [pendingMember, setPendingMember] = useState<{
+    _id: string;
+    username: string;
+    emailOrPhone: string;
+    name: string;
+    address: string;
+    phone: string;
+    hobby: string;
+    vehicleType: string;
+    vehicleSpec: string;
+    message: string;
+  }[]>([])
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null)
+  const [bannerName, setBannerName] = useState('')
+  const [bannerTitle, setBannerTitle] = useState('')
+  const [bannerDate, setBannerDate] = useState('')
+  const [bannerLocation, setBannerLocation] = useState('')
+  // const [activityPreview, setActivityPreview] = useState<string | null>(null)
+  const [activityName, setActivityName] = useState('')
+  const [activityTitle, setActivityTitle] = useState('')
+  const [activityDesc, setActivityDesc] = useState('')
+  const [activityImages, setActivityImages] = useState<string[]>([])
+  const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string; images?: string[]; createdAt: Date }[]>([])
+  const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
+  const [totalAmount, setTotalAmount] = useState<number | null>(null)
+  const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
+  const [eventDate, setEventDate] = useState('')
+  const [eventTitle, setEventTitle] = useState('')
+  const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
+  const [bannerReports, setBannerReports] = useState<IBanner[]>([])
 
 
-    const fetchMembers = async () => {
-        const res = await fetch('/api/members/list');
+  const fetchMembers = async () => {
+    const res = await fetch('/api/members/list');
+    const data = await res.json();
+    setPendingMember(data.pending);
+    setMembers(data.approved);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/members/stats');
         const data = await res.json();
-        setPendingMember(data.pending);
-        setMembers(data.approved);
+        setStats(data);
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+      }
     };
 
-    useEffect(() => {
-        const fetchStats = async () => {
-          try {
-            const res = await fetch('/api/members/stats');
-            const data = await res.json();
-            setStats(data);
-          } catch (err) {
-            console.error("Failed to fetch stats:", err);
-          }
-        };
-      
-        fetchStats();
-      }, []);
+    fetchStats();
+  }, []);
 
-    useEffect(() => {
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const calculateTotal = () => {
+    const total = financeRecords.reduce((sum, record) => sum + record.amount, 0)
+    setTotalAmount(total)
+  }
+
+  const handleAccept = async (id: string) => {
+    try {
+      const res = await fetch('/api/members/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'accept' })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setPendingMember(prev => prev.filter(m => m._id !== id));
         fetchMembers();
-    }, []);    
+        alert('Accepted successfully');
+      } else {
+        alert(result.message || 'Failed to accept');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error accepting application');
+    }
+  };
 
-    const calculateTotal = () => {
-        const total = financeRecords.reduce((sum, record) => sum + record.amount, 0)
-        setTotalAmount(total)
+  const handleReject = async (id: string) => {
+    try {
+      const res = await fetch('/api/members/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'reject' })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setPendingMember(prev => prev.filter(m => m._id !== id));
+        alert('Rejected successfully');
+      } else {
+        alert(result.message || 'Failed to reject');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error rejecting application');
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!bannerTitle || !bannerDate || !bannerLocation || !bannerName) {
+      return alert("All fields required");
     }
 
-    const handleAccept = async (id: string) => {
-        try {
-          const res = await fetch('/api/members/action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, action: 'accept' })
-          });
-      
-          const result = await res.json();
-          if (res.ok) {
-            setPendingMember(prev => prev.filter(m => m._id !== id));
-            fetchMembers();
-            alert('Accepted successfully');
-          } else {
-            alert(result.message || 'Failed to accept');
-          }
-        } catch (error) {
-          console.error(error);
-          alert('Error accepting application');
-        }
-      };
-      
-      const handleReject = async (id: string) => {
-        try {
-          const res = await fetch('/api/members/action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, action: 'reject' })
-          });
-      
-          const result = await res.json();
-          if (res.ok) {
-            setPendingMember(prev => prev.filter(m => m._id !== id));
-            alert('Rejected successfully');
-          } else {
-            alert(result.message || 'Failed to reject');
-          }
-        } catch (error) {
-          console.error(error);
-          alert('Error rejecting application');
-        }
-      };
-      
-      const handleUpload = async () => {
-        if (!bannerTitle || !bannerDate || !bannerLocation || !bannerName) {
-          return alert("All fields required");
-        }
-      
-        const fileInput = document.getElementById("banner-file") as HTMLInputElement;
-        const file = fileInput?.files?.[0];
-        if (!file) return alert("No file selected");
-      
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64 = reader.result;
-      
-          try {
-            const res = await fetch("/api/banner/upload", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name: bannerName,
-                title: bannerTitle,
-                eventDate: bannerDate,
-                location: bannerLocation,
-                file: base64,
-              }),
-            });
-      
-            if (res.ok) {
-              const newBanner = await res.json();
-              setBannerReports((prev) => [...prev, newBanner]);
-      
-              alert("Banner uploaded!");
-              setBannerTitle("");
-              setBannerDate("");
-              setBannerLocation("");
-              setBannerName("");
-              setBannerPreview(null);
-              fileInput.value = "";
-            } else {
-              alert("Upload failed");
-            }
-          } catch (err) {
-            console.error("Upload error:", err);
-            alert("Server error");
-          }
-        };
-      
-        reader.readAsDataURL(file);
-      };
-      
-      
-      
-      const handleDelete = async (id: string) => {
-        if (!confirm('Delete this banner?')) return;
-      
-        const res = await fetch('/api/banner/delete', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
+    const fileInput = document.getElementById("banner-file") as HTMLInputElement;
+    const file = fileInput?.files?.[0];
+    if (!file) return alert("No file selected");
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result;
+
+      try {
+        const res = await fetch("/api/banner/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: bannerName,
+            title: bannerTitle,
+            eventDate: bannerDate,
+            location: bannerLocation,
+            file: base64,
+          }),
         });
-      
+
         if (res.ok) {
-          setBannerReports(prev => prev.filter(b => b._id !== id));
+          const newBanner = await res.json();
+          setBannerReports((prev) => [...prev, newBanner]);
+
+          alert("Banner uploaded!");
+          setBannerTitle("");
+          setBannerDate("");
+          setBannerLocation("");
+          setBannerName("");
+          setBannerPreview(null);
+          fileInput.value = "";
         } else {
-          alert('Failed to delete banner');
+          alert("Upload failed");
         }
-      };
+      } catch (err) {
+        console.error("Upload error:", err);
+        alert("Server error");
+      }
+    };
 
-      const handleAddActivity = async () => {
-        if (activityImages.length === 0 || !activityTitle || !activityDesc) {
-          return alert("All fields required");
-        }
-      
-        if (!confirm("Add this activity?")) return;
-      
-        try {
-          const res = await fetch("/api/activity/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: activityTitle,
-              name: activityName || "activity",
-              desc: activityDesc,
-              images: activityImages,
-            }),
-          });
-      
-          if (res.ok) {
-            const newActivity = await res.json();
-            setActivityReports((prev) => [...prev, newActivity]);
-      
-            alert("Activity uploaded!");
-            setActivityTitle("");
-            setActivityName("");
-            setActivityDesc("");
-            setActivityImages([]);
-          } else {
-            alert("Upload failed");
-          }
-        } catch (error) {
-          console.error("Upload error:", error);
-          alert("Server error");
-        }
-      };
-      
-      
-      useEffect(() => {
-        const fetchBanners = async () => {
-          try {
-            const res = await fetch('/api/banner');
-            const data = await res.json();
-            setBannerReports(data || []);
-          } catch (err) {
-            console.error('Failed to fetch banners:', err);
-          }
-        };
-      
-        fetchBanners();
-      }, []);      
-
-      useEffect(() => {
-        const fetchActivities = async () => {
-          const res = await fetch('/api/activity');
-          const data = await res.json();
-          setActivityReports(data);
-        };
-      
-        fetchActivities();
-      }, []);
-
-      useEffect(() => {
-        const fetchRecords = async () => {
-          const res = await fetch('/api/finance');
-          const data = await res.json();
-          setFinanceRecords(data);
-        };
-        fetchRecords();
-      }, []);      
-      
-      useEffect(() => {
-        const fetchSchedules = async () => {
-          const res = await fetch('/api/schedule');
-          const data = await res.json();
-          setSchedules(data);
-        };
-        fetchSchedules();
-      }, []);      
-
-      const { data: session, status } = useSession();
-
-      if (status === 'loading') return <p className="text-white text-center pt-32">Checking access...</p>;
-      if (!session || session.user.role !== 'admin') return <p className="text-white text-center pt-32">Access denied</p>;
+    reader.readAsDataURL(file);
+  };
 
 
 
-    const renderSection = () => {
-        switch (activeTab) {
-            case 'stats':
-                return (
-                    <div>
-                        <h2 className="text-xl font-bold mb-4">Member Statistics</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-gray-700 text-white p-4 rounded shadow">Total Members: {stats.totalMembers}</div>
-                            <div className="bg-gray-700 text-white p-4 rounded shadow">Pending Members: {stats.pendingMembers}</div>
-                        </div>
-                    </div>
-                )
-            case 'members':
-                return (
-                    <div>
-                        <h2 className="text-xl font-bold mb-4">Member Registration Management</h2>
-                        {pendingMember.length > 0 ? (
-                            pendingMember.map((m) => (
-                            <div key={m._id} className="bg-gray-700 text-white p-4 rounded shadow mb-4">
-                                <p><strong>Username:</strong> {m.username}</p>
-                                <p><strong>Email:</strong> {m.emailOrPhone || '-'}</p>
-                                <p><strong>Name:</strong> {m.name}</p>
-                                <p><strong>Address:</strong> {m.address}</p>
-                                <p><strong>Phone:</strong> {m.phone}</p>
-                                <p><strong>Hobby:</strong> {m.hobby}</p>
-                                <p><strong>Vehicle Type:</strong> {m.vehicleType}</p>
-                                <p><strong>Vehicle Spec:</strong> {m.vehicleSpec}</p>
-                                <div className="flex gap-2 mt-2">
-                                <button onClick={() => handleAccept(m._id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
-                                <button onClick={() => handleReject(m._id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
-                                </div>
-                            </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-gray-400 mb-4">No new registration.</p>
-                        )}
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this banner?')) return;
 
-                        <h3 className="text-lg font-semibold mb-2">Approved Members</h3>
-                        {members.map((m) => (
-                            <div key={m._id} className="bg-gray-700 text-white p-3 mb-2 rounded shadow flex justify-between items-center">
-                            <div>
-                                <p><strong>{m.username}</strong></p>
-                                <p className="text-sm text-gray-300">{m.emailOrPhone || '-'}</p>
-                                <p className="text-xs text-gray-400">Approved: {m.date}</p>
-                            </div>
-                            <button
-                                onClick={() => {
-                                const confirmDelete = confirm('Remove member rights?');
-                                if (confirmDelete) {
-                                    setMembers(members.filter((user) => user._id !== m._id));
-                                }
-                                }}
-                                className="text-red-600 hover:text-red-800"
-                            >
-                                <FaTrash />
-                            </button>
-                            </div>
-                        ))}
-                  </div>
-                )
-                case "banner":
-                  return (
-                    <div>
-                      <h2 className="text-xl font-bold mb-4">Manage Banners</h2>
+    const res = await fetch('/api/banner/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
 
-                      <input
-                        type="text"
-                        placeholder="Event Title"
-                        value={bannerTitle}
-                        onChange={(e) => setBannerTitle(e.target.value)}
-                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                      />
+    if (res.ok) {
+      setBannerReports(prev => prev.filter(b => b._id !== id));
+    } else {
+      alert('Failed to delete banner');
+    }
+  };
 
-                      <input
-                        type="date"
-                        value={bannerDate}
-                        onChange={(e) => setBannerDate(e.target.value)}
-                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                      />
-
-                      <input
-                        type="text"
-                        placeholder="Google Maps URL"
-                        value={bannerLocation}
-                        onChange={(e) => setBannerLocation(e.target.value)}
-                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                      />
-
-                      <input
-                        id="banner-file"
-                        type="file"
-                        className="mb-2"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setBannerName(file.name);
-                            setBannerPreview(URL.createObjectURL(file));
-                          }
-                        }}
-                      />
-
-                      {bannerPreview && (
-                        <div className="mb-4">
-                          <Image
-                            src={bannerPreview}
-                            alt="Preview"
-                            width={600}
-                            height={300}
-                            unoptimized
-                            className="w-full max-w-md rounded mb-1"
-                          />
-                          <p className="text-sm text-gray-300">{bannerName}</p>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={handleUpload}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                      >
-                        Upload Banner
-                      </button>
-
-                      <div className="mt-4">
-                        <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
-                        {bannerReports.map((b) => (
-                          <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
-                            <Image
-                              src={b.imageUrl}
-                              alt="Banner Preview"
-                              width={600}
-                              height={300}
-                              unoptimized={b.imageUrl.startsWith("data:") || b.imageUrl.startsWith("blob:")}
-                              className="w-full max-w-sm rounded mb-2"
-                            />
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="font-bold">{b.title}</p>
-                                <p className="text-sm">{b.location}</p>
-                                <p className="text-xs text-gray-400">Event Date: {b.eventDate}</p>
-                                <p className="text-xs text-gray-400">
-                                  Uploaded: {new Date(b.uploadedAt).toLocaleString()}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleDelete(b._id)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <FaTrash />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-            case 'finance':
-                return (
-                    <div>
-                        <h2 className="text-xl font-bold mb-4">Finance Management</h2>
-                        <input id="finance-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
-                        <input id="finance-amt" type="number" placeholder="Amount" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
-                        <button
-                            onClick={async () => {
-                                const desc = (document.getElementById("finance-desc") as HTMLInputElement)?.value;
-                                const amt = parseFloat((document.getElementById("finance-amt") as HTMLInputElement)?.value || "0");
-                              
-                                if (desc && amt && confirm('Submit finance report?')) {
-                                  const res = await fetch('/api/finance/upload', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      description: desc,
-                                      amount: amt,
-                                      date: new Date().toLocaleString()
-                                    }),
-                                  });
-                              
-                                  if (res.ok) {
-                                    const data = await res.json();
-                                    setFinanceRecords(prev => [...prev, {
-                                      _id: data._id || String(Date.now()),
-                                      description: desc,
-                                      amount: amt,
-                                      date: new Date().toLocaleString()
-                                    }]);
-                                    setTotalAmount(null);
-                                  }
-                                }
-                              }}                              
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                        >
-                            Submit Report
-                        </button>
-                        <div className="mt-4">
-                            <h3 className="text-lg font-semibold mb-2">Submitted Finance Records</h3>
-                            <table className="w-full mb-2 text-left">
-                                <thead>
-                                    <tr className="border-b border-gray-600">
-                                        <th className="py-2">Description</th>
-                                        <th className="py-2">Amount</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {financeRecords.map((f, i) => (
-                                        <tr key={i} className="border-b border-gray-700">
-                                            <td className="py-2">{f.description}</td>
-                                            <td className="py-2">Rp{f.amount.toLocaleString()}</td>
-                                            <td className="py-2 text-right">
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!confirm('Delete this finance record?')) return;
-                                                      
-                                                        const recordToDelete = financeRecords[i];
-                                                        const res = await fetch('/api/finance/delete', {
-                                                          method: 'DELETE',
-                                                          headers: { 'Content-Type': 'application/json' },
-                                                          body: JSON.stringify({ id: recordToDelete._id }),
-                                                        });
-                                                      
-                                                        if (res.ok) {
-                                                          const updated = financeRecords.filter((_, idx) => idx !== i);
-                                                          setFinanceRecords(updated);
-                                                          setTotalAmount(null);
-                                                        }
-                                                      }}
-                                                      
-                                                    className="text-red-500 hover:text-red-700"
-                                                >
-                                                    <FaTrash />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            <button
-                                onClick={calculateTotal}
-                                className="flex items-center gap-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                            >
-                                <FaPlus /> Total
-                            </button>
-                            {totalAmount !== null && (
-                                <p className="mt-2">Total Amount: <strong>Rp{totalAmount.toLocaleString()}</strong></p>
-                            )}
-                            <button
-                            onClick={() => {
-                              const doc = new jsPDF()
-
-                              doc.setFontSize(18)
-                              doc.text('Finance Report', 14, 22)
-
-                              autoTable(doc, {
-                                startY: 30,
-                                head: [['Description', 'Amount (Rp)', 'Date']],
-                                body: financeRecords.map(record => [
-                                  record.description,
-                                  record.amount.toLocaleString(),
-                                  record.date
-                                ]),
-                              })
-                              const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
-
-                              if (totalAmount !== null && finalY !== undefined) {
-                                doc.text(`Total: Rp${totalAmount.toLocaleString()}`, 14, finalY + 10)
-                              }
-
-                              doc.save('finance_report.pdf')
-                            }}
-                            className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                          >
-                            Download PDF
-                          </button>
-                        </div>
-                    </div>
-                )
-                case "activities":
-                  return (
-                    <div>
-                      <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
-
-                      {/* Multiple file input */}
-                      <input
-                        id="activity-files"
-                        type="file"
-                        multiple
-                        onChange={(e) => {
-                          const files = e.target.files;
-                          if (files) {
-                            const readers: Promise<string>[] = [];
-                            Array.from(files).forEach((file) => {
-                              readers.push(
-                                new Promise((resolve) => {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => resolve(reader.result as string);
-                                  reader.readAsDataURL(file);
-                                })
-                              );
-                            });
-                            Promise.all(readers).then((base64Images) => {
-                              setActivityImages(base64Images);
-                            });
-                          }
-                        }}
-                        className="mb-2"
-                      />
-
-                      <input
-                        type="text"
-                        placeholder="Title"
-                        value={activityTitle}
-                        onChange={(e) => setActivityTitle(e.target.value)}
-                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                      />
-
-                      {activityImages.length > 0 && (
-                        <div className="mb-4 flex flex-wrap gap-4">
-                          {activityImages.map((img, idx) => (
-                            <Image
-                              key={idx}
-                              src={img}
-                              alt={`Preview ${idx}`}
-                              width={400}
-                              height={300}
-                              unoptimized
-                              className="w-full max-w-md rounded mb-1"
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      <input
-                        id="activity-desc"
-                        type="text"
-                        placeholder="Description"
-                        value={activityDesc}
-                        onChange={(e) => setActivityDesc(e.target.value)}
-                        className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                      />
-
-                      <button
-                        onClick={handleAddActivity}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                      >
-                        Add Activity
-                      </button>
-
-                      <div className="mt-4">
-                        <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
-                        {activityReports.map((a) => (
-                          <div
-                            key={a._id}
-                            className="bg-gray-800 text-white p-3 mb-2 rounded"
-                          >
-                            {/* render multiple images */}
-                            {a.images?.map((img: string, idx: number) => (
-                              <Image
-                                key={idx}
-                                src={img}
-                                alt={`Activity ${idx}`}
-                                width={600}
-                                height={400}
-                                unoptimized={img.startsWith("data:") || img.startsWith("blob:")}
-                                className="w-full max-w-sm rounded mb-2"
-                              />
-                            ))}
-
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="text-sm text-gray-400">{a.name}</p>
-                                <p>
-                                  <strong>{a.title}</strong>
-                                </p>
-                                <p>{a.desc}</p>
-                                <p className="text-xs text-gray-400">
-                                  Added: {new Date(a.createdAt).toLocaleString()}
-                                </p>
-                              </div>
-
-                              <button
-                                onClick={async () => {
-                                  if (!confirm("Delete this activity?")) return;
-                                  const res = await fetch("/api/activity/delete", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ id: a._id }),
-                                  });
-                                  if (res.ok) {
-                                    setActivityReports((prev) =>
-                                      prev.filter((act) => act._id !== a._id)
-                                    );
-                                  }
-                                }}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <FaTrash />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-            case 'schedule':
-                return (
-                    <div>
-                        <h2 className="text-xl font-bold mb-4">Event Schedule Management</h2>
-                        <input
-                            type="date"
-                            value={eventDate}
-                            onChange={(e) => setEventDate(e.target.value)}
-                            className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Event Title"
-                            value={eventTitle}
-                            onChange={(e) => setEventTitle(e.target.value)}
-                            className="bg-gray-700 w-full mb-2 p-2 border rounded"
-                        />
-                        <button
-                            onClick={async () => {
-                                if (eventDate && eventTitle && confirm('Save event schedule?')) {
-                                  const payload = {
-                                    date: eventDate,
-                                    title: eventTitle,
-                                    created: new Date().toLocaleString(),
-                                  };
-                              
-                                  const res = await fetch('/api/schedule/upload', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(payload),
-                                  });
-                              
-                                  if (res.ok) {
-                                    const newEvent = await res.json();
-                                    setSchedules(prev => [...prev, {
-                                      _id: newEvent._id || String(Date.now()),
-                                      date: eventDate,
-                                      title: eventTitle,
-                                      created: new Date().toLocaleString()
-                                    }]);
-                                    setEventDate('');
-                                    setEventTitle('');
-                                  } else {
-                                    alert('Failed to save schedule');
-                                  }
-                                }
-                              }}
-                              
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                        >
-                            Mark Event Date
-                        </button>
-                        <div className="mt-4">
-                            <h3 className="text-lg font-semibold mb-2">Scheduled Events</h3>
-                            {schedules.map((s, i) => (
-                                <div key={i} className="bg-gray-800 text-white p-3 mb-2 rounded flex justify-between items-center">
-                                    <div>
-                                        <p><strong>{s.title}</strong> on {s.date}</p>
-                                        <p className="text-xs text-gray-400">Added: {s.created}</p>
-                                    </div>
-                                    <button
-                                        onClick={async () => {
-                                            if (!confirm('Delete this event schedule?')) return;
-                                          
-                                            const recordToDelete = schedules[i];
-                                            const res = await fetch('/api/schedule/delete', {
-                                              method: 'DELETE',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({ id: recordToDelete._id }),
-                                            });
-                                          
-                                            if (res.ok) {
-                                              const updated = schedules.filter((_, idx) => idx !== i);
-                                              setSchedules(updated);
-                                            }
-                                          }}                                          
-                                        className="text-red-500 hover:text-red-700"
-                                    >
-                                        <FaTrash />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )
-
-        }
+  const handleAddActivity = async () => {
+    if (activityImages.length === 0 || !activityTitle || !activityDesc) {
+      return alert("All fields required");
     }
 
-    return (
-        <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
-            <main className="flex-grow pt-20 px-4 pb-16">
-                <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-                <div className="flex flex-wrap gap-3 mb-6">
-                    <button onClick={() => setActiveTab('stats')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaUser /> Stats</button>
-                    <button onClick={() => setActiveTab('members')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaClipboardList /> Members</button>
-                    <button onClick={() => setActiveTab('banner')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaImages /> Banner</button>
-                    <button onClick={() => setActiveTab('finance')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaMoneyBill /> Finance</button>
-                    <button onClick={() => setActiveTab('activities')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaList /> Activities</button>
-                    <button onClick={() => setActiveTab('schedule')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaCalendarAlt /> Schedule</button>
+    if (!confirm("Add this activity?")) return;
+
+    try {
+      const res = await fetch("/api/activity/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: activityTitle,
+          name: activityName || "activity",
+          desc: activityDesc,
+          images: activityImages,
+        }),
+      });
+
+      if (res.ok) {
+        const newActivity = await res.json();
+        setActivityReports((prev) => [...prev, newActivity]);
+
+        alert("Activity uploaded!");
+        setActivityTitle("");
+        setActivityName("");
+        setActivityDesc("");
+        setActivityImages([]);
+      } else {
+        alert("Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Server error");
+    }
+  };
+
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const res = await fetch('/api/banner');
+        const data = await res.json();
+        setBannerReports(data || []);
+      } catch (err) {
+        console.error('Failed to fetch banners:', err);
+      }
+    };
+
+    fetchBanners();
+  }, []);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      const res = await fetch('/api/activity');
+      const data = await res.json();
+      setActivityReports(data);
+    };
+
+    fetchActivities();
+  }, []);
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      const res = await fetch('/api/finance');
+      const data = await res.json();
+      setFinanceRecords(data);
+    };
+    fetchRecords();
+  }, []);
+
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      const res = await fetch('/api/schedule');
+      const data = await res.json();
+      setSchedules(data);
+    };
+    fetchSchedules();
+  }, []);
+
+  const { data: session, status } = useSession();
+
+  if (status === 'loading') return <p className="text-white text-center pt-32">Checking access...</p>;
+  if (!session || session.user.role !== 'admin') return <p className="text-white text-center pt-32">Access denied</p>;
+  if (loading) return <Loading />;
+
+
+
+  const renderSection = () => {
+    switch (activeTab) {
+      case 'stats':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Member Statistics</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-700 text-white p-4 rounded shadow">Total Members: {stats.totalMembers}</div>
+              <div className="bg-gray-700 text-white p-4 rounded shadow">Pending Members: {stats.pendingMembers}</div>
+            </div>
+          </div>
+        )
+      case 'members':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Member Registration Management</h2>
+            {pendingMember.length > 0 ? (
+              pendingMember.map((m) => (
+                <div key={m._id} className="bg-gray-700 text-white p-4 rounded shadow mb-4">
+                  <p><strong>Username:</strong> {m.username}</p>
+                  <p><strong>Email:</strong> {m.emailOrPhone || '-'}</p>
+                  <p><strong>Name:</strong> {m.name}</p>
+                  <p><strong>Address:</strong> {m.address}</p>
+                  <p><strong>Phone:</strong> {m.phone}</p>
+                  <p><strong>Hobby:</strong> {m.hobby}</p>
+                  <p><strong>Vehicle Type:</strong> {m.vehicleType}</p>
+                  <p><strong>Vehicle Spec:</strong> {m.vehicleSpec}</p>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => handleAccept(m._id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
+                    <button onClick={() => handleReject(m._id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
+                  </div>
                 </div>
-                <div className="bg-gray-900 p-6 rounded shadow">
-                    {renderSection()}
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 mb-4">No new registration.</p>
+            )}
+
+            <h3 className="text-lg font-semibold mb-2">Approved Members</h3>
+            {members.map((m) => (
+              <div key={m._id} className="bg-gray-700 text-white p-3 mb-2 rounded shadow flex justify-between items-center">
+                <div>
+                  <p><strong>{m.username}</strong></p>
+                  <p className="text-sm text-gray-300">{m.emailOrPhone || '-'}</p>
+                  <p className="text-xs text-gray-400">Approved: {m.date}</p>
                 </div>
-            </main>
+                <button
+                  onClick={() => {
+                    const confirmDelete = confirm('Remove member rights?');
+                    if (confirmDelete) {
+                      setMembers(members.filter((user) => user._id !== m._id));
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      case "banner":
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Manage Banners</h2>
+
+            <input
+              type="text"
+              placeholder="Event Title"
+              value={bannerTitle}
+              onChange={(e) => setBannerTitle(e.target.value)}
+              className="bg-gray-700 w-full mb-2 p-2 border rounded"
+            />
+
+            <input
+              type="date"
+              value={bannerDate}
+              onChange={(e) => setBannerDate(e.target.value)}
+              className="bg-gray-700 w-full mb-2 p-2 border rounded"
+            />
+
+            <input
+              type="text"
+              placeholder="Google Maps URL"
+              value={bannerLocation}
+              onChange={(e) => setBannerLocation(e.target.value)}
+              className="bg-gray-700 w-full mb-2 p-2 border rounded"
+            />
+
+            <input
+              id="banner-file"
+              type="file"
+              className="mb-2"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setBannerName(file.name);
+                  setBannerPreview(URL.createObjectURL(file));
+                }
+              }}
+            />
+
+            {bannerPreview && (
+              <div className="mb-4">
+                <Image
+                  src={bannerPreview}
+                  alt="Preview"
+                  width={600}
+                  height={300}
+                  unoptimized
+                  className="w-full max-w-md rounded mb-1"
+                />
+                <p className="text-sm text-gray-300">{bannerName}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleUpload}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Upload Banner
+            </button>
+
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
+              {bannerReports.map((b) => (
+                <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
+                  <Image
+                    src={b.imageUrl}
+                    alt="Banner Preview"
+                    width={600}
+                    height={300}
+                    unoptimized={b.imageUrl.startsWith("data:") || b.imageUrl.startsWith("blob:")}
+                    className="w-full max-w-sm rounded mb-2"
+                  />
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-bold">{b.title}</p>
+                      <p className="text-sm">{b.location}</p>
+                      <p className="text-xs text-gray-400">Event Date: {b.eventDate}</p>
+                      <p className="text-xs text-gray-400">
+                        Uploaded: {new Date(b.uploadedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(b._id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'finance':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Finance Management</h2>
+            <input id="finance-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
+            <input id="finance-amt" type="number" placeholder="Amount" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
+            <button
+              onClick={async () => {
+                const desc = (document.getElementById("finance-desc") as HTMLInputElement)?.value;
+                const amt = parseFloat((document.getElementById("finance-amt") as HTMLInputElement)?.value || "0");
+
+                if (desc && amt && confirm('Submit finance report?')) {
+                  const res = await fetch('/api/finance/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      description: desc,
+                      amount: amt,
+                      date: new Date().toLocaleString()
+                    }),
+                  });
+
+                  if (res.ok) {
+                    const data = await res.json();
+                    setFinanceRecords(prev => [...prev, {
+                      _id: data._id || String(Date.now()),
+                      description: desc,
+                      amount: amt,
+                      date: new Date().toLocaleString()
+                    }]);
+                    setTotalAmount(null);
+                  }
+                }
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Submit Report
+            </button>
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Submitted Finance Records</h3>
+              <table className="w-full mb-2 text-left">
+                <thead>
+                  <tr className="border-b border-gray-600">
+                    <th className="py-2">Description</th>
+                    <th className="py-2">Amount</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {financeRecords.map((f, i) => (
+                    <tr key={i} className="border-b border-gray-700">
+                      <td className="py-2">{f.description}</td>
+                      <td className="py-2">Rp{f.amount.toLocaleString()}</td>
+                      <td className="py-2 text-right">
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Delete this finance record?')) return;
+
+                            const recordToDelete = financeRecords[i];
+                            const res = await fetch('/api/finance/delete', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: recordToDelete._id }),
+                            });
+
+                            if (res.ok) {
+                              const updated = financeRecords.filter((_, idx) => idx !== i);
+                              setFinanceRecords(updated);
+                              setTotalAmount(null);
+                            }
+                          }}
+
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <FaTrash />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button
+                onClick={calculateTotal}
+                className="flex items-center gap-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                <FaPlus /> Total
+              </button>
+              {totalAmount !== null && (
+                <p className="mt-2">Total Amount: <strong>Rp{totalAmount.toLocaleString()}</strong></p>
+              )}
+              <button
+                onClick={() => {
+                  const doc = new jsPDF()
+
+                  doc.setFontSize(18)
+                  doc.text('Finance Report', 14, 22)
+
+                  autoTable(doc, {
+                    startY: 30,
+                    head: [['Description', 'Amount (Rp)', 'Date']],
+                    body: financeRecords.map(record => [
+                      record.description,
+                      record.amount.toLocaleString(),
+                      record.date
+                    ]),
+                  })
+                  const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
+
+                  if (totalAmount !== null && finalY !== undefined) {
+                    doc.text(`Total: Rp${totalAmount.toLocaleString()}`, 14, finalY + 10)
+                  }
+
+                  doc.save('finance_report.pdf')
+                }}
+                className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              >
+                Download PDF
+              </button>
+            </div>
+          </div>
+        )
+      case "activities":
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
+
+            {/* Multiple file input */}
+            <input
+              id="activity-files"
+              type="file"
+              multiple
+              onChange={(e) => {
+                const files = e.target.files;
+                if (files) {
+                  const readers: Promise<string>[] = [];
+                  Array.from(files).forEach((file) => {
+                    readers.push(
+                      new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(file);
+                      })
+                    );
+                  });
+                  Promise.all(readers).then((base64Images) => {
+                    setActivityImages(base64Images);
+                  });
+                }
+              }}
+              className="mb-2"
+            />
+
+            <input
+              type="text"
+              placeholder="Title"
+              value={activityTitle}
+              onChange={(e) => setActivityTitle(e.target.value)}
+              className="bg-gray-700 w-full mb-2 p-2 border rounded"
+            />
+
+            {activityImages.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-4">
+                {activityImages.map((img, idx) => (
+                  <Image
+                    key={idx}
+                    src={img}
+                    alt={`Preview ${idx}`}
+                    width={400}
+                    height={300}
+                    unoptimized
+                    className="w-full max-w-md rounded mb-1"
+                  />
+                ))}
+              </div>
+            )}
+
+            <input
+              id="activity-desc"
+              type="text"
+              placeholder="Description"
+              value={activityDesc}
+              onChange={(e) => setActivityDesc(e.target.value)}
+              className="bg-gray-700 w-full mb-2 p-2 border rounded"
+            />
+
+            <button
+              onClick={handleAddActivity}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Add Activity
+            </button>
+
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
+              {activityReports.map((a) => (
+                <div
+                  key={a._id}
+                  className="bg-gray-800 text-white p-3 mb-2 rounded"
+                >
+                  {/* render multiple images */}
+                  {a.images?.map((img: string, idx: number) => (
+                    <Image
+                      key={idx}
+                      src={img}
+                      alt={`Activity ${idx}`}
+                      width={600}
+                      height={400}
+                      unoptimized={img.startsWith("data:") || img.startsWith("blob:")}
+                      className="w-full max-w-sm rounded mb-2"
+                    />
+                  ))}
+
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-gray-400">{a.name}</p>
+                      <p>
+                        <strong>{a.title}</strong>
+                      </p>
+                      <p>{a.desc}</p>
+                      <p className="text-xs text-gray-400">
+                        Added: {new Date(a.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Delete this activity?")) return;
+                        const res = await fetch("/api/activity/delete", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: a._id }),
+                        });
+                        if (res.ok) {
+                          setActivityReports((prev) =>
+                            prev.filter((act) => act._id !== a._id)
+                          );
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'schedule':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Event Schedule Management</h2>
+            <input
+              type="date"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              className="bg-gray-700 w-full mb-2 p-2 border rounded"
+            />
+            <input
+              type="text"
+              placeholder="Event Title"
+              value={eventTitle}
+              onChange={(e) => setEventTitle(e.target.value)}
+              className="bg-gray-700 w-full mb-2 p-2 border rounded"
+            />
+            <button
+              onClick={async () => {
+                if (eventDate && eventTitle && confirm('Save event schedule?')) {
+                  const payload = {
+                    date: eventDate,
+                    title: eventTitle,
+                    created: new Date().toLocaleString(),
+                  };
+
+                  const res = await fetch('/api/schedule/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                  });
+
+                  if (res.ok) {
+                    const newEvent = await res.json();
+                    setSchedules(prev => [...prev, {
+                      _id: newEvent._id || String(Date.now()),
+                      date: eventDate,
+                      title: eventTitle,
+                      created: new Date().toLocaleString()
+                    }]);
+                    setEventDate('');
+                    setEventTitle('');
+                  } else {
+                    alert('Failed to save schedule');
+                  }
+                }
+              }}
+
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Mark Event Date
+            </button>
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Scheduled Events</h3>
+              {schedules.map((s, i) => (
+                <div key={i} className="bg-gray-800 text-white p-3 mb-2 rounded flex justify-between items-center">
+                  <div>
+                    <p><strong>{s.title}</strong> on {s.date}</p>
+                    <p className="text-xs text-gray-400">Added: {s.created}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Delete this event schedule?')) return;
+
+                      const recordToDelete = schedules[i];
+                      const res = await fetch('/api/schedule/delete', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: recordToDelete._id }),
+                      });
+
+                      if (res.ok) {
+                        const updated = schedules.filter((_, idx) => idx !== i);
+                        setSchedules(updated);
+                      }
+                    }}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+
+    }
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10">
+      <main className="flex-grow pt-20 px-4 pb-16">
+        <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+        <div className="flex flex-wrap gap-3 mb-6">
+          <button onClick={() => setActiveTab('stats')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaUser /> Stats</button>
+          <button onClick={() => setActiveTab('members')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaClipboardList /> Members</button>
+          <button onClick={() => setActiveTab('banner')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaImages /> Banner</button>
+          <button onClick={() => setActiveTab('finance')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaMoneyBill /> Finance</button>
+          <button onClick={() => setActiveTab('activities')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaList /> Activities</button>
+          <button onClick={() => setActiveTab('schedule')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaCalendarAlt /> Schedule</button>
         </div>
-    )
+        <div className="bg-gray-900 p-6 rounded shadow">
+          {renderSection()}
+        </div>
+      </main>
+    </div>
+  )
 }

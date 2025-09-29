@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Loading from '../components/Loading';
 
 type FinanceReport = {
   _id: string;
@@ -10,8 +11,14 @@ type FinanceReport = {
 };
 
 export default function FinanceReportPage() {
+  const [loading, setLoading] = useState(true);
   const [financeReports, setFinanceReports] = useState<FinanceReport[]>([])
   const [total, setTotal] = useState(0)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const fetchFinanceReports = async () => {
@@ -29,8 +36,10 @@ export default function FinanceReportPage() {
     fetchFinanceReports()
   }, [])
 
+  if (loading) return <Loading />;
+
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10">
       <main className="flex-grow pt-20 px-4 pb-16">
         <h1 className="text-3xl font-bold mb-6 text-center">Community Finance Report</h1>
         {financeReports.length === 0 ? (

@@ -8,10 +8,17 @@ import { useRouter } from 'next/navigation';
 import { FcGoogle } from 'react-icons/fc';
 import Image from 'next/image';
 import 'react-toastify/dist/ReactToastify.css';
+import Loading from '../components/Loading';
 
 export default function LoginPage() {
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -65,6 +72,8 @@ export default function LoginPage() {
     }
 
   };
+
+  if (loading) return <Loading />;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/loginbg.png')] bg-cover bg-center">

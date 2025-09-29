@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import Loading from "./Loading";
+
 
 interface Activity {
   _id: string;
@@ -36,9 +38,8 @@ function ActivityCard({ id, title, description, images, expanded, onToggle }: {
       className="bg-stone-900/90 rounded-2xl shadow-xl flex flex-col md:flex-row overflow-hidden transition-all duration-500"
     >
       <div
-        className={`relative w-full md:w-1/3 flex items-center justify-center p-4 ${
-          expanded ? "flex-col" : "cursor-pointer"
-        }`}
+        className={`relative w-full md:w-1/3 flex items-center justify-center p-4 ${expanded ? "flex-col" : "cursor-pointer"
+          }`}
         onClick={!expanded ? handleImageClick : undefined}
       >
         {!expanded ? (
@@ -102,11 +103,10 @@ function ActivityCard({ id, title, description, images, expanded, onToggle }: {
         <div>
           <h3 className="text-xl font-bold mb-3">{title}</h3>
           <p
-            className={`text-sm leading-relaxed ${
-              expanded
-                ? ""
-                : "line-clamp-4 relative after:content-[''] after:block after:h-8 after:w-full after:absolute after:bottom-0 after:bg-gradient-to-t after:from-stone-900/90 after:to-transparent"
-            }`}
+            className={`text-sm leading-relaxed ${expanded
+              ? ""
+              : "line-clamp-4 relative after:content-[''] after:block after:h-8 after:w-full after:absolute after:bottom-0 after:bg-gradient-to-t after:from-stone-900/90 after:to-transparent"
+              }`}
           >
             {description}
           </p>
@@ -123,6 +123,7 @@ function ActivityCard({ id, title, description, images, expanded, onToggle }: {
 }
 
 export default function ActivitiesSection() {
+  const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -136,6 +137,7 @@ export default function ActivitiesSection() {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
+  
   useEffect(() => {
     const fetchActivities = async () => {
       try {
@@ -151,9 +153,12 @@ export default function ActivitiesSection() {
     fetchActivities();
   }, []);
 
+ 
+
   return (
-    <section className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-stone-950 to-red-950">
+    <section id="activities" className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-stone-950 to-red-950">
       <h2 className="text-3xl font-bold text-center mb-8">ACTIVITIES</h2>
+
 
       <AnimatePresence mode="wait">
         <div
@@ -174,11 +179,13 @@ export default function ActivitiesSection() {
         </div>
       </AnimatePresence>
 
-      <div className="flex items-center gap-2 mt-10">
+      <div className="flex items-center gap-3 mt-8">
         <button
           disabled={currentPage === 1}
           onClick={() => setCurrentPage((prev) => prev - 1)}
-          className="px-3 py-1 rounded-md border border-gray-500 disabled:opacity-50"
+          className={`px-3 py-1 text-white border rounded
+          ${currentPage === 1 ? "opacity-30 cursor-not-allowed" : "transition transform active:scale-95 active:bg-white active:text-black hover:bg-white hover:text-black"
+            }`}
         >
           &lt; Prev
         </button>
@@ -186,11 +193,10 @@ export default function ActivitiesSection() {
           <button
             key={idx}
             onClick={() => setCurrentPage(idx + 1)}
-            className={`px-3 py-1 rounded-md ${
-              currentPage === idx + 1
-                ? "bg-blue-900 text-white"
-                : "bg-gray-700 text-white"
-            }`}
+            className={`px-3 py-1 rounded-md ${currentPage === idx + 1
+              ? "bg-white text-black font-bold"
+              : "bg-gray-700 text-white transition transform active:scale-95 active:bg-gray-500 hover:bg-gray-500"
+              }`}
           >
             {idx + 1}
           </button>
@@ -198,7 +204,9 @@ export default function ActivitiesSection() {
         <button
           disabled={currentPage === totalPages}
           onClick={() => setCurrentPage((prev) => prev + 1)}
-          className="px-3 py-1 rounded-md border border-gray-500 disabled:opacity-50"
+          className={`px-3 py-1 text-white border rounded
+          ${currentPage === totalPages ? "opacity-30 cursor-not-allowed" : "transition transform active:scale-95 active:bg-white active:text-black hover:bg-white hover:text-black"
+            }`}
         >
           Next &gt;
         </button>

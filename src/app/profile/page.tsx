@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Image from "next/image";
+import Loading from '../components/Loading';
 
 
 export default function ProfilePage() {
+  const [loading, setLoading] = useState(true);
   const router = useRouter()
   const { status } = useSession()
 
@@ -18,6 +20,11 @@ export default function ProfilePage() {
     role: string
     profileImage?: string
   } | null>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -41,8 +48,10 @@ export default function ProfilePage() {
     return <div className="text-white text-center">No profile data.</div>
   }
 
+  if (loading) return <Loading />;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white flex items-center justify-center px-4 py-10">
       <div className="bg-stone-800 p-8 rounded-xl shadow-xl w-full max-w-md text-center space-y-6">
         <h1 className="text-2xl font-bold mb-4">My Profile</h1>
 
@@ -50,6 +59,8 @@ export default function ProfilePage() {
           <Image
             src={profile.profileImage || '/defaultavatar.png'}
             alt="Profile"
+            width={32}
+            height={32}
             className="w-32 h-32 rounded-full object-cover border aspect-square"
           />
         </div>

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, ChangeEvent, FormEvent } from 'react'
+import { useEffect, useState, ChangeEvent, FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
+import Loading from '../components/Loading';
 
 type User = {
   username: string
@@ -21,6 +22,7 @@ type FormData = {
 }
 
 export default function MemberRegistrationForm() {
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<FormData>({
     username: '',
     email: '',
@@ -31,6 +33,11 @@ export default function MemberRegistrationForm() {
     vehicleType: '',
     vehicleSpec: '',
   })
+
+  useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+        return () => clearTimeout(timer);
+      }, []);
 
   const { data: session } = useSession()
   const user = session?.user as User | null
@@ -83,8 +90,10 @@ export default function MemberRegistrationForm() {
     }
   }
 
+  if (loading) return <Loading />;
+
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10">
       <main className="flex-grow pt-20 px-4 pb-16">
         <h1 className="text-3xl font-bold mb-6 text-center">Member Registration Form</h1>
         <form onSubmit={handleSubmit} className="space-y-4">

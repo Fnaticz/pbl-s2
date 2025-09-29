@@ -7,6 +7,7 @@ import { ref, onChildAdded, onChildRemoved, push, remove, get } from 'firebase/d
 import { db } from '../../../lib/firebase'
 import type { DataSnapshot } from 'firebase/database'
 import Image from "next/image";
+import Loading from '../components/Loading';
 
 
 interface SessionUser {
@@ -24,6 +25,7 @@ interface Message {
 }
 
 export default function ForumPage() {
+  const [loading, setLoading] = useState(true);
   const { data: session } = useSession()
   const user = session?.user as SessionUser
 
@@ -87,6 +89,11 @@ export default function ForumPage() {
   }
 
   useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'auto' })
   }, [messages])
 
@@ -108,10 +115,12 @@ export default function ForumPage() {
     onChildRemoved(messagesRef, handleRemove)
   }, [])
 
+  if (loading) return <Loading />;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black text-white pt-24 px-4 pb-8">
+    <div className="min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white pt-24 px-4 pb-8">
       <div className="max-w-4xl mx-auto w-full flex flex-col h-[80vh] border border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
-        <div className="bg-red-700 px-6 py-3 font-semibold text-white text-lg">Live Chat</div>
+        <div className="bg-red-950 px-6 py-3 font-semibold text-white text-lg">Live Chat</div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-white text-black">
           {messages.map((msg) => (

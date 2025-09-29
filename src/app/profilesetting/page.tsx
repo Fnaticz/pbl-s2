@@ -1,13 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import {useEffect, useState } from 'react'
 import Image from "next/image";
-
+import Loading from '../components/Loading';
 
 export default function ProfileSettingsPage() {
+    const [loading, setLoading] = useState(true);
     const [username, setUsername] = useState('')
     const [address, setAddress] = useState('')
     const [profileImage, setProfileImage] = useState<string | null>(null)
+
+    useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+        return () => clearTimeout(timer);
+      }, []);
 
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,8 +28,10 @@ export default function ProfileSettingsPage() {
         }
     }
 
+    if (loading) return <Loading />;
+
     return (
-        <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white flex items-center justify-center px-4 py-10">
+        <div className="min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white flex items-center justify-center px-4 py-10">
             <div className="bg-stone-800 p-6 rounded-xl shadow-lg w-full max-w-md space-y-6">
                 <h1 className="text-2xl font-bold text-center">Edit Profile</h1>
 
@@ -31,6 +39,8 @@ export default function ProfileSettingsPage() {
                     <Image
                         src={(!profileImage || profileImage === "null") ? "/defaultavatar.png" : profileImage}
                         alt="Profile"
+                        width={32}
+                        height={32}
                         className="w-32 h-32 rounded-full object-cover border aspect-square"
                     />
 

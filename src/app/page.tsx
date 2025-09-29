@@ -1,8 +1,9 @@
 'use client'
 
-// import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Slideshow from './components/SlideShow'
 import ActivityCard from "./components/Activities";
+import Loading from './components/Loading';
 
 // type Activity = {
 //   _id: string;
@@ -16,8 +17,14 @@ import ActivityCard from "./components/Activities";
 // const itemPerPage = 2;
 
 export default function Home() {
+  const [loading, setLoading] = useState(true);
   // const [activities, setActivities] = useState<Activity[]>([]);
   // const [currentPage, setCurrentPage] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
 
   // useEffect(() => {
   //   const fetchActivities = async () => {
@@ -41,7 +48,8 @@ export default function Home() {
   //     setCurrentPage(page);
   //   }
   // };
-
+ if (loading) return <Loading />;
+ 
   return (
     <div className="bg-stone-900 text-white">
       <section

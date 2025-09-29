@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FaPlus, FaImage, FaVideo } from "react-icons/fa";
 import Image from "next/image";
+import Loading from '../components/Loading';
 
 interface MediaItem {
   _id: string;
@@ -16,11 +17,17 @@ interface MediaItem {
 const ITEMS_PER_PAGE = 6;
 
 export default function GalleryPage() {
+  const [loading, setLoading] = useState(true);
   const { data: session } = useSession();
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [fileType, setFileType] = useState<"image" | "video">("image");
   const [page, setPage] = useState(1);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
   
   useEffect(() => {
     const fetchMedia = async () => {
@@ -72,8 +79,10 @@ export default function GalleryPage() {
     page * ITEMS_PER_PAGE
   );
 
+  if (loading) return <Loading />;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-6 pt-32 pb-10">
+    <div className="min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-6 pt-32 pb-10">
       <h1 className="text-3xl font-bold text-center mb-8">GALLERY</h1>
       <div className="flex gap-4 justify-center mb-8">
         <label className="bg-white text-black px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 shadow">

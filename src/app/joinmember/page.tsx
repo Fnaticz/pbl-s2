@@ -1,20 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from "next/image";
+import Loading from '../components/Loading';
 
 
 export default function JoinMemberPage() {
+    const [loading, setLoading] = useState(true);
     const [agreed, setAgreed] = useState(false)
 
+    useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (loading) return <Loading />;
+
     return (
-        <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
+        <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10">
             <main className="flex-grow pt-20 px-4 pb-16">
                 <h1 className="text-3xl font-bold mb-6 text-center">Join Spartan Offroad Community</h1>
 
                 <Image
                     src="/event.jpg"
                     alt="Spartan Picture"
+                    width={900}
+                    height={900}
                     className="w-full rounded-lg mb-6 shadow-lg"
                 />
 

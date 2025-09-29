@@ -1,16 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import {useEffect, useState } from 'react'
 import Link from 'next/link'
+import Loading from '../components/Loading';
 
 
 export default function RegisterPage() {
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     username: '',
     emailOrPhone: '',
     password: '',
     address: '',
   });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
 
   const [message, setMessage] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -59,6 +66,8 @@ export default function RegisterPage() {
     console.log("RESPONSE", data)
     setMessage(data.message || 'Something went wrong')
   };
+
+  if (loading) return <Loading />;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/loginbg.png')] bg-center bg-no-repeat bg-cover">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Loading from '../components/Loading';
 
 type Schedule = {
   _id: string;
@@ -10,7 +11,13 @@ type Schedule = {
 }
 
 export default function EventSchedulePage() {
+  const [loading, setLoading] = useState(true);
   const [schedules, setSchedules] = useState<Schedule[]>([])
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const fetchSchedules = async () => {
@@ -26,8 +33,10 @@ export default function EventSchedulePage() {
     fetchSchedules()
   }, [])
 
+  if (loading) return <Loading />;
+
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-red-950 to-black text-white px-4 py-10">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10">
       <main className="flex-grow pt-20 px-4 pb-16">
         <h1 className="text-3xl font-bold mb-6 text-center">Community Event Schedule</h1>
         {schedules.length === 0 ? (
