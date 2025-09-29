@@ -4,7 +4,6 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import Loading from "./Loading";
 
-
 interface Activity {
   _id: string;
   title: string;
@@ -14,7 +13,14 @@ interface Activity {
   createdAt: string;
 }
 
-function ActivityCard({ id, title, description, images, expanded, onToggle }: {
+function ActivityCard({
+  id,
+  title,
+  description,
+  images,
+  expanded,
+  onToggle,
+}: {
   id: string;
   title: string;
   description: string;
@@ -38,8 +44,9 @@ function ActivityCard({ id, title, description, images, expanded, onToggle }: {
       className="bg-stone-900/90 rounded-2xl shadow-xl flex flex-col md:flex-row overflow-hidden transition-all duration-500"
     >
       <div
-        className={`relative w-full md:w-1/3 flex items-center justify-center p-4 ${expanded ? "flex-col" : "cursor-pointer"
-          }`}
+        className={`relative w-full md:w-1/3 flex items-center justify-center p-4 ${
+          expanded ? "flex-col" : "cursor-pointer"
+        }`}
         onClick={!expanded ? handleImageClick : undefined}
       >
         {!expanded ? (
@@ -103,10 +110,11 @@ function ActivityCard({ id, title, description, images, expanded, onToggle }: {
         <div>
           <h3 className="text-xl font-bold mb-3">{title}</h3>
           <p
-            className={`text-sm leading-relaxed ${expanded
-              ? ""
-              : "line-clamp-4 relative after:content-[''] after:block after:h-8 after:w-full after:absolute after:bottom-0 after:bg-gradient-to-t after:from-stone-900/90 after:to-transparent"
-              }`}
+            className={`text-sm leading-relaxed ${
+              expanded
+                ? ""
+                : "line-clamp-4 relative after:content-[''] after:block after:h-8 after:w-full after:absolute after:bottom-0 after:bg-gradient-to-t after:from-stone-900/90 after:to-transparent"
+            }`}
           >
             {description}
           </p>
@@ -131,13 +139,15 @@ export default function ActivitiesSection() {
   const activitiesPerPage = 2;
   const totalPages = Math.ceil(activities.length / activitiesPerPage);
   const startIndex = (currentPage - 1) * activitiesPerPage;
-  const visibleActivities = activities.slice(startIndex, startIndex + activitiesPerPage);
+  const visibleActivities = activities.slice(
+    startIndex,
+    startIndex + activitiesPerPage
+  );
 
   const handleToggle = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  
   useEffect(() => {
     const fetchActivities = async () => {
       try {
@@ -148,17 +158,21 @@ export default function ActivitiesSection() {
         }
       } catch (error) {
         console.error("Failed to fetch activities:", error);
+      } finally {
+        setLoading(false); // ✅ loading selesai
       }
     };
     fetchActivities();
   }, []);
 
- 
+  if (loading) return <Loading />; // ✅ tampilkan spinner/loading page
 
   return (
-    <section id="activities" className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-stone-950 to-red-950">
+    <section
+      id="activities"
+      className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-stone-950 to-red-950"
+    >
       <h2 className="text-3xl font-bold text-center mb-8">ACTIVITIES</h2>
-
 
       <AnimatePresence mode="wait">
         <div
@@ -179,13 +193,16 @@ export default function ActivitiesSection() {
         </div>
       </AnimatePresence>
 
+      {/* Pagination */}
       <div className="flex items-center gap-3 mt-8">
         <button
           disabled={currentPage === 1}
-          onClick={() => setCurrentPage((prev) => prev - 1)}
-          className={`px-3 py-1 text-white border rounded
-          ${currentPage === 1 ? "opacity-30 cursor-not-allowed" : "transition transform active:scale-95 active:bg-white active:text-black hover:bg-white hover:text-black"
-            }`}
+          onClick={() => setCurrentPage((p) => p - 1)}
+          className={`px-3 py-1 text-white border rounded ${
+            currentPage === 1
+              ? "opacity-30 cursor-not-allowed"
+              : "hover:bg-white hover:text-black active:scale-95"
+          }`}
         >
           &lt; Prev
         </button>
@@ -193,20 +210,23 @@ export default function ActivitiesSection() {
           <button
             key={idx}
             onClick={() => setCurrentPage(idx + 1)}
-            className={`px-3 py-1 rounded-md ${currentPage === idx + 1
-              ? "bg-white text-black font-bold"
-              : "bg-gray-700 text-white transition transform active:scale-95 active:bg-gray-500 hover:bg-gray-500"
-              }`}
+            className={`px-3 py-1 rounded-md ${
+              currentPage === idx + 1
+                ? "bg-white text-black font-bold"
+                : "bg-gray-700 text-white hover:bg-gray-500 active:scale-95"
+            }`}
           >
             {idx + 1}
           </button>
         ))}
         <button
           disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((prev) => prev + 1)}
-          className={`px-3 py-1 text-white border rounded
-          ${currentPage === totalPages ? "opacity-30 cursor-not-allowed" : "transition transform active:scale-95 active:bg-white active:text-black hover:bg-white hover:text-black"
-            }`}
+          onClick={() => setCurrentPage((p) => p + 1)}
+          className={`px-3 py-1 text-white border rounded ${
+            currentPage === totalPages
+              ? "opacity-30 cursor-not-allowed"
+              : "hover:bg-white hover:text-black active:scale-95"
+          }`}
         >
           Next &gt;
         </button>
