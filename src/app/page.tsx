@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Slideshow from './components/SlideShow'
+import MainEventSection from './components/MainEvent';
 import ActivityCard from "./components/Activities";
 import Loading from './components/Loading';
 
@@ -69,6 +70,7 @@ export default function Home() {
       </section>
 
       <Slideshow />
+      <MainEventSection />
       <ActivityCard />
     </div>
   );

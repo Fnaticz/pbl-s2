@@ -8,6 +8,7 @@ export interface IUser extends Document {
   address: string;
   profileImage: { type: String, default: '' }
   role: 'guest' | 'member' | 'admin';
+  date: Date;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -22,6 +23,7 @@ const UserSchema = new Schema<IUser>(
       enum: ['guest', 'member', 'admin'],
       default: 'guest',
     },
+    date: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

@@ -35,9 +35,9 @@ export default function MemberRegistrationForm() {
   })
 
   useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
-        return () => clearTimeout(timer);
-      }, []);
+    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    return () => clearTimeout(timer);
+  }, []);
 
   const { data: session } = useSession()
   const user = session?.user as User | null
@@ -48,47 +48,55 @@ export default function MemberRegistrationForm() {
   }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!user) {
-      alert('Login required to register.')
-      return
+    if (!session?.user?.id) {
+      alert("Login required to register.");
+      return;
     }
 
-    const newEntry: FormData = {
-      ...formData,
-      username: user.username,
-      email: user.emailOrPhone ?? '',
-    }
+    // hanya kirim data form yang perlu, userId / username / email akan diisi otomatis di API
+    const newEntry = {
+      name: formData.name,
+      address: formData.address,
+      phone: formData.phone,
+      hobby: formData.hobby,
+      vehicleType: formData.vehicleType,
+      vehicleSpec: formData.vehicleSpec,
+    };
 
     try {
-      const res = await fetch('/api/member-register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/members/member-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newEntry),
-      })
+      });
 
-      const result = await res.json()
+      const result = await res.json();
+
       if (res.ok) {
-        alert('Application submitted! Waiting for admin approval.')
+        alert("Application submitted! Waiting for admin approval.");
+
+        // reset form
         setFormData({
-          username: '',
-          email: '',
-          name: '',
-          address: '',
-          phone: '',
-          hobby: '',
-          vehicleType: '',
-          vehicleSpec: '',
-        })
+          username: "",
+          email: "",
+          name: "",
+          address: "",
+          phone: "",
+          hobby: "",
+          vehicleType: "",
+          vehicleSpec: "",
+        });
       } else {
-        alert(result.message || 'Submission failed')
+        alert(result.message || "Submission failed");
       }
     } catch (err) {
-      console.error(err)
-      alert('Server error. Please try again later.')
+      console.error("Error submitting member application:", err);
+      alert("Server error. Please try again later.");
     }
-  }
+  };
+
 
   if (loading) return <Loading />;
 

@@ -25,6 +25,7 @@ export default async function handler(
     let message = '';
 
     if (action === 'accept') {
+      console.log("Accepting application:", application);
       const existingUser = await User.findOne({ username: application.username });
 
       if (existingUser) {
@@ -33,8 +34,8 @@ export default async function handler(
       } else {
         await User.create({
           username: application.username,
-          emailOrPhone: application.email,
-          password: application.phone,
+          emailOrPhone: application.emailOrPhone,
+          password: application.password,
           address: application.address,
           role: 'member',
         });

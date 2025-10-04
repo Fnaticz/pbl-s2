@@ -4,6 +4,7 @@ import { connectDB } from "../../../lib/mongodb";
 import User from "../../../models/user";
 import bcrypt from "bcryptjs";
 
+// ✅ Type augmentation untuk NextAuth
 declare module "next-auth" {
   interface Session {
     user: {
@@ -39,12 +40,14 @@ export const authOptions: AuthOptions = {
           }
 
           await connectDB();
+
           const user = await User.findOne({ username: credentials.username });
           if (!user) return null;
 
           const isValid = await bcrypt.compare(credentials.password, user.password);
           if (!isValid) return null;
 
+          // ✅ data user yang akan dikirim ke jwt token
           return {
             id: user._id.toString(),
             username: user.username,
@@ -68,20 +71,22 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.username = user.username   // tambahkan
-        token.role = user.role
+        token.id = (user as any).id;
+        token.username = (user as any).username;
+        token.role = (user as any).role;
+        token.emailOrPhone = (user as any).emailOrPhone ?? "";
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-        session.user.username = token.username as string // tambahkan
-        session.user.role = token.role as string
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.username = token.username as string;
+        session.user.role = token.role as string;
+        session.user.emailOrPhone = token.emailOrPhone as string;
       }
-      return session
-    }
+      return session;
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

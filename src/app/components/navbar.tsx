@@ -80,7 +80,7 @@ export default function Navbar() {
                 >
                   <Link href="/business" onClick={() => setMenuOpen(false)} className="block px-4 py-2 hover:bg-red-600">Member Business</Link>
                   {user?.role === 'guest' && (
-                    <Link href="/forum" className="block px-4 py-2 hover:bg-red-600">Forum</Link>
+                    <Link href="/forum" onClick={() => setMenuOpen(false)} className="block px-4 py-2 hover:bg-red-600">Forum</Link>
                   )}
                   {user?.role === 'member' && (
                     <>

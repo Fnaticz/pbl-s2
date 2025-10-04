@@ -2,21 +2,34 @@
 
 import { useEffect, useState } from 'react'
 import type { IBanner } from '../../../../models/banner';
-import { FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
+import { FaClipboardCheck, FaTruckMonster, FaSignOutAlt, FaTimes, FaBars, FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 import { useSession } from 'next-auth/react';
 import autoTable from 'jspdf-autotable'
 import jsPDF from 'jspdf'
 import Image from "next/image";
 import Loading from '../../components/Loading';
+import { IMainEvent } from '../../../../models/main-event';
 
 
 export default function AdminDashboard() {
+  const [mobileSidebar, setMobileSidebar] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('stats')
   const [members, setMembers] = useState<{
     _id: string;
     username: string;
     emailOrPhone: string;
+    date: string;
+  }[]>([])
+  const [participant, setParticipants] = useState<{
+    _id: string;
+    username: string;
+    emailOrPhone: string;
+    driverName: string;
+    coDriverName: string;
+    driverPhone: string;
+    coDriverPhone: string;
     date: string;
   }[]>([])
   const [pendingMember, setPendingMember] = useState<{
@@ -31,12 +44,34 @@ export default function AdminDashboard() {
     vehicleSpec: string;
     message: string;
   }[]>([])
+  const [pendingParticipant, setPendingParticipant] = useState<{
+    _id: string;
+    username: string;
+    emailOrPhone: string;
+    driverName: string;
+    coDriverName: string;
+    carName: string;
+    driverPhone: string;
+    coDriverPhone: string;
+    policeNumber: string;
+    address: string;
+    teamName: string;
+    message: string;
+  }[]>([])
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
   const [bannerName, setBannerName] = useState('')
   const [bannerTitle, setBannerTitle] = useState('')
   const [bannerDate, setBannerDate] = useState('')
   const [bannerLocation, setBannerLocation] = useState('')
   // const [activityPreview, setActivityPreview] = useState<string | null>(null)
+  const [mainEventPreview, setMainEventPreview] = useState<string | null>(null)
+  const [mainEventName, setMainEventName] = useState('')
+  const [mainEventTitle, setMainEventTitle] = useState('')
+  const [mainEventDate, setMainEventDate] = useState('')
+  const [mainEventLocation, setMainEventLocation] = useState('')
+  const [mainEventDesc, setMainEventDesc] = useState('')
+  const [mainEventImages, setMainEventImages] = useState<string[]>([])
+  const [mainEventReports, setMainEventReports] = useState<IMainEvent[]>([])
   const [activityName, setActivityName] = useState('')
   const [activityTitle, setActivityTitle] = useState('')
   const [activityDesc, setActivityDesc] = useState('')
@@ -56,6 +91,13 @@ export default function AdminDashboard() {
     const data = await res.json();
     setPendingMember(data.pending);
     setMembers(data.approved);
+  };
+
+  const fetchEvents = async () => {
+    const res = await fetch('/api/events/list');
+    const data = await res.json();
+    setPendingParticipant(data.pending);
+    setParticipants(data.approved);
   };
 
   useEffect(() => {
@@ -81,12 +123,16 @@ export default function AdminDashboard() {
     fetchMembers();
   }, []);
 
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
   const calculateTotal = () => {
     const total = financeRecords.reduce((sum, record) => sum + record.amount, 0)
     setTotalAmount(total)
   }
 
-  const handleAccept = async (id: string) => {
+  const handleAcceptMember = async (id: string) => {
     try {
       const res = await fetch('/api/members/action', {
         method: 'POST',
@@ -108,7 +154,29 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleAcceptParticipant = async (id: string) => {
+    try {
+      const res = await fetch('/api/events/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'accept' })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setPendingParticipant(prev => prev.filter(m => m._id !== id));
+        fetchEvents();
+        alert('Accepted successfully');
+      } else {
+        alert(result.message || 'Failed to accept');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error accepting application');
+    }
+  };
+
+  const handleRejectMember = async (id: string) => {
     try {
       const res = await fetch('/api/members/action', {
         method: 'POST',
@@ -119,6 +187,27 @@ export default function AdminDashboard() {
       const result = await res.json();
       if (res.ok) {
         setPendingMember(prev => prev.filter(m => m._id !== id));
+        alert('Rejected successfully');
+      } else {
+        alert(result.message || 'Failed to reject');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error rejecting application');
+    }
+  };
+
+  const handleRejectParticipant = async (id: string) => {
+    try {
+      const res = await fetch('/api/events/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'reject' })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setPendingParticipant(prev => prev.filter(m => m._id !== id));
         alert('Rejected successfully');
       } else {
         alert(result.message || 'Failed to reject');
@@ -233,6 +322,67 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAddMainEvent = async () => {
+    if (!mainEventTitle || !mainEventDate || !mainEventLocation || !mainEventDesc || !mainEventName) {
+      return alert("All fields required");
+    }
+
+    const fileInput = document.getElementById("bannermainevent-file") as HTMLInputElement;
+    const file = fileInput?.files?.[0];
+    if (!file) return alert("No file selected");
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result;
+
+      try {
+        const res = await fetch("/api/mainevent/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: mainEventName,
+            title: mainEventTitle,
+            date: mainEventDate,
+            location: mainEventLocation,
+            desc: mainEventDesc,
+            file: base64,
+          }),
+        });
+
+        if (res.ok) {
+          const newMainEvent = await res.json();
+          setMainEventReports((prev) => [...prev, newMainEvent]);
+
+          alert("Main event uploaded!");
+          setMainEventTitle("");
+          setMainEventDate("");
+          setMainEventLocation("");
+          setMainEventDesc("");
+          setMainEventName("");
+          setMainEventPreview(null);
+          fileInput.value = "";
+        } else {
+          alert("Upload failed");
+        }
+      } catch (err) {
+        console.error("Upload error:", err);
+        alert("Server error");
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  useEffect(() => {
+    const fetchMainEvent = async () => {
+      const res = await fetch('/api/mainevent');
+      const data = await res.json();
+      setMainEventReports(data);
+    };
+
+    fetchMainEvent();
+  }, []);
+
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -312,8 +462,8 @@ export default function AdminDashboard() {
                   <p><strong>Vehicle Type:</strong> {m.vehicleType}</p>
                   <p><strong>Vehicle Spec:</strong> {m.vehicleSpec}</p>
                   <div className="flex gap-2 mt-2">
-                    <button onClick={() => handleAccept(m._id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
-                    <button onClick={() => handleReject(m._id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
+                    <button onClick={() => handleAcceptMember(m._id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
+                    <button onClick={() => handleRejectMember(m._id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
                   </div>
                 </div>
               ))
@@ -330,10 +480,28 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-400">Approved: {m.date}</p>
                 </div>
                 <button
-                  onClick={() => {
-                    const confirmDelete = confirm('Remove member rights?');
-                    if (confirmDelete) {
-                      setMembers(members.filter((user) => user._id !== m._id));
+                  onClick={async () => {
+                    if (!confirm("Delete this Member?")) return;
+
+                    try {
+                      const res = await fetch("/api/members/delete", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: m._id }),
+                      });
+
+                      const result = await res.json();
+
+                      if (res.ok) {
+                        // update state supaya UI langsung refresh
+                        setMembers((prev) => prev.filter((act) => act._id !== m._id));
+                        alert("Member deleted successfully");
+                      } else {
+                        alert(result.message || "Failed to delete member");
+                      }
+                    } catch (err) {
+                      console.error("Delete error:", err);
+                      alert("Server error, please try again.");
                     }
                   }}
                   className="text-red-600 hover:text-red-800"
@@ -344,81 +512,353 @@ export default function AdminDashboard() {
             ))}
           </div>
         )
+      case 'event participants':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Event Registration Management</h2>
+            {pendingParticipant.length > 0 ? (
+              pendingParticipant.map((m) => (
+                <div key={m._id} className="bg-gray-700 text-white p-4 rounded shadow mb-4">
+                  <p><strong>Username:</strong> {m.username}</p>
+                  <p><strong>Email:</strong> {m.emailOrPhone || '-'}</p>
+                  <p><strong>Driver Name:</strong> {m.driverName}</p>
+                  <p><strong>Co-Driver Name:</strong> {m.coDriverName}</p>
+                  <p><strong>Car Name:</strong> {m.carName}</p>
+                  <p><strong>Driver Phone:</strong> {m.driverPhone}</p>
+                  <p><strong>Co-Driver Phone:</strong> {m.coDriverPhone}</p>
+                  <p><strong>Police Number:</strong> {m.policeNumber}</p>
+                  <p><strong>Address:</strong> {m.address}</p>
+                  <p><strong>Team Name:</strong> {m.teamName}</p>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => handleAcceptParticipant(m._id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
+                    <button onClick={() => handleRejectParticipant(m._id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400 mb-4">No new registration.</p>
+            )}
+
+            <h3 className="text-lg font-semibold mb-2">Approved Participations</h3>
+            {participant.map((m) => (
+              <div key={m._id} className="bg-gray-700 text-white p-3 mb-2 rounded shadow flex justify-between items-center">
+                <div>
+                  <p><strong>Username: </strong>{m.username}</p>
+                  <p><strong>Driver Name: </strong>{m.driverName}</p>
+                  <p><strong>Co-Driver Name: </strong>{m.coDriverName}</p>
+                  <p><strong>Driver Phone: </strong>{m.driverPhone}</p>
+                  <p><strong>Co-Driver Phone: </strong>{m.coDriverPhone}</p>
+                  <p className="text-sm text-gray-300">{m.emailOrPhone || '-'}</p>
+                  <p className="text-xs text-gray-400">Approved: {m.date}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!confirm("Delete this Participant?")) return;
+
+                    try {
+                      const res = await fetch("/api/events/delete", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: m._id }),
+                      });
+
+                      const result = await res.json();
+
+                      if (res.ok) {
+                        // update state supaya UI langsung refresh
+                        setParticipants((prev) => prev.filter((act) => act._id !== m._id));
+                        alert("Participant deleted successfully");
+                      } else {
+                        alert(result.message || "Failed to delete member");
+                      }
+                    } catch (err) {
+                      console.error("Delete error:", err);
+                      alert("Server error, please try again.");
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      case "main event":
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Manage Main Spartan Event</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Title</label>
+              <textarea
+                placeholder="Event Title"
+                value={mainEventTitle}
+                onChange={(e) => setMainEventTitle(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Date</label>
+              <textarea
+                id="mainevent-date"
+                placeholder="Event Date"
+                value={mainEventDate}
+                onChange={(e) => setMainEventDate(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Location</label>
+              <textarea
+                id="mainevent-location"
+                placeholder="Event Location"
+                value={mainEventLocation}
+                onChange={(e) => setMainEventLocation(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Description</label>
+              <textarea
+                id="mainevent-desc"
+                placeholder="Event Description"
+                value={mainEventDesc}
+                onChange={(e) => setMainEventDesc(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            {/* File input */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-2">Banner Main Event Image (Scale 1:1)</label>
+              <label
+                htmlFor="bannermainevent-file"
+                className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow inline-block"
+              >
+                Choose Picture
+              </label>
+              <input
+                id="bannermainevent-file"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setMainEventName(file.name);
+                    setMainEventPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+              {mainEventPreview && (
+                <div className="mt-3 relative">
+                  <div className="w-90 h-90 overflow-hidden rounded-lg shadow border border-gray-600">
+                    <Image
+                      src={mainEventPreview}
+                      alt="Preview"
+                      width={600}
+                      height={600}
+                      unoptimized
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMainEventPreview("");
+                      setMainEventName("");
+                      const fileInput = document.getElementById("bannermainevent-file") as HTMLInputElement | null;
+                      if (fileInput) fileInput.value = "";
+                    }}
+                    className="mt-2 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                  <p className="text-sm text-gray-400">{mainEventName}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6">
+              <button
+                onClick={handleAddMainEvent}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow"
+              >
+                Add Main Event
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Main Event Reports</h3>
+              {mainEventReports.map((me) => (
+                <div
+                  key={me._id}
+                  className="bg-gray-800 text-white p-3 mb-2 rounded"
+                >
+                  {me.imageUrl ? (
+                    <Image
+                      src={me.imageUrl}
+                      alt="Banner Preview"
+                      width={600}
+                      height={600}
+                      unoptimized={me.imageUrl.startsWith("data:") || me.imageUrl.startsWith("blob:")}
+                      className="w-full max-w-sm rounded-lg mb-3"
+                    />
+                  ) : (
+                    <p className="text-gray-400 italic">No image uploaded</p>
+                  )}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold">{me.title}</p>
+                      <p className="font-bold">{me.date}</p>
+                      <p className="text-sm">{me.location}</p>
+                      <p className="font-bold">{me.desc}</p>
+                      <p className="text-xs text-gray-400">Event Date: {me.date}</p>
+                      <p className="text-xs text-gray-400">
+                        Created: {new Date(me.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Delete this main event?")) return;
+                        const res = await fetch("/api/mainevent/delete", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: me._id }),
+                        });
+                        if (res.ok) {
+                          setMainEventReports((prev) =>
+                            prev.filter((act) => act._id !== me._id)
+                          );
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       case "banner":
         return (
           <div>
             <h2 className="text-xl font-bold mb-4">Manage Banners</h2>
 
-            <input
-              type="text"
-              placeholder="Event Title"
-              value={bannerTitle}
-              onChange={(e) => setBannerTitle(e.target.value)}
-              className="bg-gray-700 w-full mb-2 p-2 border rounded"
-            />
+            {/* Event Title */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Title</label>
+              <textarea
+                placeholder="Event Title"
+                value={bannerTitle}
+                onChange={(e) => setBannerTitle(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
 
-            <input
-              type="date"
-              value={bannerDate}
-              onChange={(e) => setBannerDate(e.target.value)}
-              className="bg-gray-700 w-full mb-2 p-2 border rounded"
-            />
+            {/* Event Date */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Date</label>
+              <input
+                type="date"
+                value={bannerDate}
+                onChange={(e) => setBannerDate(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
 
-            <input
-              type="text"
-              placeholder="Google Maps URL"
-              value={bannerLocation}
-              onChange={(e) => setBannerLocation(e.target.value)}
-              className="bg-gray-700 w-full mb-2 p-2 border rounded"
-            />
+            {/* Location */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Location</label>
+              <textarea
+                placeholder="Location"
+                value={bannerLocation}
+                onChange={(e) => setBannerLocation(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
 
-            <input
-              id="banner-file"
-              type="file"
-              className="mb-2"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setBannerName(file.name);
-                  setBannerPreview(URL.createObjectURL(file));
-                }
-              }}
-            />
+            {/* Image Upload */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-2">Banner Image (Scale 1:1)</label>
+              <label
+                htmlFor="banner-file"
+                className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow inline-block"
+              >
+                Choose Picture
+              </label>
+              <input
+                id="banner-file"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setBannerName(file.name);
+                    setBannerPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+              {bannerPreview && (
+                <div className="mt-3 relative">
+                  <div className="w-90 h-90 overflow-hidden rounded-lg shadow border border-gray-600">
+                    <Image
+                      src={bannerPreview}
+                      alt="Preview"
+                      width={600}
+                      height={600}
+                      unoptimized
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setBannerPreview("");
+                      setBannerName("");
+                      const fileInput = document.getElementById("banner-file") as HTMLInputElement | null;
+                      if (fileInput) fileInput.value = "";
+                    }}
+                    className="mt-2 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                  <p className="text-sm text-gray-400">{bannerName}</p>
+                </div>
+              )}
+            </div>
 
-            {bannerPreview && (
-              <div className="mb-4">
-                <Image
-                  src={bannerPreview}
-                  alt="Preview"
-                  width={600}
-                  height={300}
-                  unoptimized
-                  className="w-full max-w-md rounded mb-1"
-                />
-                <p className="text-sm text-gray-300">{bannerName}</p>
-              </div>
-            )}
+            {/* Upload Button */}
+            <div className="mt-6">
+              <button
+                onClick={handleUpload}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow"
+              >
+                Upload Banner
+              </button>
+            </div>
 
-            <button
-              onClick={handleUpload}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Upload Banner
-            </button>
-
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Uploaded Banners</h3>
+            {/* Uploaded banners list */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">Uploaded Banners</h3>
               {bannerReports.map((b) => (
-                <div key={b._id} className="bg-gray-800 text-white p-3 mb-2 rounded">
+                <div
+                  key={b._id}
+                  className="bg-gray-800 text-white p-4 mb-3 rounded-lg shadow"
+                >
                   <Image
                     src={b.imageUrl}
                     alt="Banner Preview"
                     width={600}
-                    height={300}
+                    height={600}
                     unoptimized={b.imageUrl.startsWith("data:") || b.imageUrl.startsWith("blob:")}
-                    className="w-full max-w-sm rounded mb-2"
+                    className="w-full max-w-sm rounded-lg mb-3"
                   />
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-start">
                     <div>
                       <p className="font-bold">{b.title}</p>
                       <p className="text-sm">{b.location}</p>
@@ -443,8 +883,24 @@ export default function AdminDashboard() {
         return (
           <div>
             <h2 className="text-xl font-bold mb-4">Finance Management</h2>
-            <input id="finance-desc" type="text" placeholder="Description" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
-            <input id="finance-amt" type="number" placeholder="Amount" className="bg-gray-700 w-full mb-2 p-2 border rounded" />
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Description</label>
+              <textarea
+                id="finance-desc"
+                placeholder="Description"
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Amount</label>
+              <input
+                id="finance-amt"
+                type="number"
+                placeholder="Total Amount"
+                className="bg-gray-800 w-1/2 p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
             <button
               onClick={async () => {
                 const desc = (document.getElementById("finance-desc") as HTMLInputElement)?.value;
@@ -473,7 +929,7 @@ export default function AdminDashboard() {
                   }
                 }
               }}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow"
             >
               Submit Report
             </button>
@@ -564,72 +1020,96 @@ export default function AdminDashboard() {
         return (
           <div>
             <h2 className="text-xl font-bold mb-4">Manage Activities</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Activity Title</label>
+              <textarea
+                placeholder="Activity Title"
+                value={activityTitle}
+                onChange={(e) => setActivityTitle(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Description</label>
+              <textarea
+                id="activity-desc"
+                placeholder="Description"
+                value={activityDesc}
+                onChange={(e) => setActivityDesc(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
 
             {/* Multiple file input */}
-            <input
-              id="activity-files"
-              type="file"
-              multiple
-              onChange={(e) => {
-                const files = e.target.files;
-                if (files) {
-                  const readers: Promise<string>[] = [];
-                  Array.from(files).forEach((file) => {
-                    readers.push(
-                      new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result as string);
-                        reader.readAsDataURL(file);
-                      })
-                    );
-                  });
-                  Promise.all(readers).then((base64Images) => {
-                    setActivityImages(base64Images);
-                  });
-                }
-              }}
-              className="mb-2"
-            />
-
-            <input
-              type="text"
-              placeholder="Title"
-              value={activityTitle}
-              onChange={(e) => setActivityTitle(e.target.value)}
-              className="bg-gray-700 w-full mb-2 p-2 border rounded"
-            />
+            <div className="mb-2">
+              <label className="block text-sm font-semibold mb-1">Activity Images (Multiple)</label>
+              <label
+                htmlFor="activity-files"
+                className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow inline-block"
+              >
+                Choose Pictures
+              </label>
+              <input
+                id="activity-files"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files) {
+                    const readers: Promise<string>[] = [];
+                    Array.from(files).forEach((file) => {
+                      readers.push(
+                        new Promise((resolve) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => resolve(reader.result as string);
+                          reader.readAsDataURL(file);
+                        })
+                      );
+                    });
+                    Promise.all(readers).then((base64Images) => {
+                      setActivityImages(base64Images);
+                    });
+                  }
+                }}
+              />
+            </div>
 
             {activityImages.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-4">
+              <div className="mb-3 flex flex-wrap gap-4">
                 {activityImages.map((img, idx) => (
-                  <Image
-                    key={idx}
-                    src={img}
-                    alt={`Preview ${idx}`}
-                    width={400}
-                    height={300}
-                    unoptimized
-                    className="w-full max-w-md rounded mb-1"
-                  />
+                  <div key={idx} className="relative">
+                    <Image
+                      src={img}
+                      alt={`Preview ${idx}`}
+                      width={300}
+                      height={300}
+                      unoptimized
+                      className="w-full max-w-md rounded mb-2 shadow"
+                    />
+                    <button
+                      onClick={() =>
+                        setActivityImages(activityImages.filter((_, i) => i !== idx))
+                      }
+                      className="mt-2 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
 
-            <input
-              id="activity-desc"
-              type="text"
-              placeholder="Description"
-              value={activityDesc}
-              onChange={(e) => setActivityDesc(e.target.value)}
-              className="bg-gray-700 w-full mb-2 p-2 border rounded"
-            />
-
-            <button
-              onClick={handleAddActivity}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Add Activity
-            </button>
+            <div className="mt-6">
+              <button
+                onClick={handleAddActivity}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow"
+              >
+                Add Activity
+              </button>
+            </div>
 
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
@@ -691,19 +1171,26 @@ export default function AdminDashboard() {
         return (
           <div>
             <h2 className="text-xl font-bold mb-4">Event Schedule Management</h2>
-            <input
-              type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className="bg-gray-700 w-full mb-2 p-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="Event Title"
-              value={eventTitle}
-              onChange={(e) => setEventTitle(e.target.value)}
-              className="bg-gray-700 w-full mb-2 p-2 border rounded"
-            />
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Title</label>
+              <textarea
+                placeholder="Event Title"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1">Event Date</label>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="bg-gray-800 w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
             <button
               onClick={async () => {
                 if (eventDate && eventTitle && confirm('Save event schedule?')) {
@@ -735,7 +1222,7 @@ export default function AdminDashboard() {
                 }
               }}
 
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow"
             >
               Mark Event Date
             </button>
@@ -776,19 +1263,177 @@ export default function AdminDashboard() {
     }
   }
 
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Header Sidebar */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <span className={`font-bold text-lg ${!sidebarOpen && 'hidden'}`}>
+          Admin Dashboard
+        </span>
+        <button
+          onClick={() =>
+            window.innerWidth < 768
+              ? setMobileSidebar(false)
+              : setSidebarOpen(!sidebarOpen)
+          }
+          className="text-white"
+        >
+          {window.innerWidth < 768 ? <FaTimes /> : <FaBars />}
+        </button>
+      </div>
+
+      {/* Menu scrollable */}
+      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+        <button
+          onClick={() => {
+            setActiveTab('stats')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'stats'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaUser />
+          {sidebarOpen && 'Stats'}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('members')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'members'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaClipboardList />
+          {sidebarOpen && 'Members'}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('event participants')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'event participants'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaClipboardCheck />
+          {sidebarOpen && 'Event Participants'}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('main event')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'main event'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaTruckMonster />
+          {sidebarOpen && 'Main Event'}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('banner')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'banner'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaImages />
+          {sidebarOpen && 'Banner'}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('finance')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'finance'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaMoneyBill />
+          {sidebarOpen && 'Finance'}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('activities')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'activities'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaList />
+          {sidebarOpen && 'Activities'}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('schedule')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'schedule'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaCalendarAlt />
+          {sidebarOpen && 'Schedule'}
+        </button>
+      </div>
+      {/* Leave Dashboard button at the bottom */}
+      <div className="p-4 mt-auto">
+        <button
+          onClick={() => {
+            window.location.href = "/";
+          }}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded bg-gray-700 hover:bg-red-600 text-white font-semibold"
+        >
+          <FaSignOutAlt />
+          {sidebarOpen && 'Leave Dashboard'}
+        </button>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10">
-      <main className="flex-grow pt-20 px-4 pb-16">
-        <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-        <div className="flex flex-wrap gap-3 mb-6">
-          <button onClick={() => setActiveTab('stats')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaUser /> Stats</button>
-          <button onClick={() => setActiveTab('members')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaClipboardList /> Members</button>
-          <button onClick={() => setActiveTab('banner')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaImages /> Banner</button>
-          <button onClick={() => setActiveTab('finance')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaMoneyBill /> Finance</button>
-          <button onClick={() => setActiveTab('activities')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaList /> Activities</button>
-          <button onClick={() => setActiveTab('schedule')} className="flex items-center gap-2 bg-gray-800 px-4 py-2 rounded shadow hover:bg-red-500"><FaCalendarAlt /> Schedule</button>
+    <div className="flex min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white">
+      {/* Sidebar Dekstop*/}
+      <aside
+        className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-20'
+          } bg-gray-900 h-screen flex flex-col transition-all duration-300`}
+      >
+        <SidebarContent />
+      </aside>
+
+      {/* Sidebar Mobile - popup overlay */}
+      {mobileSidebar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden">
+          <div className="absolute left-0 top-0 w-64 h-full bg-gray-900 z-50">
+            <SidebarContent />
+          </div>
         </div>
-        <div className="bg-gray-900 p-6 rounded shadow">
+      )}
+
+      {/* Main content dengan scroll terpisah */}
+      <main className="flex-1 h-screen overflow-y-auto p-6 relative">
+        <h1 className="absolute top-4 right-4 text-white md:hidden text-lg font-semibold mb-2">Admin Dashboard</h1>
+        {/* Tombol hamburger muncul hanya di mobile */}
+        <button
+          onClick={() => setMobileSidebar(true)}
+          className="absolute top-4 left-4 text-white md:hidden"
+        >
+          <FaBars size={24} />
+        </button>
+        <div className="bg-gray-900 p-6 rounded shadow min-h-full mt-10 md:mt-0">
           {renderSection()}
         </div>
       </main>
