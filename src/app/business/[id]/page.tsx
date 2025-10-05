@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import Loading from '../../components/Loading';
+import Loading from "../../components/Loading";
 import {
   FaFacebookF,
   FaInstagram,
@@ -12,6 +12,8 @@ import {
   FaMapMarkerAlt,
   FaTag,
 } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
 
 type Business = {
   _id: string;
@@ -27,51 +29,91 @@ type Business = {
   slideshow?: string[];
 };
 
+type Voucher = {
+  _id: string;
+  title: string;
+  description: string;
+  pointsRequired: number;
+  expiryDate: string;
+  stock: number;
+};
+
 export default function BusinessDetailPage() {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const params = useParams();
   const id = params?.id as string;
   const [business, setBusiness] = useState<Business | null>(null);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [visibleCount, setVisibleCount] = useState(2)
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [lastRedeem, setLastRedeem] = useState<Date | null>(null)
+
+  const user = session?.user as { id: string; username: string } | undefined;
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 3000); // simulasi fetch
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!id) return;
-    const fetchDetail = async () => {
+    if (!id) return
+    const fetchBusiness = async () => {
       try {
-        const res = await fetch(`/api/business/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setBusiness(data);
-        }
+        const res = await fetch(`/api/business/${id}`)
+        const data = await res.json()
+        setBusiness(data)
+        setVouchers(data.vouchers || [])
       } catch (err) {
-        console.error("Fetch business detail error:", err);
+        console.error('Failed to fetch business:', err)
+      } finally {
+        setLoading(false)
       }
-    };
-    fetchDetail();
-  }, [id]);
-
-  if (!business) return <p className="text-white p-6">Loading...</p>;
-
-  // Convert Google Maps link ke embed URL
-  const getEmbedUrl = (url?: string) => {
-    if (!url) return "";
-    if (url.includes("/maps/embed")) return url; // sudah embed
-    if (url.includes("google.com/maps")) {
-      return url.replace("/maps/", "/maps/embed/");
     }
-    if (url.includes("goo.gl/maps")) {
-      // untuk shortlink biarkan dipakai langsung, kadang bisa auto-embed
-      return `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodeURIComponent(
-        url
-      )}`;
+    fetchBusiness()
+  }, [id])
+
+  // Handle redeem
+  const handleRedeem = async (voucherId: string, pointsRequired: number) => {
+    if (!user?.id) return alert('Please login to redeem')
+    if (!canRedeem()) return alert('You can redeem only once every 24 hours!')
+    if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return
+
+    try {
+      const res = await fetch('/api/voucher/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, voucherId }),
+      })
+      const result = await res.json()
+      if (res.ok) {
+        alert(`Successfully redeemed ${result.redemption.voucherTitle}!`)
+        setLastRedeem(new Date())
+      } else {
+        alert(result.message || 'Failed to redeem')
+      }
+    } catch (err) {
+      console.error('Redeem error:', err)
+      alert('Server error')
     }
-    return url;
-  };
+  }
+
+  // ambil riwayat redeem terakhir
+  useEffect(() => {
+    if (!user?.id) return
+    const fetchLastRedeem = async () => {
+      try {
+        const res = await fetch(`/api/voucher/last-redeem?userId=${user.id}`)
+        const data = await res.json()
+        if (data?.lastRedeemAt) setLastRedeem(new Date(data.lastRedeemAt))
+      } catch (err) {
+        console.error('Fetch last redeem error:', err)
+      }
+    }
+    fetchLastRedeem()
+  }, [user])
+
+  const canRedeem = () => {
+    if (!lastRedeem) return true
+    const now = new Date()
+    const diff = now.getTime() - lastRedeem.getTime()
+    return diff >= 24 * 60 * 60 * 1000 // 1 hari (ms)
+  }
 
   const handlePrev = () => {
     if (!business?.slideshow) return;
@@ -87,23 +129,35 @@ export default function BusinessDetailPage() {
     );
   };
 
+  const isExpiringSoon = (expiryDate?: string) => {
+    if (!expiryDate) return false
+    const exp = new Date(expiryDate)
+    const now = new Date()
+    const diffDays = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    return diffDays <= 3 && diffDays > 0
+  }
+
+  const getEmbedUrl = (url?: string) => {
+    if (!url) return "";
+    if (url.includes("/maps/embed")) return url;
+    if (url.includes("google.com/maps"))
+      return url.replace("/maps/", "/maps/embed/");
+    return url;
+  };
+
   if (loading) return <Loading />;
+  if (!business) return <p className="text-white p-6">Business not found</p>;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-red-950 text-white p-6 flex justify-center">
-      <main
-        className="flex-grow pt-20 px-4 pb-16"
-      >
-
-
-        {/* Header */}
-        <h1 className="text-4xl font-extrabold mb-10 text-center bg-gradient-to-r from-red-500 to-red-300 bg-clip-text text-transparent drop-shadow-lg">
+      <main className="flex-grow pt-20 px-4 pb-16 max-w-5xl w-full">
+        <h1 className="text-4xl font-extrabold mb-10 text-center bg-gradient-to-r from-red-500 to-red-700 bg-clip-text text-transparent drop-shadow-lg">
           {business.name}
         </h1>
 
-        <div className="max-w-4xl mx-auto space-y-10 bg-black/70 rounded-2xl p-6 shadow-xl">
-          {/* GALLERY */}
-          {business.slideshow && business.slideshow.length > 0 && (
+        <div className="space-y-10 bg-black/70 rounded-2xl p-6 shadow-xl">
+          {/* Slideshow */}
+          {business.slideshow?.length ? (
             <div>
               <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden shadow-lg">
                 <Image
@@ -113,8 +167,6 @@ export default function BusinessDetailPage() {
                   className="object-cover"
                   unoptimized={business.slideshow[currentSlide].startsWith("data:")}
                 />
-
-                {/* Controls */}
                 <button
                   onClick={handlePrev}
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 px-3 py-2 rounded-full"
@@ -128,8 +180,6 @@ export default function BusinessDetailPage() {
                   ▶
                 </button>
               </div>
-
-              {/* Dots */}
               <div className="flex justify-center mt-4 gap-2">
                 {business.slideshow.map((_, i) => (
                   <button
@@ -141,49 +191,41 @@ export default function BusinessDetailPage() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* INFO */}
+          {/* Business Info */}
           <div>
             {business.category && (
               <p className="flex items-center text-red-400 mb-2 text-lg">
                 <FaTag className="mr-2" /> {business.category}
               </p>
             )}
-            <p className="text-gray-200 mb-4 leading-relaxed">
+            <p className="text-gray-200 mb-4 leading-relaxed border-b border-red-800 pb-6">
               {business.description}
             </p>
 
-            {business.address && (
-              <p className="flex items-center mb-2">
-                <FaMapMarkerAlt className="mr-2 text-red-400" /> {business.address}
-              </p>
-            )}
-            {business.phone && (
-              <p className="flex items-center mb-2">
-                <FaPhoneAlt className="mr-2 text-green-400" /> {business.phone}
-              </p>
-            )}
+            <div className="space-y-2">
+              {business.address && (
+                <p className="flex items-center">
+                  <FaMapMarkerAlt className="mr-2 text-red-400" /> {business.address}
+                </p>
+              )}
+              {business.phone && (
+                <p className="flex items-center">
+                  <FaPhoneAlt className="mr-2 text-green-400" /> {business.phone}
+                </p>
+              )}
+            </div>
 
-            {/* Social Links */}
+            {/* Socials */}
             <div className="flex gap-4 mt-4 text-2xl">
               {business.facebook && (
-                <a
-                  href={business.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-500 transition"
-                >
+                <a href={business.facebook} target="_blank" rel="noreferrer" className="hover:text-blue-500">
                   <FaFacebookF />
                 </a>
               )}
               {business.instagram && (
-                <a
-                  href={business.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-pink-500 transition"
-                >
+                <a href={business.instagram} target="_blank" rel="noreferrer" className="hover:text-pink-500">
                   <FaInstagram />
                 </a>
               )}
@@ -191,8 +233,8 @@ export default function BusinessDetailPage() {
                 <a
                   href={`https://wa.me/${business.whatsapp}`}
                   target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-green-500 transition"
+                  rel="noreferrer"
+                  className="hover:text-green-500"
                 >
                   <FaWhatsapp />
                 </a>
@@ -200,7 +242,82 @@ export default function BusinessDetailPage() {
             </div>
           </div>
 
-          {/* LOCATION */}
+          {/* Voucher Section */}
+          <div className="bg-red-950/40 p-6 rounded-2xl shadow-inner border border-red-800">
+            <h2 className="text-2xl font-bold mb-4 text-center text-red-500">
+              🎟️ Available Vouchers
+            </h2>
+
+            {vouchers.length === 0 ? (
+              <p className="text-gray-400 italic">No active vouchers available.</p>
+            ) : (
+              <>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  {vouchers.slice(0, visibleCount).map((v, idx) => {
+                    const expSoon = isExpiringSoon(v.expiryDate)
+                    return (
+                      <motion.div
+                        key={v._id}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: idx * 0.1 }}
+                        className="bg-gray-900 p-4 rounded-xl shadow hover:shadow-lg hover:scale-[1.03] transition-transform duration-300"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 via-yellow-700/10 to-transparent opacity-0 hover:opacity-100 transition duration-500 rounded-xl" />
+                        <h3 className="text-lg font-semibold text-white">{v.title}</h3>
+                        <p className="text-sm text-gray-300 mb-1">{v.description}</p>
+                        <p className="text-sm text-gray-500 mb-2">
+                          ⭐ {v.pointsRequired} pts — Exp:{" "}
+                          {v.expiryDate
+                            ? new Date(v.expiryDate).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                        <p className="text-xs text-gray-400 mb-3">Stock: {v.stock}</p>
+                        <button
+                          onClick={() => handleRedeem(v._id, v.pointsRequired)}
+                          className={`mt-2 w-full font-semibold py-2 rounded-lg transition ${canRedeem()
+                            ? "bg-red-600 hover:bg-red-700 text-white"
+                            : "bg-gray-600 text-gray-300 cursor-not-allowed"
+                            }`}
+                          disabled={!canRedeem()}
+                        >
+                          {canRedeem() ? 'Redeem' : 'Cooldown: 1 Day'}
+                        </button>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+
+                {/* Show More / Show Less Button + counter info */}
+                {vouchers.length > 2 && (
+                  <div className="text-center mt-6 space-y-2">
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.4 }}
+                      className="text-sm text-gray-500"
+                    >
+                      Showing {Math.min(visibleCount, vouchers.length)} of{" "}
+                      {vouchers.length} vouchers
+                    </motion.p>
+
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() =>
+                        setVisibleCount(visibleCount === 2 ? vouchers.length : 2)
+                      }
+                      className="px-5 py-2 rounded-lg bg-white text-black font-semibold transition text-center transform active:scale-95 hover:bg-red-600 hover:text-white"
+                    >
+                      {visibleCount === 2 ? "Show More ▼" : "Show Less ▲"}
+                    </motion.button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Map */}
           {business.maps && (
             <div>
               <h2 className="text-2xl font-semibold mb-4">Location</h2>

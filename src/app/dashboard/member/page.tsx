@@ -9,9 +9,9 @@ import Image from "next/image";
 import Loading from '../../components/Loading';
 
 export default function MemberDashboard() {
-  const [loadingpage, setLoadingPage] = useState(true);
+  const [loadingpage, setLoadingPage] = useState(true)
   const { data: session, status } = useSession()
-  const [activeTab, setActiveTab] = useState('business')
+  const [activeTab, setActiveTab] = useState('stats')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileSidebar, setMobileSidebar] = useState(false)
   const user = session?.user as {
@@ -39,18 +39,167 @@ export default function MemberDashboard() {
   const [businessImages, setBusinessImages] = useState<string[]>([])
   const [businesses, setBusinesses] = useState<typeof emptyProfile[]>([])
   const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState({ totalEvents: 0, totalBusinesses: 0, totalPoints: 0 })
+  type HistoryEvent = {
+    eventName: string;
+    date: string;
+    pointsEarned: number;
+    // add other fields if needed
+  };
+  const [history, setHistory] = useState<HistoryEvent[]>([]);
+  const [selectedBusiness, setSelectedBusiness] = useState<string>("");
+  const [voucher, setVoucher] = useState<any[]>([]);
+  const [voucherForm, setVoucherForm] = useState({
+    title: "",
+    description: "",
+    pointsRequired: 0,
+    expiryDate: "",
+    stock: 0,
+  });
+
+  type RedeemedVoucher = {
+    id: string;
+    voucherTitle: string;
+    businessName: string;
+    pointsUsed: number;
+    redeemedAt: string;
+    expiryDate: string | null;
+    status: string;
+    // add other fields if needed
+  };
+  const [redeemed, setRedeemed] = useState<RedeemedVoucher[]>([]);
+
+  const loadRedeemed = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/member/voucher-redemption?userId=${user.id}`);
+      const data = await res.json();
+      setRedeemed(data.redemptions || []);
+    } catch (err) {
+      console.error("Failed loading redeemed", err);
+    }
+  };
+
+  // panggil loadRedeemed() saat mount (ganti useEffect yang lama)
+  useEffect(() => {
+    loadRedeemed();
+  }, [user]);
+
+  const handleRedeem = async (voucherId: string, pointsRequired: number) => {
+    if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return;
+    if (!user?.id) return alert("Login required");
+
+    try {
+      const res = await fetch("/api/voucher/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, voucherId }),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        alert("Voucher redeemed!");
+        // refresh redeemed list dan juga update vouchers/stats kalau perlu
+        await loadRedeemed();
+        // optional: if currently viewing vouchers of the business, refresh that list too
+        if (selectedBusiness) {
+          const r = await fetch(`/api/voucher/index?businessId=${selectedBusiness}`);
+          const d = await r.json();
+          setVoucher(d || []);
+        }
+      } else {
+        alert(result.message || "Failed to redeem");
+      }
+    } catch (err) {
+      console.error("Redeem error:", err);
+      alert("3 Server error");
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`/api/voucher/voucher-redemption?userId=${user.id}`)
+      .then((res) => res.json())
+      .then((data) => setRedeemed(data.redemptions || []))
+      .catch((err) => console.error("Redeemed fetch failed", err));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`/api/members/dashboard-voucher?userId=${user.id}`)
+      .then((res) => res.json())
+      .then((data) => setVoucher(data.vouchers || []))
+      .catch((err) => console.error("Vouchers fetch failed", err));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`/api/members/dashboard-history?userId=${user.id}`)
+      .then((res) => res.json())
+      .then((data) => setHistory(data.events || []))
+      .catch((err) => console.error("History fetch failed", err));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchStats = async () => {
+      const res = await fetch(`/api/members/dashboard-stats?userId=${user.id}&username=${user.username}`);
+      const data = await res.json();
+      setStats(data);
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000); // refresh setiap 5 detik
+    return () => clearInterval(interval);
+  }, [user]);
+
 
   useEffect(() => {
     const timer = setTimeout(() => setLoadingPage(false), 1500); // simulasi fetch
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (!user?.username) return
 
+  const [editingVoucher, setEditingVoucher] = useState<any | null>(null);
+
+  const loadVouchers = async () => {
+    const res = await fetch("/api/voucher");
+    const data = await res.json();
+    const merged = data.map((v: any) => {
+      const b = businesses.find((bus) => bus._id === v.businessId);
+      return { ...v, businessName: b?.name || "Unknown" };
+    });
+    setVoucher(merged);
+  };
+
+  const handleEditVoucher = (voucher: any) => {
+    setEditingVoucher(voucher);
+  };
+
+  const handleUpdateVoucher = async () => {
+    const res = await fetch("/api/voucher", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(editingVoucher),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert("Voucher updated!");
+      setEditingVoucher(null);
+      loadVouchers();
+    } else {
+      alert(data.message || "Failed to update voucher");
+    }
+  };
+
+  useEffect(() => {
+    if (businesses.length > 0) loadVouchers();
+  }, [businesses]);
+
+  useEffect(() => {
+    if (!user?.id) return
     const fetchBusiness = async () => {
       try {
-        const res = await fetch(`/api/business?username=${user.username}`)
+        const res = await fetch(`/api/business?userId=${user.id}`)
         if (!res.ok) return
         const data = await res.json()
         setBusinesses(data || [])
@@ -58,9 +207,22 @@ export default function MemberDashboard() {
         console.error('Failed to load businesses', err)
       }
     }
-
     fetchBusiness()
   }, [user])
+
+  useEffect(() => {
+    if (!selectedBusiness) return
+    const fetchVouchers = async () => {
+      try {
+        const res = await fetch(`/api/voucher/index?businessId=${selectedBusiness}`)
+        const data = await res.json()
+        setVoucher(data || [])
+      } catch (err) {
+        console.error('Failed to load vouchers', err)
+      }
+    }
+    fetchVouchers()
+  }, [selectedBusiness])
 
   const toBase64 = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader()
@@ -69,7 +231,7 @@ export default function MemberDashboard() {
   }
 
   const handleSaveProfile = async () => {
-    if (!user?.username) return alert('Login required')
+    if (!user?.id) return alert('Login required')
 
     if (
       !profile.name.trim() ||
@@ -80,7 +242,7 @@ export default function MemberDashboard() {
       !profile.facebook.trim() ||
       !profile.instagram.trim() ||
       !profile.whatsapp.trim() ||
-      !profile.maps.trim() 
+      !profile.maps.trim()
     ) {
       alert('Please fill all required fields!');
       return;
@@ -92,7 +254,7 @@ export default function MemberDashboard() {
       const res = await fetch('/api/business', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...profile, username: user.username }),
+        body: JSON.stringify({ ...profile, userId: user.id }),
       })
       const data = await res.json()
 
@@ -131,6 +293,45 @@ export default function MemberDashboard() {
     }
   }
 
+  const handleAddVoucher = async () => {
+    if (!selectedBusiness) return alert('Select a business first!')
+    if (!voucherForm.title.trim()) return alert('Title required!')
+    try {
+      const res = await fetch('/api/voucher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...voucherForm, businessId: selectedBusiness }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert('Voucher added!')
+        setVoucherForm({
+          title: '',
+          description: '',
+          pointsRequired: 0,
+          expiryDate: '',
+          stock: 0,
+        })
+        setVoucher((prev) => [...prev, data.voucher])
+      } else {
+        alert(data.message || 'Failed to add voucher')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Server error')
+    }
+  }
+
+  const handleDeleteVoucher = async (id: string) => {
+    if (!confirm('Delete this voucher?')) return
+    try {
+      await fetch(`/api/voucher?id=${id}`, { method: 'DELETE' })
+      setVoucher((prev) => prev.filter((v) => v._id !== id))
+    } catch (err) {
+      console.error('Failed to delete voucher', err)
+    }
+  }
+
   if (status === 'loading') {
     return <p className="text-white">Loading session...</p>
   }
@@ -143,6 +344,143 @@ export default function MemberDashboard() {
 
   const renderSection = () => {
     switch (activeTab) {
+      case 'stats':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Member Stats</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="bg-gray-800 p-6 rounded-lg shadow text-center">
+                <h3 className="text-lg font-semibold mb-2">Total Event Participation</h3>
+                <p className="text-3xl font-bold">{stats.totalEvents}</p>
+              </div>
+              <div className="bg-gray-800 p-6 rounded-lg shadow text-center">
+                <h3 className="text-lg font-semibold mb-2">Total Businesses</h3>
+                <p className="text-3xl font-bold">{stats.totalBusinesses}</p>
+              </div>
+              <div className="bg-gray-800 p-6 rounded-lg shadow text-center">
+                <h3 className="text-lg font-semibold mb-2">Total Points</h3>
+                <p className="text-3xl font-bold text-yellow-400"> ⭐ {stats.totalPoints}</p>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'history':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Event History</h2>
+            <table className="min-w-full border border-gray-700 text-sm">
+              <thead className="bg-gray-800">
+                <tr>
+                  <th className="p-2 border border-gray-700">Event</th>
+                  <th className="p-2 border border-gray-700">Date</th>
+                  <th className="p-2 border border-gray-700">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((h, i) => (
+                  <tr key={i}>
+                    <td className="p-2 border border-gray-700">{h.eventName}</td>
+                    <td className="p-2 border border-gray-700">{new Date(h.date).toLocaleDateString()}</td>
+                    <td className="p-2 border border-gray-700 text-yellow-400">{h.pointsEarned}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+
+      case 'vouchers':
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Available Vouchers</h2>
+
+            {voucher.length === 0 ? (
+              <p>No vouchers available.</p>
+            ) : (
+              <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+                {voucher.map((v) => (
+                  <li key={v._id} className="bg-gray-800 p-4 rounded-lg shadow">
+                    <h3 className="font-semibold mb-1">{v.title}</h3>
+                    <p className="text-sm text-gray-300 mb-1">{v.description}</p>
+                    <p className="text-yellow-400 text-sm mb-2">{v.pointsRequired} pts</p>
+                    <button
+                      onClick={() => handleRedeem(v._id, v.pointsRequired)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded mt-2"
+                    >
+                      Redeem
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <h2 className="text-xl font-bold mb-4 mt-10 text-white border-b border-gray-500 pb-2">
+              Redeemed History
+            </h2>
+
+            <section className="bg-gray-700/60 p-6 rounded-xl shadow-inner text-gray-100">
+              {redeemed.length === 0 ? (
+                <p className="text-gray-400 italic">No vouchers redeemed yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {redeemed.map((r) => (
+                    <div
+                      key={r.id}
+                      className="bg-gray-900/60 p-4 rounded-lg border border-gray-700 hover:border-red-500 transition-all duration-200"
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-semibold text-blue-400">
+                          {r.voucherTitle}
+                        </h3>
+                        <span
+                          className={`text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wide
+                ${r.status === "active"
+                              ? "bg-green-700 text-green-200"
+                              : r.status === "expired"
+                                ? "bg-red-700 text-red-200"
+                                : "bg-gray-700 text-gray-300"
+                            }`}
+                        >
+                          {r.status}
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-300">
+                        <span className="font-medium text-gray-400">Business:</span>{" "}
+                        {r.businessName}
+                      </p>
+
+                      <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-gray-400">
+                        <p>
+                          <span className="font-medium text-gray-500">Points Used:</span>{" "}
+                          <span className="text-yellow-400 font-semibold">
+                            {r.pointsUsed}
+                          </span>
+                        </p>
+                        <p>
+                          <span className="font-medium text-gray-500">Redeemed:</span>{" "}
+                          {new Date(r.redeemedAt).toLocaleDateString()}
+                        </p>
+                        <p>
+                          <span className="font-medium text-gray-500">Expiry:</span>{" "}
+                          {r.expiryDate
+                            ? new Date(r.expiryDate).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+          </div>
+        )
+
+
+
+
       case 'business':
         return (
           <div>
@@ -325,6 +663,84 @@ export default function MemberDashboard() {
                     Clear
                   </button>
                 </div>
+
+                {/* ---------- Add Voucher by Business ---------- */}
+                <hr className="my-6 border-gray-700" />
+                <h2 className="text-xl font-semibold mb-3">Add Voucher by Business</h2>
+                <select
+                  value={selectedBusiness}
+                  onChange={(e) => setSelectedBusiness(e.target.value)}
+                  className="bg-gray-700 p-2 rounded mb-3 w-full"
+                >
+                  <option value="">-- Select Business --</option>
+                  {businesses.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+
+                {selectedBusiness && (
+                  <div className="bg-gray-900 p-4 rounded-lg mb-3">
+                    <input
+                      type="text"
+                      placeholder="Voucher Title"
+                      value={voucherForm.title}
+                      onChange={(e) =>
+                        setVoucherForm({ ...voucherForm, title: e.target.value })
+                      }
+                      className="bg-gray-700 p-2 rounded w-full mb-2"
+                    />
+                    <textarea
+                      placeholder="Description"
+                      value={voucherForm.description}
+                      onChange={(e) =>
+                        setVoucherForm({ ...voucherForm, description: e.target.value })
+                      }
+                      className="bg-gray-700 p-2 rounded w-full mb-2"
+                    />
+                    <div className="flex gap-3 mb-2">
+                      <input
+                        type="number"
+                        placeholder="Points Required"
+                        value={voucherForm.pointsRequired}
+                        onChange={(e) =>
+                          setVoucherForm({
+                            ...voucherForm,
+                            pointsRequired: Number(e.target.value),
+                          })
+                        }
+                        className="bg-gray-700 p-2 rounded w-full"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Stock"
+                        value={voucherForm.stock}
+                        onChange={(e) =>
+                          setVoucherForm({
+                            ...voucherForm,
+                            stock: Number(e.target.value),
+                          })
+                        }
+                        className="bg-gray-700 p-2 rounded w-full"
+                      />
+                    </div>
+                    <input
+                      type="date"
+                      value={voucherForm.expiryDate}
+                      onChange={(e) =>
+                        setVoucherForm({ ...voucherForm, expiryDate: e.target.value })
+                      }
+                      className="bg-gray-700 p-2 rounded w-full mb-3"
+                    />
+                    <button
+                      onClick={handleAddVoucher}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    >
+                      Add Voucher
+                    </button>
+                  </div>
+                )}
               </section>
 
               {businesses.length > 0 && (
@@ -364,7 +780,132 @@ export default function MemberDashboard() {
                         ))}
                       </tbody>
                     </table>
+
+                    {/* --- YOUR VOUCHER BY BUSINESS --- */}
+                    <h2 className="text-xl font-semibold mb-5 mt-5">Your Vouchers by Business</h2>
+                    {voucher.length === 0 ? (
+                      <p className="text-gray-400">No vouchers added yet.</p>
+                    ) : (
+                      <table className="min-w-full border border-stone-700 text-sm">
+                        <thead className="bg-stone-700">
+                          <tr>
+                            <th className="p-2 border border-stone-600">Business</th>
+                            <th className="p-2 border border-stone-600">Voucher Title</th>
+                            <th className="p-2 border border-stone-600">Points</th>
+                            <th className="p-2 border border-stone-600">Stock</th>
+                            <th className="p-2 border border-stone-600">Expiry</th>
+                            <th className="p-2 border border-stone-600">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {voucher.map((v) => (
+                            <tr key={v._id}>
+                              <td className="p-2 border border-stone-700">
+                                {businesses.find((b) => b._id === v.businessId)?.name || '-'}
+                              </td>
+                              <td className="p-2 border border-stone-700">{v.title}</td>
+                              <td className="p-2 border border-stone-700">{v.pointsRequired}</td>
+                              <td className="p-2 border border-stone-700">{v.stock}</td>
+                              <td className="p-2 border border-stone-700">
+                                {v.expiryDate ? new Date(v.expiryDate).toLocaleDateString() : '-'}
+                              </td>
+                              <td className="p-2 border border-stone-700">
+                                <button
+                                  onClick={() => handleEditVoucher(v)}
+                                  className="bg-blue-600 px-2 py-1 rounded text-white mr-2"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteVoucher(v._id)}
+                                  className="bg-red-600 px-2 py-1 rounded text-white mt-2"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
+                  {/* Edit Voucher Modal */}
+                  {editingVoucher && (
+                    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                      <div className="bg-gray-900 p-6 rounded-lg w-full max-w-md">
+                        <h3 className="text-lg font-bold mb-4">Edit Voucher</h3>
+                        <input
+                          type="text"
+                          placeholder="Title"
+                          value={editingVoucher.title}
+                          onChange={(e) =>
+                            setEditingVoucher({ ...editingVoucher, title: e.target.value })
+                          }
+                          className="bg-gray-700 p-2 w-full rounded mb-2"
+                        />
+                        <textarea
+                          placeholder="Description"
+                          value={editingVoucher.description}
+                          onChange={(e) =>
+                            setEditingVoucher({
+                              ...editingVoucher,
+                              description: e.target.value,
+                            })
+                          }
+                          className="bg-gray-700 p-2 w-full rounded mb-2"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Points"
+                          value={editingVoucher.pointsRequired}
+                          onChange={(e) =>
+                            setEditingVoucher({
+                              ...editingVoucher,
+                              pointsRequired: Number(e.target.value),
+                            })
+                          }
+                          className="bg-gray-700 p-2 w-full rounded mb-2"
+                        />
+                        <input
+                          type="date"
+                          value={editingVoucher.expiryDate?.split("T")[0] || ""}
+                          onChange={(e) =>
+                            setEditingVoucher({
+                              ...editingVoucher,
+                              expiryDate: e.target.value,
+                            })
+                          }
+                          className="bg-gray-700 p-2 w-full rounded mb-2"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Stock"
+                          value={editingVoucher.stock}
+                          onChange={(e) =>
+                            setEditingVoucher({
+                              ...editingVoucher,
+                              stock: Number(e.target.value),
+                            })
+                          }
+                          className="bg-gray-700 p-2 w-full rounded mb-2"
+                        />
+                        <div className="flex justify-between mt-3">
+                          <button
+                            onClick={handleUpdateVoucher}
+                            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingVoucher(null)}
+                            className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </section>
               )
               }
@@ -394,6 +935,48 @@ export default function MemberDashboard() {
 
       {/* Menu scrollable */}
       <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+        <button
+          onClick={() => {
+            setActiveTab('stats')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'stats'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaUser />
+          {sidebarOpen && 'Stats'}
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('history')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'history'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaClipboardList />
+          {sidebarOpen && 'History'}
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('vouchers')
+            setMobileSidebar(false)
+          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === 'vouchers'
+            ? 'bg-red-600'
+            : 'bg-gray-800 hover:bg-red-500'
+            }`}
+        >
+          <FaMoneyBill />
+          {sidebarOpen && 'Vouchers'}
+        </button>
+
         <button
           onClick={() => {
             setActiveTab('business')

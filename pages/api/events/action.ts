@@ -4,6 +4,8 @@ import User from '../../../models/user';
 import EventApplication from '../../../models/event-register';
 import Inbox from '../../../models/inbox';
 import Participant from '../../../models/participant';
+import MainEvent from '../../../models/main-event';
+import Point from '../../../models/point';
 
 export default async function handler(
   req: NextApiRequest,
@@ -25,6 +27,12 @@ export default async function handler(
 
     let message = '';
 
+    const mainEvent = await MainEvent.findOne().sort({ createdAt: -1 });
+    // sesuaikan query dengan kebutuhan
+    if (!mainEvent) {
+      return res.status(404).json({ message: "Main event not found" });
+    }
+
     if (action === 'accept') {
       const existingParticipant = await Participant.findOne({ username: application.username });
 
@@ -32,6 +40,7 @@ export default async function handler(
         existingParticipant.set({
           emailOrPhone: application.emailOrPhone,   // ✅ perbaikan field
           driverName: application.driverName,
+          title: mainEvent.title, // ambil title dari main-event
           coDriverName: application.coDriverName,
           carName: application.carName,
           driverPhone: application.driverPhone,
@@ -39,14 +48,16 @@ export default async function handler(
           policeNumber: application.policeNumber,
           address: application.address,
           teamName: application.teamName,
+          pointsReward: existingParticipant.pointsReward + 50, // contoh penambahan points
         });
         await existingParticipant.save();
       } else {
         await Participant.create({
-          userId: application.userId, 
+          userId: application.userId,
           username: application.username,
           emailOrPhone: application.emailOrPhone,   // ✅ perbaikan
           driverName: application.driverName,
+          title: mainEvent.title, // ambil title dari main-event
           coDriverName: application.coDriverName,
           carName: application.carName,
           driverPhone: application.driverPhone,
@@ -55,8 +66,34 @@ export default async function handler(
           address: application.address,
           teamName: application.teamName,
           role: "member",
+          pointsReward: 50, // contoh points tiap event
         });
       }
+
+      // ✅ Tambahkan points ke member yang diterima
+      const pointsReward = 50; // contoh reward
+      const existingPoints = await Point.findOne({ userId: application.userId });
+
+      if (existingPoints) {
+        existingPoints.points += pointsReward;
+        existingPoints.history.push({
+          eventName: mainEvent.title,
+          earned: pointsReward,
+          date: new Date(),
+        });
+        await existingPoints.save();
+      } else {
+        await Point.create({
+          userId: application.userId,
+          points: pointsReward,
+          history: [{
+            eventName: mainEvent.title,
+            earned: pointsReward,
+            date: new Date(),
+          }],
+        });
+      }
+
 
       await Inbox.create({
         from: 'Admin',

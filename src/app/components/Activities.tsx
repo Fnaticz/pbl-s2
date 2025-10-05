@@ -168,14 +168,7 @@ export default function ActivitiesSection() {
   if (loading) return <Loading />; // ✅ tampilkan spinner/loading page
 
   return (
-<<<<<<< HEAD
     <section id="activities" className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-stone-950 via-gray-950 to-red-950">
-=======
-    <section
-      id="activities"
-      className="min-h-screen text-white py-16 px-6 flex flex-col items-center bg-gradient-to-b from-stone-950 to-red-950"
-    >
->>>>>>> eb6ac2f2c77e939252f495f32cf6171ffd9159b8
       <h2 className="text-3xl font-bold text-center mb-8">ACTIVITIES</h2>
 
       <AnimatePresence mode="wait">

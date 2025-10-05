@@ -1,6 +1,7 @@
 import mongoose, { Schema, models } from "mongoose";
 
-const businessSchema = new Schema({
+const BusinessSchema = new Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   username: { type: String, required: true },
   name: String,
   category: String,
@@ -11,8 +12,9 @@ const businessSchema = new Schema({
   instagram: String,
   whatsapp: String,
   maps: String,
+  voucher: [{ type: mongoose.Schema.Types.ObjectId, ref: "Voucher" }],
   slideshow: [String],
 }, { timestamps: true });
 
-const Business = models.Business || mongoose.model("Business", businessSchema);
+const Business = models.Business || mongoose.model("Business", BusinessSchema);
 export default Business;

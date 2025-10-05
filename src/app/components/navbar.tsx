@@ -5,10 +5,11 @@ import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { get } from 'http';
 
 export default function Navbar() {
-  const { data: session } = useSession();
-  const user = session?.user as { username: string; email: string; role?: string } | undefined;
+  const { data: session, status, update } = useSession();
+  const user = session?.user as { username: string; email: string; role?: string; avatar?: string; } | undefined;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -17,6 +18,15 @@ export default function Navbar() {
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const interval = setInterval(() => {
+        update();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [status, update]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,6 +49,41 @@ export default function Navbar() {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  const [avatar, setAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/user/me");
+        if (res.ok) {
+          const data = await res.json();
+          setAvatar(data.user.avatar);
+        } else {
+          setAvatar(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch avatar:", err);
+        setAvatar(null);
+      }
+    };
+
+    if (status === "authenticated") {
+      fetchUser();
+    } else if (status === "unauthenticated") {
+      setAvatar(null); // reset kalau logout
+    }
+  }, [status]);
+
+  function getAvatarSrc(avatar?: string | null) {
+    if (!avatar) return "/defaultavatar.png";
+    if (avatar.startsWith("data:image")) return avatar;
+    if (avatar.startsWith("http") || avatar.startsWith("//")) return avatar;
+    if (avatar.startsWith("/")) return avatar;
+    return `/uploads/${avatar}`;
+  }
+
+  const avatarSrc = getAvatarSrc(avatar);
 
   return (
     <nav
@@ -115,7 +160,14 @@ export default function Navbar() {
               onClick={() => setProfileOpen(prev => !prev)}
               className="w-10 h-10 rounded-full overflow-hidden border border-white"
             >
-              <Image src="/spartanbg.jpeg" alt="avatar" width={40} height={40} className="rounded-full" />
+              <Image
+                src={avatarSrc}
+                alt="avatar"
+                width={40}
+                height={40}
+                unoptimized
+                className="rounded-full object-cover"
+              />
             </button>
             <AnimatePresence>
               {profileOpen && (
@@ -170,11 +222,11 @@ export default function Navbar() {
               ) : (
                 <div className="flex flex-col items-center text-center gap-3">
                   <Image
-                    src="/spartanbg.jpeg"
+                    src={avatarSrc}
                     alt="avatar"
-                    width={60}
-                    height={60}
-                    className="rounded-full border"
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover"
                   />
                   <p className="font-semibold">{user.username}</p>
                   <div className="flex flex-col gap-2 w-full text-left">
