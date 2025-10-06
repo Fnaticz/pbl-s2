@@ -3,7 +3,6 @@ import { connectDB } from "../../../lib/mongodb";
 import Voucher from "../../../models/voucher";
 import Point from "../../../models/point";
 import VoucherRedemption from "../../../models/voucher-redemption";
-import mongoose from "mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });

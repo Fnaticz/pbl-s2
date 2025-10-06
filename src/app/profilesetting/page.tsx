@@ -8,7 +8,7 @@ import Loading from "../components/Loading";
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ username: string; emailOrPhone: string; avatar?: string } | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [username, setUsername] = useState("");

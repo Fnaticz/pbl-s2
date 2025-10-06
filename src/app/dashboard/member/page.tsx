@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { ReactNode } from "react";
-import { FaSignOutAlt, FaFileInvoiceDollar, FaTimes, FaBars, FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
-import Link from "next/link";
+import { FaSignOutAlt, FaFileInvoiceDollar, FaTimes, FaBars, FaUser, FaClipboardList, FaMoneyBill } from 'react-icons/fa'
 import Image from "next/image";
 import Loading from '../../components/Loading';
+import { IVoucher } from "../../../models/voucher";
 
 export default function MemberDashboard() {
   const [loadingpage, setLoadingPage] = useState(true)
@@ -36,7 +35,6 @@ export default function MemberDashboard() {
   }
 
   const [profile, setProfile] = useState(emptyProfile)
-  const [businessImages, setBusinessImages] = useState<string[]>([])
   const [businesses, setBusinesses] = useState<typeof emptyProfile[]>([])
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({ totalEvents: 0, totalBusinesses: 0, totalPoints: 0 })
@@ -48,7 +46,7 @@ export default function MemberDashboard() {
   };
   const [history, setHistory] = useState<HistoryEvent[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>("");
-  const [voucher, setVoucher] = useState<any[]>([]);
+  const [voucher, setVoucher] = useState<IVoucher[]>([]);
   const [voucherForm, setVoucherForm] = useState({
     title: "",
     description: "",
@@ -69,7 +67,7 @@ export default function MemberDashboard() {
   };
   const [redeemed, setRedeemed] = useState<RedeemedVoucher[]>([]);
 
-  const loadRedeemed = async () => {
+  const loadRedeemed = useCallback(async () => {
     if (!user?.id) return;
     try {
       const res = await fetch(`/api/member/voucher-redemption?userId=${user.id}`);
@@ -78,12 +76,12 @@ export default function MemberDashboard() {
     } catch (err) {
       console.error("Failed loading redeemed", err);
     }
-  };
+  }, [user?.id]);
 
   // panggil loadRedeemed() saat mount (ganti useEffect yang lama)
   useEffect(() => {
     loadRedeemed();
-  }, [user]);
+  }, [user, loadRedeemed]);
 
   const handleRedeem = async (voucherId: string, pointsRequired: number) => {
     if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return;
@@ -115,14 +113,6 @@ export default function MemberDashboard() {
       alert("3 Server error");
     }
   };
-
-  useEffect(() => {
-    if (!user?.id) return;
-    fetch(`/api/voucher/voucher-redemption?userId=${user.id}`)
-      .then((res) => res.json())
-      .then((data) => setRedeemed(data.redemptions || []))
-      .catch((err) => console.error("Redeemed fetch failed", err));
-  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -159,19 +149,19 @@ export default function MemberDashboard() {
   }, []);
 
 
-  const [editingVoucher, setEditingVoucher] = useState<any | null>(null);
+  const [editingVoucher, setEditingVoucher] = useState<IVoucher | null>(null);
 
-  const loadVouchers = async () => {
+  const loadVouchers = useCallback(async () => {
     const res = await fetch("/api/voucher");
     const data = await res.json();
-    const merged = data.map((v: any) => {
+    const merged = data.map((v: IVoucher) => {
       const b = businesses.find((bus) => bus._id === v.businessId);
       return { ...v, businessName: b?.name || "Unknown" };
     });
     setVoucher(merged);
-  };
+  }, [businesses]);
 
-  const handleEditVoucher = (voucher: any) => {
+  const handleEditVoucher = (voucher: IVoucher) => {
     setEditingVoucher(voucher);
   };
 
@@ -193,7 +183,7 @@ export default function MemberDashboard() {
 
   useEffect(() => {
     if (businesses.length > 0) loadVouchers();
-  }, [businesses]);
+  }, [businesses, loadVouchers]);
 
   useEffect(() => {
     if (!user?.id) return
@@ -399,8 +389,8 @@ export default function MemberDashboard() {
               <p>No vouchers available.</p>
             ) : (
               <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
-                {voucher.map((v) => (
-                  <li key={v._id} className="bg-gray-800 p-4 rounded-lg shadow">
+                {voucher.map((v, index) => (
+                  <li key={index} className="bg-gray-800 p-4 rounded-lg shadow">
                     <h3 className="font-semibold mb-1">{v.title}</h3>
                     <p className="text-sm text-gray-300 mb-1">{v.description}</p>
                     <p className="text-yellow-400 text-sm mb-2">{v.pointsRequired} pts</p>
@@ -798,8 +788,8 @@ export default function MemberDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {voucher.map((v) => (
-                            <tr key={v._id}>
+                          {voucher.map((v, index) => (
+                            <tr key={index}>
                               <td className="p-2 border border-stone-700">
                                 {businesses.find((b) => b._id === v.businessId)?.name || '-'}
                               </td>

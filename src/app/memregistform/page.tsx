@@ -4,12 +4,6 @@ import { useEffect, useState, ChangeEvent, FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import Loading from '../components/Loading';
 
-type User = {
-  username: string
-  emailOrPhone?: string
-  role?: string
-}
-
 type FormData = {
   username: string
   email: string
@@ -40,7 +34,6 @@ export default function MemberRegistrationForm() {
   }, []);
 
   const { data: session } = useSession()
-  const user = session?.user as User | null
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

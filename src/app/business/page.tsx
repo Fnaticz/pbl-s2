@@ -5,18 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import Loading from '../components/Loading';
-
-type RawBusiness = {
-  _id?: string;
-  name?: string;
-  title?: string;
-  description?: string;
-  desc?: string;
-  image?: string;
-  slideshow?: string[];
-  link?: string;
-  username?: string;
-};
+import { IVoucher } from "../../../models/voucher";
 
 type Business = {
   _id: string;
@@ -24,7 +13,7 @@ type Business = {
   description: string;
   image: string;
   link?: string;
-  vouchers: any[];
+  vouchers: IVoucher[];
 };
 
 const itemPerPage = 2;
@@ -32,7 +21,6 @@ const itemPerPage = 2;
 export default function BusinessPage() {
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [vouchers, setVouchers] = useState<Record<string, any[]>>({});
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -224,7 +212,7 @@ export default function BusinessPage() {
                         <ul className="space-y-2 max-h-40 overflow-y-auto pr-1">
                           {business.vouchers.map((v, vIdx) => (
                             <motion.li
-                              key={v._id}
+                              key={vIdx}
                               initial={{ scale: 0.9, opacity: 0 }}
                               whileInView={{ scale: 1, opacity: 1 }}
                               transition={{

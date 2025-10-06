@@ -70,7 +70,6 @@ export default function AdminDashboard() {
   const [mainEventDate, setMainEventDate] = useState('')
   const [mainEventLocation, setMainEventLocation] = useState('')
   const [mainEventDesc, setMainEventDesc] = useState('')
-  const [mainEventImages, setMainEventImages] = useState<string[]>([])
   const [mainEventReports, setMainEventReports] = useState<IMainEvent[]>([])
   const [activityName, setActivityName] = useState('')
   const [activityTitle, setActivityTitle] = useState('')

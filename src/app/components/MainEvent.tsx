@@ -17,7 +17,6 @@ interface MainEvent {
 
 export default function MainEventSection() {
  const [mainEvent, setMainEvent] = useState<MainEvent[]>([]);
- const [error, setError] = useState<string | null>(null);
  const [loading, setLoading] = useState(true);
 
  useEffect(() => {
@@ -29,9 +28,8 @@ export default function MainEventSection() {
           setMainEvent(data);
         }
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error fetching events:", err);
-        setError("Failed to load events.");
       } finally {
         setLoading(false);
       }

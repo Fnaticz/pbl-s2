@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { connectDB } from '../../../lib/mongodb';
-import User from '../../../models/user';
 import EventApplication from '../../../models/event-register';
 import Participant from '../../../models/participant';
 

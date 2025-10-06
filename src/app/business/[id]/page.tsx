@@ -12,7 +12,7 @@ import {
   FaMapMarkerAlt,
   FaTag,
 } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 
 type Business = {
@@ -128,14 +128,6 @@ export default function BusinessDetailPage() {
       prev === business.slideshow!.length - 1 ? 0 : prev + 1
     );
   };
-
-  const isExpiringSoon = (expiryDate?: string) => {
-    if (!expiryDate) return false
-    const exp = new Date(expiryDate)
-    const now = new Date()
-    const diffDays = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    return diffDays <= 3 && diffDays > 0
-  }
 
   const getEmbedUrl = (url?: string) => {
     if (!url) return "";
@@ -255,10 +247,9 @@ export default function BusinessDetailPage() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   {vouchers.slice(0, visibleCount).map((v, idx) => {
-                    const expSoon = isExpiringSoon(v.expiryDate)
                     return (
                       <motion.div
-                        key={v._id}
+                        key={idx}
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: idx * 0.1 }}

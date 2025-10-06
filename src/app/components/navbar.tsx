@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { get } from 'http';
 
 export default function Navbar() {
   const { data: session, status, update } = useSession();

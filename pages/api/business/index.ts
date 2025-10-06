@@ -39,7 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         for (const biz of legacyBusinesses) {
-          // Hanya migrasikan jika username cocok dengan userId pemilik saat ini
           if (username && biz.username === username) {
             biz.userId = userId as string;
             await biz.save();
@@ -87,8 +86,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // --- Method tidak diizinkan ---
     res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
     return res.status(405).end(`Method ${method} Not Allowed`);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Business API error:", err);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res.status(500).json({ message: "Server error", error: err instanceof Error ? err.message : "Unknown error" });
   }
 }

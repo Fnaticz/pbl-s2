@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "../../../lib/mongodb";
 import Business from "../../../models/business";
-import Voucher from "../../../models/voucher";
+import Voucher, { IVoucher } from "../../../models/voucher";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectDB();
@@ -12,12 +12,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Ambil semua bisnis
     const businesses = await Business.find().sort({ createdAt: -1 });
 
-    // Ambil semua voucher dan kelompokkan per businessId
     const vouchers = await Voucher.find();
-    const vouchersByBusiness: Record<string, any[]> = {};
+    const vouchersByBusiness: Record<string, IVoucher[]> = {};
 
     vouchers.forEach((v) => {
       const bid = v.businessId?.toString();
@@ -26,7 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       vouchersByBusiness[bid].push(v);
     });
 
-    // Gabungkan
     const result = businesses.map((b) => ({
       ...b.toObject(),
       vouchers: vouchersByBusiness[b._id.toString()] || [],

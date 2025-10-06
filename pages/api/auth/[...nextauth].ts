@@ -95,9 +95,9 @@ export const authOptions: AuthOptions = {
       if (account?.provider === "google") {
         try {
           await connectDB();
-          const email = (profile as any)?.email;
-          const name = (profile as any)?.name;
-          const picture = (profile as any)?.picture; // biasanya URL
+          const email = (profile as { email?: string })?.email;
+          const name = (profile as { name?: string })?.name;
+          const picture = (profile as { picture?: string })?.picture; // biasanya URL
 
           // upsert user by email
           let dbUser = await User.findOne({ emailOrPhone: email });
@@ -134,11 +134,11 @@ export const authOptions: AuthOptions = {
       }
       // 2) Credentials sign-in path (authorize returned user)
       else if (user) {
-        token.id = (user as any).id;
-        token.username = (user as any).username;
-        token.role = (user as any).role;
-        token.emailOrPhone = (user as any).emailOrPhone ?? "";
-        token.avatar = (user as any).avatar ?? "";
+        token.id = (user as unknown as { id: string }).id;
+        token.username = (user as unknown as { username: string }).username;
+        token.role = (user as unknown as { role: string }).role;
+        token.emailOrPhone = (user as unknown as { emailOrPhone: string }).emailOrPhone ?? "";
+        token.avatar = (user as unknown as { avatar?: string }).avatar ?? "";
       }
       // 3) Subsequent requests: ensure token has fresh avatar (optional)
       else {
