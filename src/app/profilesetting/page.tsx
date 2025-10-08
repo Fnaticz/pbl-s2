@@ -5,26 +5,44 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Loading from "../components/Loading";
 
+interface User {
+  id?: string;
+  username: string;
+  emailOrPhone: string;
+  address?: string;
+  avatar?: string;
+}
+
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ username: string; emailOrPhone: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [username, setUsername] = useState("");
   const [address, setAddress] = useState("");
 
+  // Ambil data user
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await fetch("/api/user/me");
         if (!res.ok) throw new Error("User not found");
         const data = await res.json();
-        setUser(data.user);
-        setUsername(data.user.username || "");
-        setAddress(data.user.address || "");
+
+        const fetchedUser: User = {
+          id: data.user._id || data.user.id,
+          username: data.user.username || "",
+          emailOrPhone: data.user.emailOrPhone || "",
+          address: data.user.address || "",
+          avatar: data.user.avatar || "",
+        };
+
+        setUser(fetchedUser);
+        setUsername(fetchedUser.username);
+        setAddress(fetchedUser.address || "");
         setAvatarPreview(
-          data.user.avatar ? `/uploads/${data.user.avatar}` : null
+          fetchedUser.avatar ? getAvatarSrc(fetchedUser.avatar) : null
         );
       } catch (err) {
         console.error(err);
@@ -46,32 +64,29 @@ export default function ProfileSettingsPage() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return; // ⛔ stop kalau tidak ada file (hindari Invalid URL)
+    if (!file) return;
 
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
 
   const handleResetAvatar = async () => {
-    if (!user?._id) return;
+    if (!user?.id) return alert("User not found");
     setLoading(true);
     try {
       const res = await fetch("/api/user/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user._id,
+          userId: user.id,
           username,
           address,
-          avatar: null, // reset avatar ke default
+          avatar: null,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        console.error("Reset failed:", data);
-        return alert(data.message || "Failed to reset avatar");
-      }
+      if (!res.ok) return alert(data.message || "Failed to reset avatar");
 
       alert("Avatar reset to default!");
       setUser(data.user);
@@ -85,23 +100,20 @@ export default function ProfileSettingsPage() {
   };
 
   const handleSave = async () => {
-    if (!user?._id) return alert("User not found");
-
+    if (!user?.id) return alert("User not found");
     setLoading(true);
+
     try {
       let avatarBase64: string | null = avatarPreview;
 
-      if (avatarFile) {
-        avatarBase64 = await toBase64(avatarFile);
-      } else if (!avatarPreview?.startsWith("data:image")) {
-        avatarBase64 = null;
-      }
+      if (avatarFile) avatarBase64 = await toBase64(avatarFile);
+      else if (!avatarPreview?.startsWith("data:image")) avatarBase64 = null;
 
       const res = await fetch("/api/user/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user._id,
+          userId: user.id,
           username,
           address,
           avatar: avatarBase64,
@@ -109,10 +121,7 @@ export default function ProfileSettingsPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        console.error("Update failed:", data);
-        return alert(data.message || "Failed to update profile");
-      }
+      if (!res.ok) return alert(data.message || "Failed to update profile");
 
       alert("Profile updated successfully!");
       setUser(data.user);
@@ -126,14 +135,14 @@ export default function ProfileSettingsPage() {
   };
 
   function getAvatarSrc(avatar?: string | null) {
-  if (!avatar) return "/defaultavatar.png";
-  if (avatar.startsWith("data:image")) return avatar;
-  if (avatar.startsWith("http") || avatar.startsWith("//")) return avatar;
-  if (avatar.startsWith("/")) return avatar;
-  return `/uploads/${avatar}`;
-}
+    if (!avatar) return "/defaultavatar.png";
+    if (avatar.startsWith("data:image")) return avatar;
+    if (avatar.startsWith("http") || avatar.startsWith("//")) return avatar;
+    if (avatar.startsWith("/")) return avatar;
+    return `/uploads/${avatar}`;
+  }
 
-const avatarSrc = getAvatarSrc(user?.avatar);
+  const avatarSrc = getAvatarSrc(user?.avatar);
 
   if (loading) return <Loading />;
 
@@ -148,12 +157,13 @@ const avatarSrc = getAvatarSrc(user?.avatar);
         <div className="flex flex-col items-center mb-6">
           <div className="relative w-32 h-32 mb-3">
             <Image
-              src={avatarPreview || avatarSrc ||"/defaultavatar.png"}
+              src={avatarPreview || avatarSrc || "/defaultavatar.png"}
               alt="User Avatar"
               fill
               className="rounded-full object-cover border-4 border-red-600 shadow-lg"
             />
           </div>
+
           <label className="cursor-pointer bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg transition">
             Change Avatar
             <input
@@ -164,7 +174,6 @@ const avatarSrc = getAvatarSrc(user?.avatar);
             />
           </label>
 
-          {/* Reset Avatar Button */}
           <button
             onClick={handleResetAvatar}
             className="mt-3 bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition"
@@ -196,7 +205,7 @@ const avatarSrc = getAvatarSrc(user?.avatar);
           />
         </div>
 
-        {/* Save Button */}
+        {/* Save */}
         <button
           onClick={handleSave}
           disabled={loading}
