@@ -9,7 +9,7 @@ export interface IVoucherRedemption {
   status: "active" | "used" | "expired" | "deleted";
 }
 
-const VoucherRedemptionSchema = new mongoose.Schema({
+const VoucherRedemptionSchema = new mongoose.Schema<IVoucherRedemption>({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   voucherId: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher", required: true },
   businessId: { type: mongoose.Schema.Types.ObjectId, ref: "Business", required: true },
