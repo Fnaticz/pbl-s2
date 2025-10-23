@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
       "baseUrl": ".",
+      "types": ["jest", "@testing-library/jest-dom"],
       "paths": {
         "@/*": ["./*"]
       }

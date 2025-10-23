@@ -1,27 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import {
-  FaSignOutAlt,
-  FaFileInvoiceDollar,
-  FaTimes,
-  FaBars,
-  FaUser,
-  FaClipboardList,
-  FaMoneyBill
-} from 'react-icons/fa'
-import Image from "next/image";
-import Loading from '../../components/Loading';
-import type { IVoucher } from "../../../../models/voucher";
 
 export default function MemberDashboard() {
   const { data: session, status } = useSession()
-  const [loadingPage, setLoadingPage] = useState(true)
-  const [activeTab, setActiveTab] = useState('stats')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [mobileSidebar, setMobileSidebar] = useState(false)
-
   const user = session?.user as {
     id: string
     username: string
@@ -29,8 +12,7 @@ export default function MemberDashboard() {
     emailOrPhone: string
   } | undefined
 
-  const emptyProfile = {
-    _id: undefined as string | undefined,
+  const [profile, setProfile] = useState({
     name: '',
     category: '',
     description: '',
@@ -41,163 +23,62 @@ export default function MemberDashboard() {
     whatsapp: '',
     maps: '',
     slideshow: [] as string[],
-  }
-
-  const [profile, setProfile] = useState(emptyProfile)
-  const [businesses, setBusinesses] = useState<typeof emptyProfile[]>([])
-  const [loading, setLoading] = useState(false)
-  const [stats, setStats] = useState({ totalEvents: 0, totalBusinesses: 0, totalPoints: 0 })
-
-  type HistoryEvent = {
-    eventName: string
-    date: string
-    pointsEarned: number
-  }
-  const [history, setHistory] = useState<HistoryEvent[]>([])
-
-  const [selectedBusiness, setSelectedBusiness] = useState<string>("")
-  const [vouchers, setVouchers] = useState<IVoucher[]>([])
-  const [editingVoucher, setEditingVoucher] = useState<IVoucher | null>(null)
-
-  const [voucherForm, setVoucherForm] = useState({
-    title: "",
-    description: "",
-    pointsRequired: 0,
-    expiryDate: "",
-    stock: 0,
   })
 
-  type RedeemedVoucher = {
-    id: string
-    voucherTitle: string
-    businessName: string
-    pointsUsed: number
-    redeemedAt: string
-    expiryDate: string | null
-    status: string
-  }
-  const [redeemed, setRedeemed] = useState<RedeemedVoucher[]>([])
-
-  // === Fetch Redeemed Vouchers ===
-  const loadRedeemed = useCallback(async () => {
-    if (!user?.id) return
-    try {
-      const res = await fetch(`/api/member/voucher-redemption?userId=${user.id}`)
-      const data = await res.json()
-      setRedeemed(data.redemptions || [])
-    } catch (err) {
-      console.error("Failed loading redeemed", err)
-    }
-  }, [user?.id])
+  const [loading, setLoading] = useState(false)
+  const [hasBusiness, setHasBusiness] = useState(false)
 
   useEffect(() => {
-    loadRedeemed()
-  }, [loadRedeemed])
+    if (!user?.username) return
 
-  // === Fetch Stats ===
-  useEffect(() => {
-    if (!user?.id) return
-    const fetchStats = async () => {
-      const res = await fetch(`/api/members/dashboard-stats?userId=${user.id}&username=${user.username}`)
-      const data = await res.json()
-      setStats(data)
-    }
-    fetchStats()
-    const interval = setInterval(fetchStats, 5000)
-    return () => clearInterval(interval)
-  }, [user?.id, user?.username])
-
-  // === Fetch History ===
-  useEffect(() => {
-    if (!user?.id) return
-    fetch(`/api/members/dashboard-history?userId=${user.id}`)
-      .then((res) => res.json())
-      .then((data) => setHistory(data.events || []))
-      .catch((err) => console.error("History fetch failed", err))
-  }, [user?.id])
-
-  // === Fetch Business List ===
-  useEffect(() => {
-    if (!user?.id) return
     const fetchBusiness = async () => {
       try {
-        const res = await fetch(`/api/business?userId=${user.id}`)
+        const res = await fetch(`/api/business?username=${user.username}`)
         if (!res.ok) return
         const data = await res.json()
-        setBusinesses(data || [])
+        if (data && data.username) {
+          setProfile({
+            name: data.name || '',
+            category: data.category || '',
+            description: data.description || '',
+            address: data.address || '',
+            phone: data.phone || '',
+            facebook: data.facebook || '',
+            instagram: data.instagram || '',
+            whatsapp: data.whatsapp || '',
+            maps: data.maps || '',
+            slideshow: data.slideshow || [],
+          })
+          setHasBusiness(true)
+        }
       } catch (err) {
-        console.error('Failed to load businesses', err)
+        console.error('Failed to load business', err)
       }
     }
+
     fetchBusiness()
-  }, [user?.id])
+  }, [user])
 
-  // === Fetch Vouchers by Business ===
-  useEffect(() => {
-    if (!selectedBusiness) return
-    const fetchVouchers = async () => {
-      try {
-        const res = await fetch(`/api/voucher/index?businessId=${selectedBusiness}`)
-        const data = await res.json()
-        setVouchers(data || [])
-      } catch (err) {
-        console.error('Failed to load vouchers', err)
-      }
-    }
-    fetchVouchers()
-  }, [selectedBusiness])
-
-  // === Loading Simulate ===
-  useEffect(() => {
-    const timer = setTimeout(() => setLoadingPage(false), 1000)
-    return () => clearTimeout(timer)
-  }, [])
-
-  // === Helper to Base64 ===
   const toBase64 = (file: File, callback: (base64: string) => void) => {
     const reader = new FileReader()
     reader.onloadend = () => callback(reader.result as string)
     reader.readAsDataURL(file)
   }
 
-  // === Handle Business Save ===
   const handleSaveProfile = async () => {
-    if (!user?.id) return alert('Login required')
-
-    if (
-      !profile.name.trim() ||
-      !profile.category.trim() ||
-      !profile.description.trim() ||
-      !profile.address.trim() ||
-      !profile.phone.trim() ||
-      !profile.facebook.trim() ||
-      !profile.instagram.trim() ||
-      !profile.whatsapp.trim() ||
-      !profile.maps.trim()
-    ) {
-      alert('Please fill all required fields!')
-      return
-    }
+    if (!user?.username) return alert('Login required')
 
     setLoading(true)
     try {
-      const method = profile._id ? 'PUT' : 'POST'
+      const method = hasBusiness ? 'PUT' : 'POST'
       const res = await fetch('/api/business', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...profile, userId: user.id }),
+        body: JSON.stringify({ ...profile, username: user.username }),
       })
       const data = await res.json()
-
       if (res.ok) {
-        if (method === "POST") {
-          setBusinesses((prev) => [...prev, data.business])
-        } else {
-          setBusinesses((prev) =>
-            prev.map((b) => (b._id === data.business._id ? data.business : b))
-          )
-        }
-        setProfile(emptyProfile)
+        setHasBusiness(true)
       }
       alert(data.message || 'Saved')
     } catch (err) {
@@ -208,101 +89,196 @@ export default function MemberDashboard() {
     }
   }
 
-  // === Delete Business ===
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this business?')) return
+  const handleDelete = async () => {
+    if (!user) return
+    if (!confirm('Are you sure you want to delete your business?')) return
+
     try {
-      const res = await fetch(`/api/business?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/business?username=${user.username}`, {
+        method: 'DELETE',
+      })
       const data = await res.json()
-      if (res.ok) {
-        setBusinesses((prev) => prev.filter((b) => b._id !== id))
-      }
       alert(data.message || 'Deleted')
+      setProfile({
+        name: '',
+        category: '',
+        description: '',
+        address: '',
+        phone: '',
+        facebook: '',
+        instagram: '',
+        whatsapp: '',
+        maps: '',
+        slideshow: [],
+      })
+      setHasBusiness(false)
     } catch (err) {
       console.error(err)
       alert('Failed to delete')
     }
   }
 
-  // === Add Voucher ===
-  const handleAddVoucher = async () => {
-    if (!selectedBusiness) return alert('Select a business first!')
-    if (!voucherForm.title.trim()) return alert('Title required!')
-    try {
-      const res = await fetch('/api/voucher', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...voucherForm, businessId: selectedBusiness }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        alert('Voucher added!')
-        setVoucherForm({ title: '', description: '', pointsRequired: 0, expiryDate: '', stock: 0 })
-        setVouchers((prev) => [...prev, data.voucher])
-      } else {
-        alert(data.message || 'Failed to add voucher')
-      }
-    } catch (err) {
-      console.error(err)
-      alert('Server error')
-    }
+  if (status === 'loading') {
+    return <p className="text-white">Loading session...</p>
   }
 
-  const handleDeleteVoucher = async (id: string) => {
-    if (!confirm('Delete this voucher?')) return
-    try {
-      await fetch(`/api/voucher?id=${id}`, { method: 'DELETE' })
-      setVouchers((prev) => prev.filter((v) => v._id !== id))
-    } catch (err) {
-      console.error('Failed to delete voucher', err)
-    }
+  if (!user) {
+    return <p className="text-white">You must be logged in</p>
   }
-
-  if (status === 'loading') return <p className="text-white">Loading session...</p>
-  if (!user) return <p className="text-white">You must be logged in</p>
-  if (loadingPage) return <Loading />
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-b from-black to-red-950 text-white">
-      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-900 h-screen flex-col`}>
-        <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-          <span className={`font-bold text-lg ${!sidebarOpen && 'hidden'}`}>Member Dashboard</span>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white">
-            {sidebarOpen ? <FaTimes /> : <FaBars />}
-          </button>
-        </div>
+    <div className="min-h-screen px-4 py-10 bg-gradient-to-b from-black via-red-950 to-black text-white">
+      <h1 className="text-3xl font-bold text-center mb-8">Member Business Dashboard</h1>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {['stats', 'history', 'vouchers', 'business'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2 px-3 py-2 rounded ${activeTab === tab ? 'bg-red-600' : 'bg-gray-800 hover:bg-red-500'}`}
-            >
-              {tab === 'stats' && <FaUser />}
-              {tab === 'history' && <FaClipboardList />}
-              {tab === 'vouchers' && <FaMoneyBill />}
-              {tab === 'business' && <FaFileInvoiceDollar />}
-              {sidebarOpen && tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
+      {/* Siapkan section form sebagai satu variabel untuk dipakai di dua kondisi */}
+      {(() => {
+        const formSection = (
+          <section className="bg-stone-800 p-6 rounded-xl shadow">
+            <h2 className="text-xl font-semibold mb-4">Business Profile</h2>
 
-        <div className="p-4 border-t border-gray-700">
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded bg-gray-700 hover:bg-red-600"
-          >
-            <FaSignOutAlt /> {sidebarOpen && 'Leave Dashboard'}
-          </button>
-        </div>
-      </aside>
+            <input
+              value={profile.name}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              placeholder="Business Name"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.category}
+              onChange={(e) => setProfile({ ...profile, category: e.target.value })}
+              placeholder="Category"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <textarea
+              value={profile.description}
+              onChange={(e) => setProfile({ ...profile, description: e.target.value })}
+              placeholder="Business Profile Description"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.address}
+              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+              placeholder="Address"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.phone}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+              placeholder="Phone"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
 
-      <main className="flex-1 h-screen overflow-y-auto p-6 bg-gray-900 rounded-tl-xl">
-        <h1 className="text-2xl font-bold mb-6 capitalize">{activeTab}</h1>
-        {/* TODO: renderSection() dapat dipisah menjadi komponen */}
-        <div className="text-gray-300">Tab content coming here...</div>
-      </main>
+            <label className="block mb-1 text-sm font-medium">Slideshow Images</label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = e.target.files
+                if (files) {
+                  Array.from(files).forEach((file) => {
+                    toBase64(file, (base64) => {
+                      setProfile((prev) => ({ ...prev, slideshow: [...prev.slideshow, base64] }))
+                    })
+                  })
+                }
+              }}
+              className="mb-3"
+            />
+            <div className="flex gap-2 flex-wrap mb-3">
+              {profile.slideshow.map((src, i) => (
+                <img key={i} src={src} className="w-24 h-24 object-cover rounded" />
+              ))}
+            </div>
+
+            <input
+              value={profile.facebook}
+              onChange={(e) => setProfile({ ...profile, facebook: e.target.value })}
+              placeholder="Facebook URL"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.instagram}
+              onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+              placeholder="Instagram URL"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <input
+              value={profile.whatsapp}
+              onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })}
+              placeholder="WhatsApp URL"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+            <textarea
+              value={profile.maps}
+              onChange={(e) => setProfile({ ...profile, maps: e.target.value })}
+              placeholder="Embed map iframe"
+              className="w-full p-2 mb-3 bg-white/20 rounded text-white"
+            />
+
+            <div className="flex gap-4">
+              <button
+                onClick={handleSaveProfile}
+                disabled={loading}
+                className="bg-white text-black px-4 py-2 rounded hover:bg-red-600 hover:text-white transition"
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-800 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </section>
+        )
+
+        const dataSection = (
+          <section className="bg-stone-900 p-6 rounded-xl shadow">
+            <h2 className="text-xl font-semibold mb-4">Your Business Data</h2>
+            <table className="w-full border border-stone-700 text-sm">
+              <thead>
+                <tr className="bg-stone-700">
+                  <th className="p-2 border border-stone-600">Name</th>
+                  <th className="p-2 border border-stone-600">Category</th>
+                  <th className="p-2 border border-stone-600">Phone</th>
+                  <th className="p-2 border border-stone-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-2 border border-stone-700">{profile.name}</td>
+                  <td className="p-2 border border-stone-700">{profile.category}</td>
+                  <td className="p-2 border border-stone-700">{profile.phone}</td>
+                  <td className="p-2 border border-stone-700">
+                    <button
+                      onClick={() => alert('Edit langsung di form di kiri')}
+                      className="bg-blue-600 px-2 py-1 rounded text-white mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="bg-red-600 px-2 py-1 rounded text-white"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        )
+
+        return hasBusiness ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {formSection}
+            {dataSection}
+          </div>
+        ) : (
+          <div className="mb-10">{formSection}</div>
+        )
+      })()}
     </div>
   )
 }
