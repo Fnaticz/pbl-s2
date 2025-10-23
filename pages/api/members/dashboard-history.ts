@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "../../../lib/mongodb";
 import Point from "../../../models/point";
+import EventApplication from "../../../models/event-register";
 import Participant from "../../../models/participant";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

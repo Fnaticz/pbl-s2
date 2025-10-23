@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "../../../lib/mongodb";
+import EventApplication from "../../../models/event-register";
 import Business from "../../../models/business";
 import Point from "../../../models/point";
 import Participant from "../../../models/participant";
+import { use } from "react";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { userId } = req.query;

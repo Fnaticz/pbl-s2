@@ -13,7 +13,7 @@ const VoucherSchema = new Schema<IVoucher>(
   {
     businessId: { type: Schema.Types.ObjectId, ref: "Business", required: true },
     title: { type: String, required: true },
-    description: { type: String },
+    description: String,
     pointsRequired: { type: Number, default: 0 },
     expiryDate: { type: Date, required: true },
     stock: { type: Number, default: 0 },

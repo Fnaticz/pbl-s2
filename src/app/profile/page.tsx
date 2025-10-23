@@ -68,7 +68,7 @@ export default function ProfilePage() {
 
 
   return (
-    <section className="min-h-screen bg-gradient-to-b from-black to-red-950 text-white flex flex-col items-center py-30 px-6">
+    <section className="min-h-screen bg-gradient-to-b from-stone-950 to-red-950 text-white flex flex-col items-center py-30 px-6">
       {/* Avatar */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}

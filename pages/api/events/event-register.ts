@@ -67,6 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const {
+        userId,
         driverName,
         coDriverName,
         carName,
@@ -79,7 +80,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         paymentProof,
       } = req.body;
 
-      if (!driverName || !carName || !driverPhone || !teamName) {
+      if (
+        !userId ||
+        !driverName ||
+        !carName ||
+        !driverPhone ||
+        !policeNumber ||
+        !teamName ||
+        !paymentProof
+      ) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
@@ -103,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const filepath = path.join(uploadDir, filename);
           await fs.promises.writeFile(filepath, parsed.buffer);
 
-          paymentProofFilename = `payments/${filename}`;
+          paymentProofFilename = `/uploads/payments/${filename}`;
         } else {
           paymentProofFilename = paymentProof;
         }

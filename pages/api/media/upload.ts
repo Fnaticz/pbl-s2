@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from "../../../lib/mongodb";
 import Media from "../../../models/media";
 import formidable, { File } from "formidable";
+import fs from "fs";
 import path from "path";
 
 export const config = {

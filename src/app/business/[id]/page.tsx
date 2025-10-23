@@ -12,7 +12,7 @@ import {
   FaMapMarkerAlt,
   FaTag,
 } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 
 type Business = {
@@ -70,43 +70,60 @@ export default function BusinessDetailPage() {
 
   // Handle redeem
   const handleRedeem = async (voucherId: string, pointsRequired: number) => {
-    if (!user?.id) return alert('Please login to redeem')
-    if (!canRedeem()) return alert('You can redeem only once every 24 hours!')
-    if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return
+    console.log("clicked redeem", voucherId); // 🔍 debug
+    if (!session?.user?.id) {
+      alert("Please login to redeem");
+      return;
+    }
+    if (!canRedeem()) {
+      alert("You can redeem only once every 24 hours!");
+      return;
+    }
+    if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return;
 
     try {
-      const res = await fetch('/api/voucher/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, voucherId }),
-      })
-      const result = await res.json()
+      const res = await fetch("/api/voucher/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voucherId }), // 🔧 IMPORTANT: only voucherId
+      });
+
+      const result = await res.json();
+      console.log("redeem response", result);
+
       if (res.ok) {
-        alert(`Successfully redeemed ${result.redemption.voucherTitle}!`)
-        setLastRedeem(new Date())
+        alert(`Successfully redeemed ${result.redemption.voucherTitle || "voucher"}!`);
+        setLastRedeem(new Date());
+        // refresh vouchers/stock
+        const r2 = await fetch(`/api/voucher/index?businessId=${id}`);
+        if (r2.ok) {
+          const d2 = await r2.json();
+          setVouchers(d2 || []);
+        }
       } else {
-        alert(result.message || 'Failed to redeem')
+        alert(result.message || "Failed to redeem");
       }
     } catch (err) {
-      console.error('Redeem error:', err)
-      alert('Server error')
+      console.error("Redeem error:", err);
+      alert("Server error, try again later.");
     }
-  }
+  };
+
 
   // ambil riwayat redeem terakhir
   useEffect(() => {
-    if (!user?.id) return
+    if (!session?.user?.id) return;
     const fetchLastRedeem = async () => {
       try {
-        const res = await fetch(`/api/voucher/last-redeem?userId=${user.id}`)
-        const data = await res.json()
-        if (data?.lastRedeemAt) setLastRedeem(new Date(data.lastRedeemAt))
+        const res = await fetch("/api/voucher/last-redeem");
+        const data = await res.json();
+        if (data?.lastRedeemAt) setLastRedeem(new Date(data.lastRedeemAt));
       } catch (err) {
-        console.error('Fetch last redeem error:', err)
+        console.error("Fetch last redeem error:", err);
       }
-    }
-    fetchLastRedeem()
-  }, [user])
+    };
+    fetchLastRedeem();
+  }, [session]);
 
   const canRedeem = () => {
     if (!lastRedeem) return true
@@ -129,6 +146,14 @@ export default function BusinessDetailPage() {
     );
   };
 
+  const isExpiringSoon = (expiryDate?: string) => {
+    if (!expiryDate) return false
+    const exp = new Date(expiryDate)
+    const now = new Date()
+    const diffDays = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    return diffDays <= 3 && diffDays > 0
+  }
+
   const getEmbedUrl = (url?: string) => {
     if (!url) return "";
     if (url.includes("/maps/embed")) return url;
@@ -141,7 +166,7 @@ export default function BusinessDetailPage() {
   if (!business) return <p className="text-white p-6">Business not found</p>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-red-950 text-white p-6 flex justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-stone-950 to-red-950 text-white p-6 flex justify-center">
       <main className="flex-grow pt-20 px-4 pb-16 max-w-5xl w-full">
         <h1 className="text-4xl font-extrabold mb-10 text-center bg-gradient-to-r from-red-500 to-red-700 bg-clip-text text-transparent drop-shadow-lg">
           {business.name}
@@ -247,15 +272,17 @@ export default function BusinessDetailPage() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   {vouchers.slice(0, visibleCount).map((v, idx) => {
+                    const expSoon = isExpiringSoon(v.expiryDate)
                     return (
                       <motion.div
-                        key={idx}
+                        key={v._id}
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: idx * 0.1 }}
                         className="bg-gray-900 p-4 rounded-xl shadow hover:shadow-lg hover:scale-[1.03] transition-transform duration-300"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 via-yellow-700/10 to-transparent opacity-0 hover:opacity-100 transition duration-500 rounded-xl" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 via-yellow-700/10 to-transparent opacity-0 hover:opacity-100 transition duration-500 rounded-xl pointer-events-none" />
+
                         <h3 className="text-lg font-semibold text-white">{v.title}</h3>
                         <p className="text-sm text-gray-300 mb-1">{v.description}</p>
                         <p className="text-sm text-gray-500 mb-2">

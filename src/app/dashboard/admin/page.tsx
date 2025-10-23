@@ -56,6 +56,8 @@ export default function AdminDashboard() {
     policeNumber: string;
     address: string;
     teamName: string;
+    paymentStatus: string;
+    paymentProof?: string;
     message: string;
   }[]>([])
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
@@ -70,6 +72,7 @@ export default function AdminDashboard() {
   const [mainEventDate, setMainEventDate] = useState('')
   const [mainEventLocation, setMainEventLocation] = useState('')
   const [mainEventDesc, setMainEventDesc] = useState('')
+  const [mainEventImages, setMainEventImages] = useState<string[]>([])
   const [mainEventReports, setMainEventReports] = useState<IMainEvent[]>([])
   const [activityName, setActivityName] = useState('')
   const [activityTitle, setActivityTitle] = useState('')
@@ -372,6 +375,16 @@ export default function AdminDashboard() {
     reader.readAsDataURL(file);
   };
 
+  const handleViewProof = (base64: string) => {
+    const blob = fetch(base64)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      });
+  };
+
+
   useEffect(() => {
     const fetchMainEvent = async () => {
       const res = await fetch('/api/mainevent');
@@ -528,6 +541,54 @@ export default function AdminDashboard() {
                   <p><strong>Police Number:</strong> {m.policeNumber}</p>
                   <p><strong>Address:</strong> {m.address}</p>
                   <p><strong>Team Name:</strong> {m.teamName}</p>
+                  <p><strong>Payment Status:</strong> {m.paymentStatus}</p>
+                  {m.paymentProof && (
+                    <div className="mt-2">
+                      <p className="font-semibold mb-1">Payment Proof:</p>
+
+                      {m.paymentProof.startsWith("data:image") ? (
+                        // ✅ jika base64
+                        <>
+                          <img
+                            src={m.paymentProof}
+                            alt="Payment Proof"
+                            className="rounded-lg border border-gray-600 mb-2 w-48"
+                          />
+                          <button
+                            onClick={() => {
+                              const newTab = window.open();
+                              if (newTab) {
+                                newTab.document.write(
+                                  `<img src="${m.paymentProof}" style="max-width:100%;height:auto;" />`
+                                );
+                              }
+                            }}
+                            className="text-blue-400 underline text-sm"
+                          >
+                            Open full image
+                          </button>
+                        </>
+                      ) : (
+                        // ⚙️ fallback kalau masih berupa URL (file path)
+                        <Image
+                          src={m.paymentProof}
+                          alt="Payment Proof"
+                          width={200}
+                          height={200}
+                          unoptimized
+                          className="rounded-lg border border-gray-600 mb-2"
+                          onError={(e) => {
+                            console.error("Image load error:", m.paymentProof);
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+
+
+
+
+
                   <div className="flex gap-2 mt-2">
                     <button onClick={() => handleAcceptParticipant(m._id)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Accept</button>
                     <button onClick={() => handleRejectParticipant(m._id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Reject</button>

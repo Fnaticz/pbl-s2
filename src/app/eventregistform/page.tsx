@@ -46,14 +46,20 @@ export default function RegisterEventPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormData((prev) => ({ ...prev, paymentProof: reader.result as string }));
+      e.target.value = ""; // 🔥 reset supaya bisa pilih file yang sama lagi nanti
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({ ...prev, paymentProof: "" }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -96,137 +102,188 @@ export default function RegisterEventPage() {
   if (loading) return <Loading />;
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-stone-950 to-red-950 py-16 px-6">
+    <section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-stone-950 to-red-950 py-25 px-6">
       <div className="bg-gray-800 text-white rounded-2xl shadow-xl w-full max-w-5xl p-8 flex flex-col md:flex-row gap-8">
-        
+
         {/* Form Input (Kiri) */}
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4">
-          <h2 className="text-2xl font-bold mb-4">Data Registrasi</h2>
+          <h2 className="text-2xl font-bold mb-4">Event Registration Form</h2>
 
-          <label>
-            Nama Driver
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Driver Name</label>
             <textarea
               name="driverName"
+              placeholder="Driver name"
               value={formData.driverName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Nama Co-Driver
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Co-Driver Name</label>
             <textarea
               name="coDriverName"
+              placeholder="Co-Driver Name"
               value={formData.coDriverName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Nama Mobil
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Car Name</label>
             <textarea
               name="carName"
+              placeholder="Car Name"
               value={formData.carName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Nomor HP Driver
+
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Driver Phone Number</label>
             <textarea
               name="driverPhone"
+              placeholder="Driver Phone Number"
               value={formData.driverPhone}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Nomor HP Co-Driver
+
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Co-Driver Phone Number</label>
             <textarea
               name="coDriverPhone"
+              placeholder="Co-Driver Phone Number"
               value={formData.coDriverPhone}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Nomor Plat Mobil
+
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Police Number</label>
             <textarea
               name="policeNumber"
+              placeholder="Police Number"
               value={formData.policeNumber}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Alamat
+
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Address</label>
             <textarea
               name="address"
+              placeholder="Address"
               value={formData.address}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Nama Team
+
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">
+              Team Name</label>
             <textarea
               name="teamName"
+              placeholder="Team Name"
               value={formData.teamName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Bukti Transaksi QRIS
+
+          {/* UPLOAD PROOF */}
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-3">
+              Proof of QRIS Transaction
+            </label>
+            <label
+              htmlFor="business-files"
+              className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow inline-block"
+            >
+              Choose Pictures
+            </label>
             <input
+              id="business-files"
               type="file"
               accept="image/*"
+              className="hidden"
               onChange={handleFileChange}
-              className="w-full p-3 rounded-lg bg-stone-800 focus:outline-none"
-              required
             />
-          </label>
+
+            {/* Preview Image */}
+            {formData.paymentProof && (
+              <div className="mt-4 relative w-fit">
+                <Image
+                  src={formData.paymentProof}
+                  alt="Payment Proof Preview"
+                  width={200}
+                  height={200}
+                  className="rounded-lg border border-gray-600"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1"
+                  title="Remove image"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             type="submit"
             disabled={!isPaid}
-            className={`mt-4 px-4 py-3 rounded-lg font-semibold transition ${
-              isPaid
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-gray-600 cursor-not-allowed"
-            }`}
+            className={`mt-4 px-4 py-3 rounded-lg font-semibold transition ${isPaid
+              ? "bg-red-600 hover:bg-red-700"
+              : "bg-stone-800 cursor-not-allowed text-gray-500"
+              }`}
           >
             Submit Registration
           </button>
         </form>
 
         {/* Payment QRIS (Kanan) */}
-        <div className="flex-1 bg-stone-900 p-6 rounded-lg flex flex-col items-center">
-          <h3 className="text-lg font-semibold mb-3">Pembayaran via QRIS</h3>
+        <div className="flex-1 bg-gray-900 p-6 rounded-lg flex flex-col items-center">
+          <h3 className="text-lg font-semibold mb-3">Payment via QRIS</h3>
           <Image
-            src="/qris.jpg"
+            src="/qrisnew.jpg"
             alt="QRIS Spartan Payment"
             width={250}
             height={250}
             className="mx-auto mb-4"
           />
           <p className="text-gray-300 text-sm text-center mb-4">
-            Silakan scan QR untuk pembayaran pendaftaran event.
+            Please scan the QR code for event registration payment.
           </p>
           <label className="flex items-center gap-2">
             <input
@@ -240,7 +297,7 @@ export default function RegisterEventPage() {
                 }));
               }}
             />
-            <span className="text-sm">Saya sudah melakukan pembayaran</span>
+            <span className="text-sm">I have made the payment</span>
           </label>
         </div>
       </div>
