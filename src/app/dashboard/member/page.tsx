@@ -7,6 +7,7 @@ import { FaSignOutAlt, FaFileInvoiceDollar, FaTimes, FaBars, FaUser, FaClipboard
 import Link from "next/link";
 import Image from "next/image";
 import Loading from '../../components/Loading';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MemberDashboard() {
   const [loadingpage, setLoadingPage] = useState(true)
@@ -1070,13 +1071,32 @@ export default function MemberDashboard() {
       </aside>
 
       {/* Sidebar Mobile - popup overlay */}
-      {mobileSidebar && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden">
-          <div className="absolute left-0 top-0 w-64 h-full bg-gray-900 z-50">
-            <SidebarContent />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {mobileSidebar && (
+          <motion.div
+            key="sidebar-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setMobileSidebar(false)} // klik luar sidebar untuk menutup
+          >
+            <motion.div
+              key="sidebar"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="absolute left-0 top-0 w-64 h-full bg-gray-900 shadow-xl z-50"
+              onClick={(e) => e.stopPropagation()} // biar klik di sidebar gak nutup
+            >
+              <SidebarContent />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* Main content dengan scroll terpisah */}
       <main className="flex-1 h-screen overflow-y-auto p-6 relative">

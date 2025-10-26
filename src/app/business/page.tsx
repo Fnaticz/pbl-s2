@@ -257,7 +257,7 @@ export default function BusinessPage() {
                   {business.link && (
                     <Link
                       href={business.link}
-                      className="mt-5 px-4 py-2 rounded-lg bg-white text-black font-semibold hover:bg-gray-200 transition text-center transform active:scale-95 hover:bg-red-600 hover:text-white"
+                      className="mt-5 px-4 py-2 rounded-lg bg-white text-black font-semibold transition transform active:scale-95 active:bg-red-600 active:text-white hover:bg-red-600 hover:text-white text-center"
                     >
                       More
                     </Link>

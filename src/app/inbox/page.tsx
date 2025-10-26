@@ -85,7 +85,7 @@ export default function InboxPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10 relative">
       <main className="flex-grow pt-20 px-4 pb-16">
-        <h1 className="text-3xl font-bold mb-6 text-center">Inbox Notifications</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">Inbox</h1>
         {messages.length === 0 ? (
           <p className="text-center text-gray-400">No messages yet.</p>
         ) : (

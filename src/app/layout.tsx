@@ -13,15 +13,20 @@ const font = Poppins({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isDashboard = pathname ? pathname.startsWith("/dashboard") : false;
+  const hideNavAndFooter =
+    pathname && (pathname.startsWith("/dashboard") || pathname.startsWith("/forum"));
 
   return (
     <html lang="id">
       <body className={`${font.className} flex flex-col min-h-screen`}>
         <SessionWrapper>
-          {!isDashboard && <NavbarWrapper />}
+          {/* Navbar hanya tampil jika bukan halaman dashboard atau forum */}
+          {!hideNavAndFooter && <NavbarWrapper />}
+
           <main className="flex-grow">{children}</main>
-          {!isDashboard && <Footer />}
+
+          {/* Footer juga disembunyikan di dashboard & forum */}
+          {!hideNavAndFooter && <Footer />}
         </SessionWrapper>
       </body>
     </html>

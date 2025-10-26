@@ -107,7 +107,7 @@ export default function RegisterEventPage() {
 
         {/* Form Input (Kiri) */}
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4">
-          <h2 className="text-2xl font-bold mb-4">Event Registration Form</h2>
+          <h2 className="text-2xl font-bold mb-4"> 📝 Event Registration Form</h2>
 
           <div className="mb-4">
             <label className="block text-md font-semibold mb-1">
@@ -117,7 +117,7 @@ export default function RegisterEventPage() {
               placeholder="Driver name"
               value={formData.driverName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -130,7 +130,7 @@ export default function RegisterEventPage() {
               placeholder="Co-Driver Name"
               value={formData.coDriverName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -143,7 +143,7 @@ export default function RegisterEventPage() {
               placeholder="Car Name"
               value={formData.carName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -157,7 +157,7 @@ export default function RegisterEventPage() {
               placeholder="Driver Phone Number"
               value={formData.driverPhone}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -171,7 +171,7 @@ export default function RegisterEventPage() {
               placeholder="Co-Driver Phone Number"
               value={formData.coDriverPhone}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -185,7 +185,7 @@ export default function RegisterEventPage() {
               placeholder="Police Number"
               value={formData.policeNumber}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -199,7 +199,7 @@ export default function RegisterEventPage() {
               placeholder="Address"
               value={formData.address}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -213,7 +213,7 @@ export default function RegisterEventPage() {
               placeholder="Team Name"
               value={formData.teamName}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg bg-gray-700 focus:outline-none"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
               required
             />
           </div>
@@ -296,6 +296,7 @@ export default function RegisterEventPage() {
                   paymentStatus: e.target.checked ? "paid" : "unpaid",
                 }));
               }}
+              className="accent-red-600 w-5 h-5"
             />
             <span className="text-sm">I have made the payment</span>
           </label>

@@ -42,7 +42,7 @@ export default function MemberRegistrationForm() {
   const { data: session } = useSession()
   const user = session?.user as User | null
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
@@ -101,69 +101,97 @@ export default function MemberRegistrationForm() {
   if (loading) return <Loading />;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-black to-red-950 to-black text-white px-4 py-10">
-      <main className="flex-grow pt-20 px-4 pb-16">
-        <h1 className="text-3xl font-bold mb-6 text-center">Member Registration Form</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Full Name"
-            className="w-full p-2 rounded bg-gray-800 border border-gray-600"
-            required
-          />
-          <input
-            type="text"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            placeholder="Address"
-            className="w-full p-2 rounded bg-gray-800 border border-gray-600"
-            required
-          />
-          <input
-            type="text"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="Phone Number"
-            className="w-full p-2 rounded bg-gray-800 border border-gray-600"
-            required
-          />
-          <input
-            type="text"
-            name="hobby"
-            value={formData.hobby}
-            onChange={handleChange}
-            placeholder="Hobby"
-            className="w-full p-2 rounded bg-gray-800 border border-gray-600"
-          />
-          <input
-            type="text"
-            name="vehicleType"
-            value={formData.vehicleType}
-            onChange={handleChange}
-            placeholder="Vehicle Type"
-            className="w-full p-2 rounded bg-gray-800 border border-gray-600"
-          />
-          <input
-            type="text"
-            name="vehicleSpec"
-            value={formData.vehicleSpec}
-            onChange={handleChange}
-            placeholder="Vehicle Specification"
-            className="w-full p-2 rounded bg-gray-800 border border-gray-600"
-          />
+    <section className="min-h-screen flex flex-col bg-gradient-to-b from-stone-950 to-red-950 text-white px-6 py-20">
+      <main className="flex-grow w-full max-w-5xl mx-auto bg-gray-800 p-8 rounded-2xl shadow-2xl mt-10">
+        <h1 className="text-3xl font-bold mb-8 text-center text-white">
+          📝 Member Registration Form
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Full Name */}
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">Full Name</label>
+            <textarea
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter your full name"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
+              required
+            />
+          </div>
+
+          {/* Address */}
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">Address</label>
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="Enter your address"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
+              required
+            />
+          </div>
+
+          {/* Phone Number */}
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">Phone Number</label>
+            <textarea
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="Enter your phone number"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
+              required
+            />
+          </div>
+
+          {/* Hobby */}
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">Hobby</label>
+            <textarea
+              name="hobby"
+              value={formData.hobby}
+              onChange={handleChange}
+              placeholder="Enter your hobby"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
+            />
+          </div>
+
+          {/* Vehicle Type */}
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">Vehicle Type</label>
+            <textarea
+              name="vehicleType"
+              value={formData.vehicleType}
+              onChange={handleChange}
+              placeholder="Enter your vehicle type"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
+            />
+          </div>
+
+          {/* Vehicle Specification */}
+          <div className="mb-4">
+            <label className="block text-md font-semibold mb-1">Vehicle Specification</label>
+            <textarea
+              name="vehicleSpec"
+              value={formData.vehicleSpec}
+              onChange={handleChange}
+              placeholder="Enter your vehicle specification"
+              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-red-600 outline-none"
+            />
+          </div>
+
+          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-red-600 hover:bg-red-700 py-2 rounded text-white font-semibold"
+            className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-lg text-white font-semibold shadow-md hover:shadow-lg transition"
           >
             Submit Application
           </button>
         </form>
       </main>
-    </div>
+    </section>
   )
 }
