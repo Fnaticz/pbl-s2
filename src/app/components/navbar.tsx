@@ -258,10 +258,23 @@ export default function Navbar() {
                 <h3 className="text-gray-400 uppercase text-sm mb-2">Menu</h3>
                 <Link href="/" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Home</Link>
                 <Link href="/business" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Business Page</Link>
-                <Link href="/forum" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Forum</Link>
-                <Link href="/gallery" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Gallery</Link>
-                <Link href="/finance" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Finance</Link>
-                <Link href="/eventschedule" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Event Schedule</Link>
+                {user?.role === 'guest' && (
+                  <Link href="/forum" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Forum</Link>
+                )}
+                {user?.role === 'member' && (
+                  <>
+                    <Link href="/forum" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Forum</Link>
+                    <Link href="/gallery" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Gallery</Link>
+                    <Link href="/finance" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Finance</Link>
+                    <Link href="/eventschedule" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Event Schedule</Link>
+                  </>)}
+                {user?.role === 'admin' && (
+                  <>
+                    <Link href="/forum" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Forum</Link>
+                    <Link href="/gallery" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Gallery</Link>
+                    <Link href="/finance" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Finance</Link>
+                    <Link href="/eventschedule" onClick={() => setMobileOpen(false)} className="border-b border-gray-900 py-2 hover:text-red-500" >Event Schedule</Link>
+                  </>)}
               </div>
             </div>
           </motion.div>
