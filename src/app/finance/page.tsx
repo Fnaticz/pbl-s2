@@ -16,7 +16,7 @@ export default function FinanceReportPage() {
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
