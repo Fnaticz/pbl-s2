@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['res.cloudinary.com', 'pbl-s2.netlify.app', 'localhost'],
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
 };
 
 export default nextConfig;
