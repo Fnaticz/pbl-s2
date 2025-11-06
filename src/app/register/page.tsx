@@ -40,8 +40,6 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
-    console.log('Form submitted:', formData)
 
     const { username, emailOrPhone, password, address } = formData
 
@@ -49,6 +47,8 @@ export default function RegisterPage() {
       setMessage('Please complete all fields before submitting.')
       return
     }
+
+    setSubmitted(true)
 
     const res = await fetch('/api/register', {
       method: 'POST',
@@ -63,7 +63,6 @@ export default function RegisterPage() {
     });
 
     const data = await res.json()
-    console.log("RESPONSE", data)
     setMessage(data.message || 'Something went wrong')
   };
 
