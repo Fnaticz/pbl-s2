@@ -18,7 +18,7 @@ describe("RegisterPage", () => {
     jest.clearAllMocks()
   })
 
-  it("shows validation message when form incomplete", async () => {
+  it("Validasi form belum lengkap", async () => {
     render(<RegisterPage />)
 
     await waitForLoadingToComplete()
@@ -38,7 +38,7 @@ describe("RegisterPage", () => {
     })
   })
 
-  it("displays password strength correctly", async () => {
+  it("Indikator kekuatan password", async () => {
     render(<RegisterPage />)
 
     await waitForLoadingToComplete()
@@ -55,7 +55,7 @@ describe("RegisterPage", () => {
     expect(screen.getByText(/password strength: strong/i)).toBeInTheDocument()
   })
 
-  it("submits form successfully (response 200)", async () => {
+  it("Submit form berhasil (response 200)", async () => {
     ;(fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       status: 200,
