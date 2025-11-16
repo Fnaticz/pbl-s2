@@ -2,7 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { storage } from "../../../lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { IncomingForm, File } from "formidable";
-import { Readable } from "stream";
+import { Readable, Writable } from "stream";
+import fs from "fs";
 
 export const config = {
   api: {
@@ -37,12 +38,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     fileWriteStreamHandler: (file?: any) => {
       const chunks: Buffer[] = [];
       const filename = (file as any)?.newFilename || (file as any)?.originalFilename || `file-${Date.now()}`;
-      const writable = new (require('stream').Writable)({
-        write(chunk: Buffer, encoding: string, callback: Function) {
+      const writable = new Writable({
+        write(chunk: Buffer, encoding: string, callback: (error?: Error | null) => void) {
           chunks.push(chunk);
           callback();
         },
-        final(callback: Function) {
+        final(callback: (error?: Error | null) => void) {
           const buffer = Buffer.concat(chunks);
           fileBuffers.set(filename, buffer);
           callback();
@@ -96,7 +97,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.log(`Using in-memory buffer for ${file.originalFilename}`);
           } else if (file.filepath) {
             // Fallback ke filesystem jika diperlukan (untuk Netlify compatibility)
-            const fs = require('fs');
             try {
               if (fs.existsSync(file.filepath)) {
                 fileBuffer = fs.readFileSync(file.filepath);
