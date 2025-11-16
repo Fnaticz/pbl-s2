@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { storage } from "../../../lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { adminStorage } from "../../../lib/firebaseAdmin";
 import { IncomingForm } from "formidable";
 import { Writable } from "stream";
 import fs from "fs";
@@ -121,9 +120,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         try {
-          const storageRef = ref(storage, storagePath);
-          await uploadBytes(storageRef, fileBuffer, { contentType: file.mimetype || undefined });
-          const downloadURL = await getDownloadURL(storageRef);
+          const fileUpload = adminStorage.file(storagePath);
+          
+          await fileUpload.save(fileBuffer, {
+            metadata: { contentType: file.mimetype || undefined },
+          });
+
+          const [downloadURL] = await fileUpload.getSignedUrl({
+            action: "read",
+            expires: "03-01-2030",
+          });
 
           uploadResults.push({ url: downloadURL, type: fileType });
           console.log("✔ Uploaded:", downloadURL);
