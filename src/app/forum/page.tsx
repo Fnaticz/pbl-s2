@@ -5,8 +5,6 @@ import { useState, useRef, useEffect } from 'react'
 import { FaSignOutAlt, FaBars, FaUser, FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
 import { ref, onChildAdded, onChildRemoved, push, remove, get } from 'firebase/database'
 import { db } from '../../../lib/firebase'
-import { storage } from '../../../lib/firebase'
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import type { DataSnapshot } from 'firebase/database'
 import Image from "next/image";
 import Loading from '../components/Loading';
@@ -75,22 +73,46 @@ export default function ForumPage() {
     const files = e.target.files
     if (!files) return
 
-    const uploadedMedia: { url: string; file: File; type: 'image' | 'video' }[] = []
+    setUploading(true)
+    
+    try {
+      const formData = new FormData()
+      for (const file of Array.from(files)) {
+        formData.append('file', file)
+      }
 
-    for (const file of Array.from(files)) {
-      const folder = file.type.startsWith("video") ? "videos" : "images"
-      const fileRef = storageRef(storage, `${folder}/${Date.now()}-${file.name}`)
-      await uploadBytes(fileRef, file)
-      const downloadURL = await getDownloadURL(fileRef)
-
-      uploadedMedia.push({
-        url: downloadURL,
-        file,
-        type: file.type.startsWith("video") ? "video" : "image"
+      const response = await fetch('/api/forum/upload', {
+        method: 'POST',
+        body: formData,
       })
-    }
 
-    setPreviews((prev) => [...prev, ...uploadedMedia])
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }))
+        throw new Error(errorData.message || 'Failed to upload files')
+      }
+
+      const data = await response.json()
+      
+      if (!data.media || data.media.length === 0) {
+        throw new Error('No files were uploaded')
+      }
+
+      const uploadedMedia = data.media.map((item: { url: string; type: 'image' | 'video' }) => ({
+        url: item.url,
+        file: Array.from(files).find(f => 
+          f.type.startsWith(item.type === 'video' ? 'video' : 'image')
+        ) || files[0],
+        type: item.type
+      }))
+
+      setPreviews((prev) => [...prev, ...uploadedMedia])
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      alert(error instanceof Error ? error.message : 'Gagal mengupload file. Silakan coba lagi.')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const deleteMessage = async (id: number) => {
