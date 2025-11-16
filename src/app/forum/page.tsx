@@ -73,24 +73,64 @@ export default function ForumPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (!files) return
+    if (!files || files.length === 0) return
 
+    setUploading(true)
     const uploadedMedia: { url: string; file: File; type: 'image' | 'video' }[] = []
+    const fileArray = Array.from(files)
 
-    for (const file of Array.from(files)) {
-      const folder = file.type.startsWith("video") ? "videos" : "images"
-      const fileRef = storageRef(storage, `${folder}/${Date.now()}-${file.name}`)
-      await uploadBytes(fileRef, file)
-      const downloadURL = await getDownloadURL(fileRef)
+    try {
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i]
+        const fileId = Date.now() + i
+        
+        // Validate file size (max 50MB for videos, 10MB for images)
+        const maxSize = file.type.startsWith("video") ? 50 * 1024 * 1024 : 10 * 1024 * 1024
+        if (file.size > maxSize) {
+          alert(`${file.name} is too large. Max size: ${file.type.startsWith("video") ? '50MB' : '10MB'}`)
+          continue
+        }
 
-      uploadedMedia.push({
-        url: downloadURL,
-        file,
-        type: file.type.startsWith("video") ? "video" : "image"
-      })
+        // Validate file type
+        if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+          alert(`${file.name} is not a valid image or video file.`)
+          continue
+        }
+
+        try {
+          const folder = file.type.startsWith("video") ? "videos" : "images"
+          const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+          const fileRef = storageRef(storage, `forum/${folder}/${fileName}`)
+          
+          setUploadProgress((prev) => ({ ...prev, [fileId]: 0 }))
+          
+          await uploadBytes(fileRef, file)
+          const downloadURL = await getDownloadURL(fileRef)
+
+          uploadedMedia.push({
+            url: downloadURL,
+            file,
+            type: file.type.startsWith("video") ? "video" : "image"
+          })
+
+          setUploadProgress((prev) => ({ ...prev, [fileId]: 100 }))
+        } catch (error) {
+          console.error(`Error uploading ${file.name}:`, error)
+          alert(`Failed to upload ${file.name}. Please try again.`)
+        }
+      }
+
+      if (uploadedMedia.length > 0) {
+        setPreviews((prev) => [...prev, ...uploadedMedia])
+      }
+    } catch (error) {
+      console.error('Error handling file upload:', error)
+      alert('Failed to upload files. Please try again.')
+    } finally {
+      setUploading(false)
+      setUploadProgress({})
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
-
-    setPreviews((prev) => [...prev, ...uploadedMedia])
   }
 
   const deleteMessage = async (id: number) => {
@@ -189,7 +229,7 @@ export default function ForumPage() {
                             controls
                             className="mt-2 rounded-md max-w-[60%] max-h-[400px] shadow"
                             preload="metadata"
-                            onError={(e) => {
+                            onError={() => {
                               console.error('Video load error:', media.url)
                             }}
                           >
