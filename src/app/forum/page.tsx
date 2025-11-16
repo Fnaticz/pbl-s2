@@ -37,30 +37,38 @@ export default function ForumPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [previews, setPreviews] = useState<{ url: string; file: File; type: 'image' | 'video' }[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim() && previews.length === 0) return
     if (!user) return alert('You must be logged in.')
+    if (uploading) return alert('Please wait for uploads to complete.')
 
-    const text = input
-      .replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
-      .replace(/@\w+/g, (tag) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
+    try {
+      const text = input
+        .replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
+        .replace(/@\w+/g, (tag) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
 
-    const newMessage: Message = {
-      id: Date.now(),
-      user: user.username || 'anon',
-      role: user.role || 'user',
-      text,
-      timestamp: new Date().toLocaleString(),
-      mediaUrls: previews.map((p) => ({ url: p.url, type: p.type }))
+      const newMessage: Message = {
+        id: Date.now(),
+        user: user.username || 'anon',
+        role: user.role || 'user',
+        text: text || undefined,
+        timestamp: new Date().toLocaleString(),
+        mediaUrls: previews.length > 0 ? previews.map((p) => ({ url: p.url, type: p.type })) : undefined
+      }
+
+      await push(ref(db, 'messages'), newMessage)
+      setInput('')
+      setPreviews([])
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (error) {
+      console.error('Error sending message:', error)
+      alert('Failed to send message. Please try again.')
     }
-
-    push(ref(db, 'messages'), newMessage)
-    setInput('')
-    setPreviews([])
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,24 +156,48 @@ export default function ForumPage() {
                     />
                   )}
 
-                  {msg.mediaUrls?.map((media, idx) =>
-                    media.type === 'image' ? (
-                      <Image
-                        key={idx}
-                        src={media.url}
-                        alt="media"
-                        width={400}
-                        height={400}
-                        className="mt-2 rounded-md max-w-[60%] shadow"
-                      />
-                    ) : (
-                      <video
-                        key={idx}
-                        src={media.url}
-                        controls
-                        className="mt-2 rounded-md max-w-[60%] shadow"
-                      />
-                    )
+                  {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {msg.mediaUrls.map((media, idx) =>
+                        media.type === 'image' ? (
+                          <div key={idx} className="relative group/media">
+                            <Image
+                              src={media.url}
+                              alt={`Image from ${msg.user}`}
+                              width={400}
+                              height={400}
+                              className="rounded-md max-w-[60%] max-h-[400px] object-contain shadow cursor-pointer"
+                              unoptimized
+                              onError={(e) => {
+                                console.error('Image load error:', media.url)
+                                e.currentTarget.src = '/placeholder-image.png'
+                              }}
+                            />
+                            <a
+                              href={media.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/media:opacity-100 transition-opacity rounded-md"
+                            >
+                              <span className="text-white text-sm">Click to view full size</span>
+                            </a>
+                          </div>
+                        ) : (
+                          <video
+                            key={idx}
+                            src={media.url}
+                            controls
+                            className="mt-2 rounded-md max-w-[60%] max-h-[400px] shadow"
+                            preload="metadata"
+                            onError={(e) => {
+                              console.error('Video load error:', media.url)
+                            }}
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        )
+                      )}
+                    </div>
                   )}
 
                   <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
@@ -188,13 +220,26 @@ export default function ForumPage() {
                 {previews.map((p, idx) => (
                   <div key={idx} className="relative w-24 h-24">
                     {p.type === 'image' ? (
-                      <Image src={p.url} alt="Preview" width={96} height={96} className="w-full h-full object-cover rounded" />
+                      <Image 
+                        src={p.url} 
+                        alt="Preview" 
+                        width={96} 
+                        height={96} 
+                        className="w-full h-full object-cover rounded"
+                        unoptimized
+                      />
                     ) : (
-                      <video src={p.url} className="w-full h-full object-cover rounded" controls />
+                      <video 
+                        src={p.url} 
+                        className="w-full h-full object-cover rounded" 
+                        controls
+                        preload="metadata"
+                      />
                     )}
                     <button
                       onClick={() => setPreviews((prev) => prev.filter((_, i) => i !== idx))}
-                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1"
+                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
+                      disabled={uploading}
                     >
                       <FaTimes size={12} />
                     </button>
@@ -203,8 +248,19 @@ export default function ForumPage() {
               </div>
             )}
 
+            {uploading && (
+              <div className="bg-yellow-50 p-2 text-black text-sm text-center">
+                Uploading files... Please wait.
+              </div>
+            )}
+
             <div className="bg-gray-100 p-3 flex items-center gap-2 text-black">
-              <button onClick={() => fileInputRef.current?.click()} className="text-gray-600 hover:text-black">
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="text-gray-600 hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={uploading}
+                title="Upload photo/video"
+              >
                 <FaPlus />
               </button>
 
@@ -215,18 +271,25 @@ export default function ForumPage() {
                 className="hidden"
                 onChange={handleFileChange}
                 multiple
+                disabled={uploading}
               />
 
               <input
                 type="text"
                 className="flex-grow px-3 py-2 rounded-md border border-gray-300"
-                placeholder="Message"
+                placeholder="Type a message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && !uploading && sendMessage()}
+                disabled={uploading}
               />
 
-              <button onClick={sendMessage} className="text-blue-600 hover:text-blue-800">
+              <button 
+                onClick={sendMessage} 
+                className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={uploading || (!input.trim() && previews.length === 0)}
+                title="Send message"
+              >
                 <FaPaperPlane />
               </button>
             </div>
