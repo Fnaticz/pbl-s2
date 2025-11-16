@@ -22,9 +22,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     adminStorage = getAdminStorage();
   } catch (initError: any) {
     console.error("Firebase Admin initialization error:", initError?.message);
+    const errorMsg = initError?.message || "Firebase Admin Storage not available";
+    
+    // Berikan error message yang lebih informatif
+    if (errorMsg.includes("Missing required environment variables")) {
+      return res.status(500).json({ 
+        message: "Server configuration error: Missing Firebase Admin credentials",
+        error: errorMsg,
+        hint: "Please configure environment variables in Netlify Dashboard: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY, FIREBASE_STORAGE_BUCKET"
+      });
+    }
+    
     return res.status(500).json({ 
       message: "Server configuration error",
-      error: initError?.message || "Firebase Admin Storage not available" 
+      error: errorMsg
     });
   }
 
