@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Initialize adminStorage dengan error handling
   let adminStorage;
   try {
-    adminStorage = getAdminStorage();
+    adminStorage = await getAdminStorage();
   } catch (initError: any) {
     console.error("Firebase Admin initialization error:", initError?.message);
     const errorMsg = initError?.message || "Firebase Admin Storage not available";
@@ -130,6 +130,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         try {
+          // Log bucket info untuk debugging
+          const bucketName = adminStorage.name;
+          console.log("Using bucket:", bucketName);
+          console.log("Upload path:", storagePath);
+          
           const fileUpload = adminStorage.file(storagePath);
           
           await fileUpload.save(fileBuffer, {
@@ -148,7 +153,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.error("Firebase upload error:", {
             message: firebaseError?.message,
             code: firebaseError?.code,
-            stack: firebaseError?.stack,
+            bucket: adminStorage?.name,
+            path: storagePath,
             file: file.originalFilename
           });
         }
