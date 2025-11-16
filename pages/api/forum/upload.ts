@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { adminStorage } from "../../../lib/firebaseAdmin";
+import { getAdminStorage } from "../../../lib/firebaseAdmin";
 import { IncomingForm } from "formidable";
 import { Writable } from "stream";
 import fs from "fs";
@@ -16,6 +16,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: "Method not allowed" });
   }
 
+  // Initialize adminStorage dengan error handling
+  let adminStorage;
+  try {
+    adminStorage = getAdminStorage();
+  } catch (initError: any) {
+    console.error("Firebase Admin initialization error:", initError?.message);
+    return res.status(500).json({ 
+      message: "Server configuration error",
+      error: initError?.message || "Firebase Admin Storage not available" 
+    });
+  }
+
   const fileBuffers: Map<string, Buffer> = new Map();
   const streamPromises: Promise<void>[] = [];
 
@@ -26,10 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     allowEmptyFiles: false,
 
     fileWriteStreamHandler: (file) => {
-      if (!file) throw new Error("File undefined");
-
       const chunks: Buffer[] = [];
-      const filename = (file as any).newFilename; 
+      const filename = (file as any).newFilename;
 
       let resolveStream: () => void;
       let rejectStream: (err: Error) => void;
@@ -49,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         final(next) {
           try {
             const buffer = Buffer.concat(chunks);
-            fileBuffers.set(filename, buffer); // ← FIX FINAL (KUNCI)
+            fileBuffers.set(filename, buffer);
             next();
             resolveStream();
           } catch (error: any) {
@@ -87,35 +97,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       for (const file of fileArray) {
         if (!file) continue;
 
-        console.log("Processing:", file.originalFilename);
-        console.log("Available buffer keys:", Array.from(fileBuffers.keys()));
-
         const fileType = file.mimetype?.startsWith("video/") ? "video" : "image";
         const folder = fileType === "video" ? "videos" : "images";
         const fileName = `${Date.now()}-${file.originalFilename}`;
         const storagePath = `${folder}/${fileName}`;
 
-        // FIX UTAMA —> KEY BUFFER SELALU newFilename
-        const filename = (file as any).newFilename;
+        const filename = (file as any).newFilename || file.originalFilename;
         let fileBuffer: Buffer | undefined;
-
-        console.log("Looking for buffer with key:", filename);
 
         if (fileBuffers.has(filename)) {
           fileBuffer = fileBuffers.get(filename);
-          console.log("✔ Using in-memory buffer", filename, fileBuffer?.length);
+        } else if ([...fileBuffers.keys()].length === 1) {
+          fileBuffer = [...fileBuffers.values()][0];
         } else if (file.filepath && fs.existsSync(file.filepath)) {
           fileBuffer = fs.readFileSync(file.filepath);
-          console.log("✔ Using filesystem file");
         }
 
         if (!fileBuffer) {
-          console.error("❌ Buffer missing:", {
-            original: file.originalFilename,
-            newFilename: filename,
-            filepath: file.filepath,
-            keys: Array.from(fileBuffers.keys()),
-          });
+          console.error("Buffer missing for file:", file.originalFilename);
           continue;
         }
 
@@ -128,14 +127,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           const [downloadURL] = await fileUpload.getSignedUrl({
             action: "read",
-            expires: "03-01-2030",
+            expires: new Date("2030-03-01"),
           });
 
           uploadResults.push({ url: downloadURL, type: fileType });
-          console.log("✔ Uploaded:", downloadURL);
+          console.log("Upload successful:", downloadURL);
 
         } catch (firebaseError: any) {
-          console.error("Firebase upload failed:", firebaseError?.message);
+          console.error("Firebase upload error:", {
+            message: firebaseError?.message,
+            code: firebaseError?.code,
+            stack: firebaseError?.stack,
+            file: file.originalFilename
+          });
         }
       }
 
@@ -145,10 +149,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(200).json({ media: uploadResults });
     } catch (uploadError: any) {
-      console.error("Upload error:", uploadError);
+      console.error("Upload handler error:", {
+        message: uploadError?.message,
+        stack: uploadError?.stack,
+        name: uploadError?.name
+      });
       return res.status(500).json({
         message: "Failed to upload to Firebase Storage",
-        error: uploadError?.message,
+        error: uploadError?.message || "Unknown error",
       });
     }
   });
