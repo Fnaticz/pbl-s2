@@ -3,13 +3,13 @@ import * as admin from "firebase-admin";
 let adminStorage: any = null;
 
 function initializeAdmin() {
-  if (!admin.apps.length) {
-    // Validasi environment variables
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-    const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+  // Validasi environment variables
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
 
+  if (!admin.apps.length) {
     // Validasi semua env vars ada
     if (!projectId || !clientEmail || !privateKey || !storageBucket) {
       const missing = [];
@@ -32,7 +32,7 @@ function initializeAdmin() {
         }),
         storageBucket: storageBucket,
       });
-      console.log("Firebase Admin initialized successfully");
+      console.log("Firebase Admin initialized successfully with bucket:", storageBucket);
     } catch (error: any) {
       console.error("Firebase Admin initialization error:", error?.message);
       throw error;
@@ -40,7 +40,13 @@ function initializeAdmin() {
   }
 
   if (!adminStorage) {
-    adminStorage = admin.storage().bucket();
+    // Gunakan bucket name secara eksplisit
+    const bucketName = storageBucket || process.env.FIREBASE_STORAGE_BUCKET;
+    if (!bucketName) {
+      throw new Error("Storage bucket name is not configured");
+    }
+    console.log("Initializing storage bucket:", bucketName);
+    adminStorage = admin.storage().bucket(bucketName);
   }
   
   return adminStorage;
