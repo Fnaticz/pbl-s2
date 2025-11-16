@@ -1,10 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { storage } from "../../../lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import formidable, { File } from "formidable";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { IncomingForm, File } from "formidable";
+import { Readable } from "stream";
 
 export const config = {
   api: {
@@ -13,33 +11,52 @@ export const config = {
   },
 };
 
+// Helper function untuk convert stream ke buffer
+const streamToBuffer = (stream: Readable): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  // Buat directory untuk temporary files menggunakan os.tmpdir() yang lebih kompatibel
-  const uploadDir = path.join(os.tmpdir(), "forum-uploads");
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+  // Simpan file buffers di memory
+  const fileBuffers: Map<string, Buffer> = new Map();
 
-  // Parse form dengan formidable
-  const form = formidable({
-    uploadDir: uploadDir,
+  // Parse form dengan formidable - gunakan fileWriteStreamHandler untuk in-memory
+  const form = new IncomingForm({
     maxFileSize: 100 * 1024 * 1024, // 100MB
     keepExtensions: true,
     multiples: true, // Support multiple files
+    fileWriteStreamHandler: (file?: any) => {
+      const chunks: Buffer[] = [];
+      const filename = (file as any)?.newFilename || (file as any)?.originalFilename || `file-${Date.now()}`;
+      const writable = new (require('stream').Writable)({
+        write(chunk: Buffer, encoding: string, callback: Function) {
+          chunks.push(chunk);
+          callback();
+        },
+        final(callback: Function) {
+          const buffer = Buffer.concat(chunks);
+          fileBuffers.set(filename, buffer);
+          callback();
+        }
+      });
+      return writable;
+    },
   });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error("Form parse error:", err);
-      console.error("Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
       return res.status(500).json({ message: "Upload error: " + err.message });
     }
-
-    console.log("Files received:", Object.keys(files));
 
     try {
       const uploadedFiles = files.file;
@@ -60,12 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!file) continue;
 
         try {
-          // Pastikan file ada
-          if (!fs.existsSync(file.filepath)) {
-            console.error(`File not found: ${file.filepath}`);
-            continue;
-          }
-
           console.log(`Processing file: ${file.originalFilename}, size: ${file.size}, type: ${file.mimetype}`);
 
           const fileType = file.mimetype?.startsWith("video/") ? "video" : "image";
@@ -73,11 +84,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.originalFilename || "file"}`;
           const storagePath = `${folder}/${fileName}`;
 
-          console.log(`Uploading to Firebase Storage: ${storagePath}`);
+          let fileBuffer: Buffer | undefined;
 
-          // Baca file dari sistem file
-          const fileBuffer = fs.readFileSync(file.filepath);
+          // Tunggu sedikit untuk memastikan fileWriteStreamHandler selesai
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // Cek apakah buffer sudah tersedia di memory (dari fileWriteStreamHandler)
+          const filename = file.newFilename || file.originalFilename || 'file';
+          if (fileBuffers.has(filename)) {
+            fileBuffer = fileBuffers.get(filename);
+            console.log(`Using in-memory buffer for ${file.originalFilename}`);
+          } else if (file.filepath) {
+            // Fallback ke filesystem jika diperlukan (untuk Netlify compatibility)
+            const fs = require('fs');
+            try {
+              if (fs.existsSync(file.filepath)) {
+                fileBuffer = fs.readFileSync(file.filepath);
+                console.log(`Using filesystem buffer for ${file.originalFilename}`);
+              } else {
+                console.error(`File path does not exist: ${file.filepath}`);
+                // Coba tunggu lagi untuk fileWriteStreamHandler
+                await new Promise(resolve => setTimeout(resolve, 500));
+                if (fileBuffers.has(filename)) {
+                  fileBuffer = fileBuffers.get(filename);
+                  console.log(`Got in-memory buffer after wait for ${file.originalFilename}`);
+                }
+              }
+            } catch (e) {
+              console.error(`Error reading file from filesystem:`, e);
+            }
+          }
+
+          if (!fileBuffer) {
+            console.error(`Cannot get buffer for file: ${file.originalFilename}, available buffers:`, Array.from(fileBuffers.keys()));
+            continue;
+          }
+
           console.log(`File buffer size: ${fileBuffer.length} bytes`);
+          console.log(`Uploading to Firebase Storage: ${storagePath}`);
 
           // Upload ke Firebase Storage
           const storageRef = ref(storage, storagePath);
@@ -98,25 +142,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               type: fileType,
             });
           }
-
-          // Hapus file temporary
-          try {
-            if (fs.existsSync(file.filepath)) {
-              fs.unlinkSync(file.filepath);
-            }
-          } catch (unlinkError) {
-            console.error("Error deleting temp file:", unlinkError);
-          }
-        } catch (fileError) {
+        } catch (fileError: any) {
           console.error(`Error processing file ${file.originalFilename}:`, fileError);
-          // Cleanup file ini
-          try {
-            if (fs.existsSync(file.filepath)) {
-              fs.unlinkSync(file.filepath);
-            }
-          } catch (unlinkError) {
-            // Ignore
-          }
+          console.error(`Error stack:`, fileError?.stack);
           // Continue dengan file berikutnya
         }
       }
@@ -131,28 +159,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       return res.status(200).json({ media: cleanResults });
-    } catch (uploadError) {
+    } catch (uploadError: any) {
       console.error("Upload to Firebase error:", uploadError);
+      console.error("Error stack:", uploadError?.stack);
       
-      // Cleanup: hapus temporary files jika ada
-      try {
-        const uploadedFiles = files.file;
-        if (uploadedFiles) {
-          const fileArray = Array.isArray(uploadedFiles) ? uploadedFiles : [uploadedFiles].filter(Boolean);
-          fileArray.forEach((file) => {
-            if (file && fs.existsSync(file.filepath)) {
-              try {
-                fs.unlinkSync(file.filepath);
-              } catch (e) {
-                // Ignore
-              }
-            }
-          });
-        }
-      } catch (cleanupError) {
-        console.error("Cleanup error:", cleanupError);
-      }
-
       return res.status(500).json({ 
         message: "Failed to upload to Firebase Storage",
         error: uploadError instanceof Error ? uploadError.message : "Unknown error"
