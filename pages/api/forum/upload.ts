@@ -40,6 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const fileBuffers: Map<string, Buffer> = new Map();
 
+  const streamPromises: Promise<void>[] = [];
+
 
 
   const form = new IncomingForm({
@@ -49,6 +51,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     keepExtensions: true,
 
     multiples: true,
+
+    // Paksa in-memory handling (penting untuk Netlify)
+
+    allowEmptyFiles: false,
 
 
 
@@ -68,6 +74,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 
 
+      // Buat promise untuk tracking stream selesai
+
+      let resolveStream: () => void;
+
+      let rejectStream: (err: Error) => void;
+
+      const streamPromise = new Promise<void>((resolve, reject) => {
+
+        resolveStream = resolve;
+
+        rejectStream = reject;
+
+      });
+
+      streamPromises.push(streamPromise);
+
+
+
       const writable = new Writable({
 
         write(chunk, enc, next) {
@@ -80,13 +104,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         final(next) {
 
-          const buffer = Buffer.concat(chunks);
+          try {
 
-          fileBuffers.set(filename, buffer); // ← FIX
+            const buffer = Buffer.concat(chunks);
 
-          next();
+            fileBuffers.set(filename, buffer); // ← FIX
+
+            next();
+
+            resolveStream(); // Resolve promise setelah buffer tersimpan
+
+          } catch (error: any) {
+
+            next(error);
+
+            rejectStream(error);
+
+          }
 
         }
+
+      });
+
+
+
+      writable.on('error', (err) => {
+
+        rejectStream(err);
 
       });
 
@@ -113,6 +157,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 
     try {
+
+      // Tunggu semua stream selesai sebelum proses file
+
+      if (streamPromises.length > 0) {
+
+        await Promise.all(streamPromises);
+
+        // Tunggu sedikit lagi untuk memastikan buffer sudah tersimpan
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+      }
+
+
 
       const uploadedFiles = files.file;
 
@@ -144,6 +202,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log(`Processing file: ${file.originalFilename}`);
 
+        console.log(`Available buffers:`, Array.from(fileBuffers.keys()));
+
 
 
         const fileType = file.mimetype?.startsWith("video/")
@@ -170,19 +230,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const filename = (file as any).newFilename || file.originalFilename || 'file';
 
+        console.log(`Looking for buffer with key: ${filename}`);
+
+        
+
         if (fileBuffers.has(filename)) {
 
           fileBuffer = fileBuffers.get(filename);
 
-          console.log("Using in-memory buffer:", filename);
+          console.log("Using in-memory buffer:", filename, `size: ${fileBuffer?.length} bytes`);
 
-        } else if (file.filepath && fs.existsSync(file.filepath)) {
+        } else if (file.filepath) {
 
-          // fallback jika Formidable menyimpan ke disk (jarang)
+          // fallback jika Formidable menyimpan ke disk (untuk Netlify)
 
-          fileBuffer = fs.readFileSync(file.filepath);
+          try {
 
-          console.log("Fallback: using filesystem buffer.");
+            if (fs.existsSync(file.filepath)) {
+
+              fileBuffer = fs.readFileSync(file.filepath);
+
+              console.log("Fallback: using filesystem buffer from:", file.filepath);
+
+            } else {
+
+              console.warn(`File path does not exist: ${file.filepath}`);
+
+              // Coba tunggu lagi dan cek buffer sekali lagi
+
+              await new Promise(resolve => setTimeout(resolve, 200));
+
+              if (fileBuffers.has(filename)) {
+
+                fileBuffer = fileBuffers.get(filename);
+
+                console.log("Got buffer after wait:", filename);
+
+              }
+
+            }
+
+          } catch (fsError: any) {
+
+            console.error("Error reading from filesystem:", fsError?.message);
+
+          }
 
         }
 
@@ -190,7 +282,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (!fileBuffer) {
 
-          console.error("Buffer missing for:", file);
+          console.error("Buffer missing for file:", {
+
+            originalFilename: file.originalFilename,
+
+            newFilename: (file as any).newFilename,
+
+            filepath: file.filepath,
+
+            availableKeys: Array.from(fileBuffers.keys())
+
+          });
 
           continue;
 
@@ -198,29 +300,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 
 
-        const storageRef = ref(storage, storagePath);
+        try {
+
+          const storageRef = ref(storage, storagePath);
 
 
 
-        await uploadBytes(storageRef, fileBuffer, {
+          console.log(`Uploading to Firebase: ${storagePath}, size: ${fileBuffer.length} bytes`);
 
-          contentType: file.mimetype || undefined,
+          await uploadBytes(storageRef, fileBuffer, {
 
-        });
+            contentType: file.mimetype || undefined,
 
-
-
-        const downloadURL = await getDownloadURL(storageRef);
+          });
 
 
 
-        uploadResults.push({
+          const downloadURL = await getDownloadURL(storageRef);
 
-          url: downloadURL,
+          console.log(`Upload successful: ${downloadURL}`);
 
-          type: fileType,
 
-        });
+
+          uploadResults.push({
+
+            url: downloadURL,
+
+            type: fileType,
+
+          });
+
+        } catch (firebaseError: any) {
+
+          console.error(`Firebase upload error for ${file.originalFilename}:`, firebaseError?.message);
+
+          console.error(`Firebase error stack:`, firebaseError?.stack);
+
+          // Continue dengan file berikutnya
+
+        }
 
       }
 
@@ -242,11 +360,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.error("Upload to Firebase error:", uploadError);
 
+      console.error("Error stack:", uploadError?.stack);
+
+      console.error("Error details:", {
+
+        message: uploadError?.message,
+
+        code: uploadError?.code,
+
+        name: uploadError?.name
+
+      });
+
       return res.status(500).json({
 
         message: "Failed to upload to Firebase Storage",
 
-        error: uploadError?.message,
+        error: uploadError?.message || "Unknown error",
 
       });
 
