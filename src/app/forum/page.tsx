@@ -50,13 +50,32 @@ export default function ForumPage() {
         .replace(/@admin/gi, '<span class="text-red-500 font-bold">@admin</span>')
         .replace(/@\w+/g, (tag) => `<span class="text-blue-600 font-semibold">${tag}</span>`)
 
-      const newMessage: Message = {
+      // Filter dan map previews dengan memastikan tidak ada undefined
+      const validMediaUrls = previews.length > 0 
+        ? previews
+            .filter((p) => p && p.url && p.type) // Filter out any undefined/null
+            .map((p) => ({ 
+              url: String(p.url), 
+              type: String(p.type) 
+            }))
+        : null
+
+      // Buat message object tanpa undefined values
+      const newMessage: any = {
         id: Date.now(),
         user: user.username || 'anon',
         role: user.role || 'user',
-        text: text || undefined,
         timestamp: new Date().toLocaleString(),
-        mediaUrls: previews.length > 0 ? previews.map((p) => ({ url: p.url, type: p.type })) : undefined
+      }
+
+      // Hanya tambahkan text jika ada
+      if (text && text.trim()) {
+        newMessage.text = text
+      }
+
+      // Hanya tambahkan mediaUrls jika ada valid media
+      if (validMediaUrls && validMediaUrls.length > 0) {
+        newMessage.mediaUrls = validMediaUrls
       }
 
       await push(ref(db, 'messages'), newMessage)
@@ -65,7 +84,7 @@ export default function ForumPage() {
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error) {
       console.error('Error sending message:', error)
-      alert('Failed to send message. Please try again.')
+      alert('Gagal mengirim pesan. Silakan coba lagi.')
     }
   }
 
@@ -97,15 +116,24 @@ export default function ForumPage() {
         throw new Error('No files were uploaded')
       }
 
-      const uploadedMedia = data.media.map((item: { url: string; type: 'image' | 'video' }) => ({
-        url: item.url,
-        file: Array.from(files).find(f => 
-          f.type.startsWith(item.type === 'video' ? 'video' : 'image')
-        ) || files[0],
-        type: item.type
-      }))
+      // Filter dan map dengan validasi
+      const uploadedMedia = data.media
+        .filter((item: { url?: string; type?: string }) => item && item.url && item.type)
+        .map((item: { url: string; type: 'image' | 'video' }) => {
+          const matchingFile = Array.from(files).find(f => 
+            f.type.startsWith(item.type === 'video' ? 'video' : 'image')
+          ) || files[0]
+          
+          return {
+            url: String(item.url),
+            file: matchingFile,
+            type: item.type === 'video' ? 'video' as const : 'image' as const
+          }
+        })
 
-      setPreviews((prev) => [...prev, ...uploadedMedia])
+      if (uploadedMedia.length > 0) {
+        setPreviews((prev) => [...prev, ...uploadedMedia])
+      }
     } catch (error) {
       console.error('Error uploading files:', error)
       alert(error instanceof Error ? error.message : 'Gagal mengupload file. Silakan coba lagi.')

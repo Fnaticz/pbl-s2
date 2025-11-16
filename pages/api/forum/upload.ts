@@ -91,10 +91,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const downloadURL = await getDownloadURL(storageRef);
           console.log(`Download URL obtained: ${downloadURL}`);
 
-          uploadResults.push({
-            url: downloadURL,
-            type: fileType,
-          });
+          // Pastikan tidak ada undefined
+          if (downloadURL && fileType) {
+            uploadResults.push({
+              url: String(downloadURL),
+              type: fileType,
+            });
+          }
 
           // Hapus file temporary
           try {
@@ -118,13 +121,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      if (uploadResults.length === 0) {
+      // Filter hasil untuk memastikan tidak ada undefined
+      const cleanResults = uploadResults.filter(item => item && item.url && item.type);
+      
+      if (cleanResults.length === 0) {
         return res.status(500).json({ 
           message: "Failed to upload files to Firebase Storage",
         });
       }
 
-      return res.status(200).json({ media: uploadResults });
+      return res.status(200).json({ media: cleanResults });
     } catch (uploadError) {
       console.error("Upload to Firebase error:", uploadError);
       
