@@ -7,7 +7,7 @@ import path from "path";
 
 export const config = {
   api: {
-    bodyParser: false, // penting! biar formidable yang handle
+    bodyParser: false,
   },
 };
 
@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      // ✅ File handling
+      //File handling
       let file: File | undefined;
       const uploaded = files.file;
 
@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // ✅ String handling (username & type)
+      //String handling (username & type)
       let username: string | undefined;
       let type: string | undefined;
 
@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "Missing username or type" });
       }
 
-      // ✅ Simpan media ke DB
+      //Simpan media ke DB
       const relativePath = "/uploads/" + file.newFilename;
 
       const newMedia = await Media.create({

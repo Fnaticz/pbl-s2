@@ -9,7 +9,6 @@ jest.mock("next-auth/react", () => ({
 jest.mock("next/image", () => ({
   __esModule: true,
   default: (props: any) => {
-    // eslint-disable-next-line @next/next/no-img-element
     return <img {...props} />
   },
 }))
@@ -82,7 +81,6 @@ describe("GalleryPage", () => {
 
     const { container } = render(<GalleryPage />)
 
-    // Wait for initial loading to complete
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith("/api/media")
     })
@@ -130,12 +128,10 @@ describe("GalleryPage", () => {
 
     render(<GalleryPage />)
 
-    // Wait for initial loading to complete
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith("/api/media")
     })
 
-    // Wait for data to be rendered
     await waitFor(() => {
       expect(screen.queryByText(/loading data/i)).not.toBeInTheDocument()
     }, { timeout: 3000 })

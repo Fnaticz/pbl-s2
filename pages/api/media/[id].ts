@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
 import { connectDB } from "../../../lib/mongodb";
-import Media from "../../../models/media"; // pastikan kamu punya model ini
+import Media from "../../../models/media";
 import mongoose from "mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

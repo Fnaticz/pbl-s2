@@ -326,7 +326,7 @@ export default function ForumPage() {
 
               <input
                 type="text"
-                className="flex-grow px-3 py-2 rounded-md border border-gray-300"
+                className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Type a message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

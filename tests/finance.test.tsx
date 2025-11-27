@@ -28,6 +28,7 @@ afterEach(() => {
 })
 
 describe('FinanceReportPage', () => {
+  
   it('renders loading initially', () => {
     render(<FinanceReportPage />)
     expect(screen.getByText(/loading data/i)).toBeInTheDocument()
