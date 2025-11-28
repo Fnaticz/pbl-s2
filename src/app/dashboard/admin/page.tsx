@@ -318,35 +318,37 @@ export default function AdminDashboard() {
       isOpen: true,
       message: "Add this activity?",
       onConfirm: async () => {
+        try {
+          const res = await fetch("/api/activity/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: activityTitle,
+              name: activityName || "activity",
+              desc: activityDesc,
+              images: activityImages,
+            }),
+          });
 
-    try {
-      const res = await fetch("/api/activity/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: activityTitle,
-          name: activityName || "activity",
-          desc: activityDesc,
-          images: activityImages,
-        }),
-      });
+          if (res.ok) {
+            const newActivity = await res.json();
+            setActivityReports((prev) => [...prev, newActivity]);
 
-      if (res.ok) {
-        const newActivity = await res.json();
-        setActivityReports((prev) => [...prev, newActivity]);
-
-        setAlert({ isOpen: true, message: "Activity uploaded!", type: 'success' })
-        setActivityTitle("");
-        setActivityName("");
-        setActivityDesc("");
-        setActivityImages([]);
-      } else {
-        setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
+            setAlert({ isOpen: true, message: "Activity uploaded!", type: 'success' })
+            setActivityTitle("");
+            setActivityName("");
+            setActivityDesc("");
+            setActivityImages([]);
+          } else {
+            setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
+          }
+        } catch (error) {
+          console.error("Upload error:", error);
+          setAlert({ isOpen: true, message: "Server error", type: 'error' })
+        }
+        setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
       }
-    } catch (error) {
-      console.error("Upload error:", error);
-      setAlert({ isOpen: true, message: "Server error", type: 'error' })
-    }
+    })
   };
 
   const handleAddMainEvent = async () => {
@@ -640,10 +642,13 @@ export default function AdminDashboard() {
                       {m.paymentProof.startsWith("data:image") ? (
                         // ✅ jika base64
                         <>
-                          <img
+                          <Image
                             src={m.paymentProof}
                             alt="Payment Proof"
+                            width={192}
+                            height={192}
                             className="rounded-lg border border-gray-600 mb-2 w-48"
+                            unoptimized
                           />
                           <button
                             onClick={() => {

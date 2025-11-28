@@ -443,10 +443,6 @@ export default function MemberDashboard() {
       }
     })
   }
-    } catch (err) {
-      console.error('Failed to delete voucher', err)
-    }
-  }
 
   if (status === 'loading') {
     return <p className="text-white">Loading session...</p>
