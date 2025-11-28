@@ -37,35 +37,97 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       try {
+        // Debug: Log struktur files
+        console.log("Files received:", {
+          hasFile: !!files.file,
+          isArray: Array.isArray(files.file),
+          fileKeys: Object.keys(files),
+        });
+
+        if (!files.file) {
+          console.error("No files in request");
+          return res.status(400).json({ 
+            message: "No files uploaded",
+            details: "Please select at least one file"
+          });
+        }
+
         const uploadedFiles = Array.isArray(files.file) ? files.file : [files.file];
         const uploadResults: { url: string; type: "image" | "video" }[] = [];
 
-        for (const file of uploadedFiles) {
-          if (!file) continue;
+        // Ekstensi yang diizinkan
+        const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+        const videoExts = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.wmv'];
 
-          // Validasi tipe file
-          const fileType = file.mimetype?.startsWith("video/") ? "video" : "image";
-          if (!file.mimetype?.startsWith("image/") && !file.mimetype?.startsWith("video/")) {
-            console.warn(`Skipping invalid file type: ${file.mimetype}`);
+        for (const file of uploadedFiles) {
+          if (!file) {
+            console.warn("Skipping null/undefined file");
+            continue;
+          }
+
+          console.log("Processing file:", {
+            originalFilename: file.originalFilename,
+            mimetype: file.mimetype,
+            filepath: file.filepath,
+            size: file.size,
+          });
+
+          // Validasi tipe file - gunakan mimetype atau fallback ke ekstensi
+          const originalName = file.originalFilename || "file";
+          const ext = path.extname(originalName).toLowerCase();
+          
+          let fileType: "image" | "video" | null = null;
+          
+          // Cek berdasarkan mimetype terlebih dahulu
+          if (file.mimetype) {
+            if (file.mimetype.startsWith("image/")) {
+              fileType = "image";
+            } else if (file.mimetype.startsWith("video/")) {
+              fileType = "video";
+            }
+          }
+          
+          // Fallback: cek berdasarkan ekstensi jika mimetype tidak tersedia atau tidak valid
+          if (!fileType && ext) {
+            if (imageExts.includes(ext)) {
+              fileType = "image";
+            } else if (videoExts.includes(ext)) {
+              fileType = "video";
+            }
+          }
+
+          if (!fileType) {
+            console.warn(`Skipping invalid file type - mimetype: ${file.mimetype}, ext: ${ext}, filename: ${originalName}`);
+            continue;
+          }
+
+          // Pastikan file path ada
+          if (!file.filepath || !fs.existsSync(file.filepath)) {
+            console.warn("File path not found or file doesn't exist:", {
+              filepath: file.filepath,
+              originalFilename: file.originalFilename,
+            });
             continue;
           }
 
           // Generate unique filename
           const timestamp = Date.now();
           const randomStr = Math.random().toString(36).substring(2, 8);
-          const originalName = file.originalFilename || "file";
-          const ext = path.extname(originalName) || (fileType === "video" ? ".mp4" : ".jpg");
-          const fileName = `${timestamp}-${randomStr}${ext}`;
+          const finalExt = ext || (fileType === "video" ? ".mp4" : ".jpg");
+          const fileName = `${timestamp}-${randomStr}${finalExt}`;
           
           // Move file to final location
           const finalPath = path.join(uploadDir, fileName);
           
-          // Jika file sudah di temp directory, pindahkan
-          if (file.filepath && fs.existsSync(file.filepath)) {
+          try {
             fs.renameSync(file.filepath, finalPath);
-          } else {
-            // Jika file belum ada, skip
-            console.warn("File path not found:", file.originalFilename);
+            console.log(`File moved successfully: ${originalName} -> ${fileName}`);
+          } catch (moveError: any) {
+            console.error("Error moving file:", {
+              from: file.filepath,
+              to: finalPath,
+              error: moveError?.message,
+            });
             continue;
           }
 
@@ -73,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const url = `/uploads/chat-media/${fileName}`;
           uploadResults.push({ url, type: fileType });
           
-          console.log(`Upload successful: ${url}`);
+          console.log(`Upload successful: ${url} (type: ${fileType})`);
         }
 
         if (uploadResults.length === 0) {
