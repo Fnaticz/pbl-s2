@@ -4,6 +4,7 @@ import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Loading from "../components/Loading";
+import Alert from "../components/Alert";
 
 type FormData = {
   driverName: string;
@@ -33,6 +34,7 @@ export default function RegisterEventPage() {
     paymentProof: "",
   });
   const [isPaid, setIsPaid] = useState(false);
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 500);
@@ -66,12 +68,12 @@ export default function RegisterEventPage() {
     e.preventDefault();
 
     if (!session?.user?.id) {
-      alert("Login required to register.");
+      setAlert({ isOpen: true, message: "Login required to register.", type: 'warning' })
       return;
     }
 
     if (!isPaid) {
-      alert("Anda harus mencentang checkbox pembayaran terlebih dahulu.");
+      setAlert({ isOpen: true, message: "Anda harus mencentang checkbox pembayaran terlebih dahulu.", type: 'warning' })
       return;
     }
 
@@ -88,14 +90,14 @@ export default function RegisterEventPage() {
       });
 
       if (res.ok) {
-        alert("Event registration submitted!");
+        setAlert({ isOpen: true, message: "Event registration submitted!", type: 'success' })
       } else {
         const err = await res.json();
-        alert(err.message || "Failed to register event");
+        setAlert({ isOpen: true, message: err.message || "Failed to register event", type: 'error' })
       }
     } catch (err) {
       console.error(err);
-      alert("Server error. Please try again later.");
+      setAlert({ isOpen: true, message: "Server error. Please try again later.", type: 'error' })
     }
   };
 
@@ -302,6 +304,14 @@ export default function RegisterEventPage() {
           </label>
         </div>
       </div>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
     </section>
   );
 }

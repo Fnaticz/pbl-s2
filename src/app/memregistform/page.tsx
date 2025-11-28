@@ -3,6 +3,7 @@
 import { useEffect, useState, ChangeEvent, FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import Loading from '../components/Loading';
+import Alert from '../components/Alert';
 
 type User = {
   username: string
@@ -41,6 +42,7 @@ export default function MemberRegistrationForm() {
 
   const { data: session } = useSession()
   const user = session?.user as User | null
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -51,7 +53,7 @@ export default function MemberRegistrationForm() {
     e.preventDefault();
 
     if (!session?.user?.id) {
-      alert("Login required to register.");
+      setAlert({ isOpen: true, message: "Login required to register.", type: 'warning' })
       return;
     }
 
@@ -75,7 +77,7 @@ export default function MemberRegistrationForm() {
       const result = await res.json();
 
       if (res.ok) {
-        alert("Application submitted! Waiting for admin approval.");
+        setAlert({ isOpen: true, message: "Application submitted! Waiting for admin approval.", type: 'success' })
 
         // reset form
         setFormData({
@@ -89,11 +91,11 @@ export default function MemberRegistrationForm() {
           vehicleSpec: "",
         });
       } else {
-        alert(result.message || "Submission failed");
+        setAlert({ isOpen: true, message: result.message || "Submission failed", type: 'error' })
       }
     } catch (err) {
       console.error("Error submitting member application:", err);
-      alert("Server error. Please try again later.");
+      setAlert({ isOpen: true, message: "Server error. Please try again later.", type: 'error' })
     }
   };
 
@@ -192,6 +194,14 @@ export default function MemberRegistrationForm() {
           </button>
         </form>
       </main>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
     </section>
   )
 }

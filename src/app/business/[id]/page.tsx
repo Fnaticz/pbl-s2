@@ -14,6 +14,8 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
+import Alert from "../../../components/Alert";
+import Confirm from "../../../components/Confirm";
 
 type Business = {
   _id: string;
@@ -48,6 +50,8 @@ export default function BusinessDetailPage() {
   const [visibleCount, setVisibleCount] = useState(2)
   const [currentSlide, setCurrentSlide] = useState(0);
   const [lastRedeem, setLastRedeem] = useState<Date | null>(null)
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
+  const [confirm, setConfirm] = useState<{ isOpen: boolean; message: string; onConfirm: () => void }>({ isOpen: false, message: '', onConfirm: () => {} })
 
   const user = session?.user as { id: string; username: string } | undefined;
 
@@ -72,14 +76,17 @@ export default function BusinessDetailPage() {
   const handleRedeem = async (voucherId: string, pointsRequired: number) => {
     console.log("clicked redeem", voucherId); // 🔍 debug
     if (!session?.user?.id) {
-      alert("Please login to redeem");
+      setAlert({ isOpen: true, message: "Please login to redeem", type: 'warning' })
       return;
     }
     if (!canRedeem()) {
-      alert("You can redeem only once every 24 hours!");
+      setAlert({ isOpen: true, message: "You can redeem only once every 24 hours!", type: 'warning' })
       return;
     }
-    if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return;
+    setConfirm({
+      isOpen: true,
+      message: `Redeem this voucher for ${pointsRequired} points?`,
+      onConfirm: async () => {
 
     try {
       const res = await fetch("/api/voucher/redeem", {
@@ -92,7 +99,7 @@ export default function BusinessDetailPage() {
       console.log("redeem response", result);
 
       if (res.ok) {
-        alert(`Successfully redeemed ${result.redemption.voucherTitle || "voucher"}!`);
+        setAlert({ isOpen: true, message: `Successfully redeemed ${result.redemption.voucherTitle || "voucher"}!`, type: 'success' })
         setLastRedeem(new Date());
         // refresh vouchers/stock
         const r2 = await fetch(`/api/voucher/index?businessId=${id}`);
@@ -101,12 +108,16 @@ export default function BusinessDetailPage() {
           setVouchers(d2 || []);
         }
       } else {
-        alert(result.message || "Failed to redeem");
+        setAlert({ isOpen: true, message: result.message || "Failed to redeem", type: 'error' })
       }
+      setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
     } catch (err) {
       console.error("Redeem error:", err);
-      alert("Server error, try again later.");
+      setAlert({ isOpen: true, message: "Server error, try again later.", type: 'error' })
+      setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
     }
+      }
+    })
   };
 
 
@@ -355,6 +366,22 @@ export default function BusinessDetailPage() {
           )}
         </div>
       </main>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
+
+      {/* Custom Confirm Component */}
+      <Confirm
+        isOpen={confirm.isOpen}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ isOpen: false, message: '', onConfirm: () => {} })}
+      />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import autoTable from 'jspdf-autotable'
 import jsPDF from 'jspdf'
 import Image from "next/image";
 import Loading from '../../components/Loading';
+import Alert from '../../components/Alert';
+import Confirm from '../../components/Confirm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IMainEvent } from '../../../../models/main-event';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
@@ -83,6 +85,8 @@ export default function AdminDashboard() {
   const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string; images?: string[]; createdAt: Date }[]>([])
   const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
   const [totalAmount, setTotalAmount] = useState<number | null>(null)
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
+  const [confirm, setConfirm] = useState<{ isOpen: boolean; message: string; onConfirm: () => void }>({ isOpen: false, message: '', onConfirm: () => {} })
   const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
   const [eventDate, setEventDate] = useState('')
   const [eventTitle, setEventTitle] = useState('')
@@ -153,13 +157,13 @@ export default function AdminDashboard() {
       if (res.ok) {
         setPendingMember(prev => prev.filter(m => m._id !== id));
         fetchMembers();
-        alert('Accepted successfully');
+        setAlert({ isOpen: true, message: 'Accepted successfully', type: 'success' })
       } else {
-        alert(result.message || 'Failed to accept');
+        setAlert({ isOpen: true, message: result.message || 'Failed to accept', type: 'error' })
       }
     } catch (error) {
       console.error(error);
-      alert('Error accepting application');
+      setAlert({ isOpen: true, message: 'Error accepting application', type: 'error' })
     }
   };
 
@@ -175,13 +179,13 @@ export default function AdminDashboard() {
       if (res.ok) {
         setPendingParticipant(prev => prev.filter(m => m._id !== id));
         fetchEvents();
-        alert('Accepted successfully');
+        setAlert({ isOpen: true, message: 'Accepted successfully', type: 'success' })
       } else {
-        alert(result.message || 'Failed to accept');
+        setAlert({ isOpen: true, message: result.message || 'Failed to accept', type: 'error' })
       }
     } catch (error) {
       console.error(error);
-      alert('Error accepting application');
+      setAlert({ isOpen: true, message: 'Error accepting application', type: 'error' })
     }
   };
 
@@ -196,13 +200,13 @@ export default function AdminDashboard() {
       const result = await res.json();
       if (res.ok) {
         setPendingMember(prev => prev.filter(m => m._id !== id));
-        alert('Rejected successfully');
+        setAlert({ isOpen: true, message: 'Rejected successfully', type: 'success' })
       } else {
-        alert(result.message || 'Failed to reject');
+        setAlert({ isOpen: true, message: result.message || 'Failed to reject', type: 'error' })
       }
     } catch (error) {
       console.error(error);
-      alert('Error rejecting application');
+      setAlert({ isOpen: true, message: 'Error rejecting application', type: 'error' })
     }
   };
 
@@ -217,24 +221,28 @@ export default function AdminDashboard() {
       const result = await res.json();
       if (res.ok) {
         setPendingParticipant(prev => prev.filter(m => m._id !== id));
-        alert('Rejected successfully');
+        setAlert({ isOpen: true, message: 'Rejected successfully', type: 'success' })
       } else {
-        alert(result.message || 'Failed to reject');
+        setAlert({ isOpen: true, message: result.message || 'Failed to reject', type: 'error' })
       }
     } catch (error) {
       console.error(error);
-      alert('Error rejecting application');
+      setAlert({ isOpen: true, message: 'Error rejecting application', type: 'error' })
     }
   };
 
   const handleUpload = async () => {
     if (!bannerTitle || !bannerDate || !bannerLocation || !bannerName) {
-      return alert("All fields required");
+      setAlert({ isOpen: true, message: "All fields required", type: 'warning' })
+      return
     }
 
     const fileInput = document.getElementById("banner-file") as HTMLInputElement;
     const file = fileInput?.files?.[0];
-    if (!file) return alert("No file selected");
+    if (!file) {
+      setAlert({ isOpen: true, message: "No file selected", type: 'warning' })
+      return
+    }
 
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -257,7 +265,7 @@ export default function AdminDashboard() {
           const newBanner = await res.json();
           setBannerReports((prev) => [...prev, newBanner]);
 
-          alert("Banner uploaded!");
+          setAlert({ isOpen: true, message: "Banner uploaded!", type: 'success' })
           setBannerTitle("");
           setBannerDate("");
           setBannerLocation("");
@@ -265,11 +273,11 @@ export default function AdminDashboard() {
           setBannerPreview(null);
           fileInput.value = "";
         } else {
-          alert("Upload failed");
+          setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
         }
       } catch (err) {
         console.error("Upload error:", err);
-        alert("Server error");
+        setAlert({ isOpen: true, message: "Server error", type: 'error' })
       }
     };
 
@@ -279,27 +287,37 @@ export default function AdminDashboard() {
 
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this banner?')) return;
+    setConfirm({
+      isOpen: true,
+      message: 'Delete this banner?',
+      onConfirm: async () => {
+        const res = await fetch('/api/banner/delete', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
 
-    const res = await fetch('/api/banner/delete', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-
-    if (res.ok) {
-      setBannerReports(prev => prev.filter(b => b._id !== id));
-    } else {
-      alert('Failed to delete banner');
-    }
+        if (res.ok) {
+          setBannerReports(prev => prev.filter(b => b._id !== id));
+          setAlert({ isOpen: true, message: 'Banner deleted successfully', type: 'success' })
+        } else {
+          setAlert({ isOpen: true, message: 'Failed to delete banner', type: 'error' })
+        }
+        setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+      }
+    })
   };
 
   const handleAddActivity = async () => {
     if (activityImages.length === 0 || !activityTitle || !activityDesc) {
-      return alert("All fields required");
+      setAlert({ isOpen: true, message: "All fields required", type: 'warning' })
+      return
     }
 
-    if (!confirm("Add this activity?")) return;
+    setConfirm({
+      isOpen: true,
+      message: "Add this activity?",
+      onConfirm: async () => {
 
     try {
       const res = await fetch("/api/activity/upload", {
@@ -317,28 +335,32 @@ export default function AdminDashboard() {
         const newActivity = await res.json();
         setActivityReports((prev) => [...prev, newActivity]);
 
-        alert("Activity uploaded!");
+        setAlert({ isOpen: true, message: "Activity uploaded!", type: 'success' })
         setActivityTitle("");
         setActivityName("");
         setActivityDesc("");
         setActivityImages([]);
       } else {
-        alert("Upload failed");
+        setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Server error");
+      setAlert({ isOpen: true, message: "Server error", type: 'error' })
     }
   };
 
   const handleAddMainEvent = async () => {
     if (!mainEventTitle || !mainEventDate || !mainEventLocation || !mainEventDesc || !mainEventName) {
-      return alert("All fields required");
+      setAlert({ isOpen: true, message: "All fields required", type: 'warning' })
+      return
     }
 
     const fileInput = document.getElementById("bannermainevent-file") as HTMLInputElement;
     const file = fileInput?.files?.[0];
-    if (!file) return alert("No file selected");
+    if (!file) {
+      setAlert({ isOpen: true, message: "No file selected", type: 'warning' })
+      return
+    }
 
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -362,7 +384,7 @@ export default function AdminDashboard() {
           const newMainEvent = await res.json();
           setMainEventReports((prev) => [...prev, newMainEvent]);
 
-          alert("Main event uploaded!");
+          setAlert({ isOpen: true, message: "Main event uploaded!", type: 'success' })
           setMainEventTitle("");
           setMainEventDate("");
           setMainEventLocation("");
@@ -371,11 +393,11 @@ export default function AdminDashboard() {
           setMainEventPreview(null);
           fileInput.value = "";
         } else {
-          alert("Upload failed");
+          setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
         }
       } catch (err) {
         console.error("Upload error:", err);
-        alert("Server error");
+        setAlert({ isOpen: true, message: "Server error", type: 'error' })
       }
     };
 
@@ -556,28 +578,34 @@ export default function AdminDashboard() {
                 </div>
                 <button
                   onClick={async () => {
-                    if (!confirm("Delete this Member?")) return;
+                    setConfirm({
+                      isOpen: true,
+                      message: "Delete this Member?",
+                      onConfirm: async () => {
+                        try {
+                          const res = await fetch("/api/members/delete", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: m._id }),
+                          });
 
-                    try {
-                      const res = await fetch("/api/members/delete", {
-                        method: "DELETE",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ id: m._id }),
-                      });
+                          const result = await res.json();
 
-                      const result = await res.json();
-
-                      if (res.ok) {
-                        // update state supaya UI langsung refresh
-                        setMembers((prev) => prev.filter((act) => act._id !== m._id));
-                        alert("Member deleted successfully");
-                      } else {
-                        alert(result.message || "Failed to delete member");
+                          if (res.ok) {
+                            // update state supaya UI langsung refresh
+                            setMembers((prev) => prev.filter((act) => act._id !== m._id));
+                            setAlert({ isOpen: true, message: "Member deleted successfully", type: 'success' })
+                          } else {
+                            setAlert({ isOpen: true, message: result.message || "Failed to delete member", type: 'error' })
+                          }
+                          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                        } catch (err) {
+                          console.error("Delete error:", err);
+                          setAlert({ isOpen: true, message: "Server error, please try again.", type: 'error' })
+                          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                        }
                       }
-                    } catch (err) {
-                      console.error("Delete error:", err);
-                      alert("Server error, please try again.");
-                    }
+                    })
                   }}
                   className="text-red-600 hover:text-red-800"
                 >
@@ -676,28 +704,34 @@ export default function AdminDashboard() {
                 </div>
                 <button
                   onClick={async () => {
-                    if (!confirm("Delete this Participant?")) return;
+                    setConfirm({
+                      isOpen: true,
+                      message: "Delete this Participant?",
+                      onConfirm: async () => {
+                        try {
+                          const res = await fetch("/api/events/delete", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: m._id }),
+                          });
 
-                    try {
-                      const res = await fetch("/api/events/delete", {
-                        method: "DELETE",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ id: m._id }),
-                      });
+                          const result = await res.json();
 
-                      const result = await res.json();
-
-                      if (res.ok) {
-                        // update state supaya UI langsung refresh
-                        setParticipants((prev) => prev.filter((act) => act._id !== m._id));
-                        alert("Participant deleted successfully");
-                      } else {
-                        alert(result.message || "Failed to delete member");
+                          if (res.ok) {
+                            // update state supaya UI langsung refresh
+                            setParticipants((prev) => prev.filter((act) => act._id !== m._id));
+                            setAlert({ isOpen: true, message: "Participant deleted successfully", type: 'success' })
+                          } else {
+                            setAlert({ isOpen: true, message: result.message || "Failed to delete member", type: 'error' })
+                          }
+                          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                        } catch (err) {
+                          console.error("Delete error:", err);
+                          setAlert({ isOpen: true, message: "Server error, please try again.", type: 'error' })
+                          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                        }
                       }
-                    } catch (err) {
-                      console.error("Delete error:", err);
-                      alert("Server error, please try again.");
-                    }
+                    })
                   }}
                   className="text-red-600 hover:text-red-800"
                 >
@@ -845,17 +879,26 @@ export default function AdminDashboard() {
                     </div>
                     <button
                       onClick={async () => {
-                        if (!confirm("Delete this main event?")) return;
-                        const res = await fetch("/api/mainevent/delete", {
-                          method: "DELETE",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: me._id }),
-                        });
-                        if (res.ok) {
-                          setMainEventReports((prev) =>
-                            prev.filter((act) => act._id !== me._id)
-                          );
-                        }
+                        setConfirm({
+                          isOpen: true,
+                          message: "Delete this main event?",
+                          onConfirm: async () => {
+                            const res = await fetch("/api/mainevent/delete", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ id: me._id }),
+                            });
+                            if (res.ok) {
+                              setMainEventReports((prev) =>
+                                prev.filter((act) => act._id !== me._id)
+                              );
+                              setAlert({ isOpen: true, message: "Main event deleted successfully", type: 'success' })
+                            } else {
+                              setAlert({ isOpen: true, message: "Failed to delete main event", type: 'error' })
+                            }
+                            setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                          }
+                        })
                       }}
                       className="text-red-500 hover:text-red-700"
                     >
@@ -1029,27 +1072,37 @@ export default function AdminDashboard() {
                 const desc = (document.getElementById("finance-desc") as HTMLInputElement)?.value;
                 const amt = parseFloat((document.getElementById("finance-amt") as HTMLInputElement)?.value || "0");
 
-                if (desc && amt && confirm('Submit finance report?')) {
-                  const res = await fetch('/api/finance/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      description: desc,
-                      amount: amt,
-                      date: new Date().toLocaleString()
-                    }),
-                  });
+                if (desc && amt) {
+                  setConfirm({
+                    isOpen: true,
+                    message: 'Submit finance report?',
+                    onConfirm: async () => {
+                      const res = await fetch('/api/finance/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          description: desc,
+                          amount: amt,
+                          date: new Date().toLocaleString()
+                        }),
+                      });
 
-                  if (res.ok) {
-                    const data = await res.json();
-                    setFinanceRecords(prev => [...prev, {
-                      _id: data._id || String(Date.now()),
-                      description: desc,
-                      amount: amt,
-                      date: new Date().toLocaleString()
-                    }]);
-                    setTotalAmount(null);
-                  }
+                      if (res.ok) {
+                        const data = await res.json();
+                        setFinanceRecords(prev => [...prev, {
+                          _id: data._id || String(Date.now()),
+                          description: desc,
+                          amount: amt,
+                          date: new Date().toLocaleString()
+                        }]);
+                        setTotalAmount(null);
+                        setAlert({ isOpen: true, message: "Finance report submitted successfully", type: 'success' })
+                      } else {
+                        setAlert({ isOpen: true, message: "Failed to submit finance report", type: 'error' })
+                      }
+                      setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                    }
+                  })
                 }
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow"
@@ -1074,20 +1127,28 @@ export default function AdminDashboard() {
                       <td className="py-2 text-right">
                         <button
                           onClick={async () => {
-                            if (!confirm('Delete this finance record?')) return;
+                            setConfirm({
+                              isOpen: true,
+                              message: 'Delete this finance record?',
+                              onConfirm: async () => {
+                                const recordToDelete = financeRecords[i];
+                                const res = await fetch('/api/finance/delete', {
+                                  method: 'DELETE',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id: recordToDelete._id }),
+                                });
 
-                            const recordToDelete = financeRecords[i];
-                            const res = await fetch('/api/finance/delete', {
-                              method: 'DELETE',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: recordToDelete._id }),
-                            });
-
-                            if (res.ok) {
-                              const updated = financeRecords.filter((_, idx) => idx !== i);
-                              setFinanceRecords(updated);
-                              setTotalAmount(null);
-                            }
+                                if (res.ok) {
+                                  const updated = financeRecords.filter((_, idx) => idx !== i);
+                                  setFinanceRecords(updated);
+                                  setTotalAmount(null);
+                                  setAlert({ isOpen: true, message: "Finance record deleted successfully", type: 'success' })
+                                } else {
+                                  setAlert({ isOpen: true, message: "Failed to delete finance record", type: 'error' })
+                                }
+                                setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                              }
+                            })
                           }}
 
                           className="text-red-500 hover:text-red-700"
@@ -1268,17 +1329,26 @@ export default function AdminDashboard() {
 
                     <button
                       onClick={async () => {
-                        if (!confirm("Delete this activity?")) return;
-                        const res = await fetch("/api/activity/delete", {
-                          method: "DELETE",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: a._id }),
-                        });
-                        if (res.ok) {
-                          setActivityReports((prev) =>
-                            prev.filter((act) => act._id !== a._id)
-                          );
-                        }
+                        setConfirm({
+                          isOpen: true,
+                          message: "Delete this activity?",
+                          onConfirm: async () => {
+                            const res = await fetch("/api/activity/delete", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ id: a._id }),
+                            });
+                            if (res.ok) {
+                              setActivityReports((prev) =>
+                                prev.filter((act) => act._id !== a._id)
+                              );
+                              setAlert({ isOpen: true, message: "Activity deleted successfully", type: 'success' })
+                            } else {
+                              setAlert({ isOpen: true, message: "Failed to delete activity", type: 'error' })
+                            }
+                            setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                          }
+                        })
                       }}
                       className="text-red-500 hover:text-red-700"
                     >
@@ -1316,32 +1386,40 @@ export default function AdminDashboard() {
 
             <button
               onClick={async () => {
-                if (eventDate && eventTitle && confirm('Save event schedule?')) {
-                  const payload = {
-                    date: eventDate,
-                    title: eventTitle,
-                    created: new Date().toLocaleString(),
-                  };
+                if (eventDate && eventTitle) {
+                  setConfirm({
+                    isOpen: true,
+                    message: 'Save event schedule?',
+                    onConfirm: async () => {
+                      const payload = {
+                        date: eventDate,
+                        title: eventTitle,
+                        created: new Date().toLocaleString(),
+                      };
 
-                  const res = await fetch('/api/schedule/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                  });
+                      const res = await fetch('/api/schedule/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                      });
 
-                  if (res.ok) {
-                    const newEvent = await res.json();
-                    setSchedules(prev => [...prev, {
-                      _id: newEvent._id || String(Date.now()),
-                      date: eventDate,
-                      title: eventTitle,
-                      created: new Date().toLocaleString()
-                    }]);
-                    setEventDate('');
-                    setEventTitle('');
-                  } else {
-                    alert('Failed to save schedule');
-                  }
+                      if (res.ok) {
+                        const newEvent = await res.json();
+                        setSchedules(prev => [...prev, {
+                          _id: newEvent._id || String(Date.now()),
+                          date: eventDate,
+                          title: eventTitle,
+                          created: new Date().toLocaleString()
+                        }]);
+                        setEventDate('');
+                        setEventTitle('');
+                        setAlert({ isOpen: true, message: 'Event schedule saved successfully', type: 'success' })
+                      } else {
+                        setAlert({ isOpen: true, message: 'Failed to save schedule', type: 'error' })
+                      }
+                      setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                    }
+                  })
                 }
               }}
 
@@ -1359,19 +1437,27 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={async () => {
-                      if (!confirm('Delete this event schedule?')) return;
+                      setConfirm({
+                        isOpen: true,
+                        message: 'Delete this event schedule?',
+                        onConfirm: async () => {
+                          const recordToDelete = schedules[i];
+                          const res = await fetch('/api/schedule/delete', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: recordToDelete._id }),
+                          });
 
-                      const recordToDelete = schedules[i];
-                      const res = await fetch('/api/schedule/delete', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: recordToDelete._id }),
-                      });
-
-                      if (res.ok) {
-                        const updated = schedules.filter((_, idx) => idx !== i);
-                        setSchedules(updated);
-                      }
+                          if (res.ok) {
+                            const updated = schedules.filter((_, idx) => idx !== i);
+                            setSchedules(updated);
+                            setAlert({ isOpen: true, message: 'Event schedule deleted successfully', type: 'success' })
+                          } else {
+                            setAlert({ isOpen: true, message: 'Failed to delete event schedule', type: 'error' })
+                          }
+                          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                        }
+                      })
                     }}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -1579,6 +1665,22 @@ export default function AdminDashboard() {
           {renderSection()}
         </div>
       </main>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
+
+      {/* Custom Confirm Component */}
+      <Confirm
+        isOpen={confirm.isOpen}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ isOpen: false, message: '', onConfirm: () => {} })}
+      />
     </div>
   )
 }

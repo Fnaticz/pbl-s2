@@ -8,6 +8,9 @@ import { db } from '../../../lib/firebase'
 import type { DataSnapshot } from 'firebase/database'
 import Image from "next/image";
 import Loading from '../components/Loading';
+import Alert from '../components/Alert';
+import Confirm from '../components/Confirm';
+import MediaViewer from '../components/MediaViewer';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SessionUser {
@@ -39,13 +42,22 @@ export default function ForumPage() {
   const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({})
   const [userAvatars, setUserAvatars] = useState<{ [username: string]: string | null }>({})
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null)
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
+  const [confirm, setConfirm] = useState<{ isOpen: boolean; message: string; onConfirm: () => void }>({ isOpen: false, message: '', onConfirm: () => {} })
+  const [mediaViewer, setMediaViewer] = useState<{ isOpen: boolean; mediaUrl: string; mediaType: 'image' | 'video' }>({ isOpen: false, mediaUrl: '', mediaType: 'image' })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   const sendMessage = async () => {
     if (!input.trim() && previews.length === 0) return
-    if (!user) return alert('You must be logged in.')
-    if (uploading) return alert('Please wait for uploads to complete.')
+    if (!user) {
+      setAlert({ isOpen: true, message: 'You must be logged in.', type: 'warning' })
+      return
+    }
+    if (uploading) {
+      setAlert({ isOpen: true, message: 'Please wait for uploads to complete.', type: 'warning' })
+      return
+    }
 
     try {
       const text = input
@@ -86,7 +98,7 @@ export default function ForumPage() {
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error) {
       console.error('Error sending message:', error)
-      alert('Gagal mengirim pesan. Silakan coba lagi.')
+      setAlert({ isOpen: true, message: 'Gagal mengirim pesan. Silakan coba lagi.', type: 'error' })
     }
   }
 
@@ -122,7 +134,7 @@ export default function ForumPage() {
     const maxSize = 100 * 1024 * 1024 // 100MB
     const invalidFiles = Array.from(files).filter(f => f.size > maxSize)
     if (invalidFiles.length > 0) {
-      alert(`File terlalu besar. Maksimal 100MB per file.`)
+      setAlert({ isOpen: true, message: 'File terlalu besar. Maksimal 100MB per file.', type: 'error' })
       if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
@@ -134,7 +146,7 @@ export default function ForumPage() {
       for (const file of Array.from(files)) {
         // Validasi tipe file
         if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-          alert(`File ${file.name} bukan gambar atau video.`)
+          setAlert({ isOpen: true, message: `File ${file.name} bukan gambar atau video.`, type: 'error' })
           continue
         }
         formData.append('file', file)
@@ -142,7 +154,7 @@ export default function ForumPage() {
 
       // Cek apakah ada file yang valid
       if (formData.getAll('file').length === 0) {
-        alert('Tidak ada file yang valid untuk diupload.')
+        setAlert({ isOpen: true, message: 'Tidak ada file yang valid untuk diupload.', type: 'error' })
         setUploading(false)
         if (fileInputRef.current) fileInputRef.current.value = ''
         return
@@ -204,7 +216,7 @@ export default function ForumPage() {
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'Gagal mengupload file. Silakan coba lagi.'
-      alert(errorMessage)
+      setAlert({ isOpen: true, message: errorMessage, type: 'error' })
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -212,15 +224,24 @@ export default function ForumPage() {
   }
 
   const deleteMessage = async (id: number) => {
-    if (user?.role !== 'admin') return alert('Only admin can delete messages.')
-    if (!confirm('Delete message?')) return
+    if (user?.role !== 'admin') {
+      setAlert({ isOpen: true, message: 'Only admin can delete messages.', type: 'warning' })
+      return
+    }
+    
+    setConfirm({
+      isOpen: true,
+      message: 'Delete message?',
+      onConfirm: async () => {
+        const messagesRef = ref(db, 'messages')
+        const snapshot = await get(messagesRef)
 
-    const messagesRef = ref(db, 'messages')
-    const snapshot = await get(messagesRef)
-
-    snapshot.forEach((child: DataSnapshot) => {
-      const msg = child.val()
-      if (msg.id === id) remove(child.ref)
+        snapshot.forEach((child: DataSnapshot) => {
+          const msg = child.val()
+          if (msg.id === id) remove(child.ref)
+        })
+        setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+      }
     })
   }
 
@@ -347,33 +368,34 @@ export default function ForumPage() {
                                 height={400}
                                 className="rounded-md max-w-full sm:max-w-[60%] max-h-[400px] object-contain shadow cursor-pointer"
                                 unoptimized
+                                onClick={() => setMediaViewer({ isOpen: true, mediaUrl, mediaType: 'image' })}
                                 onError={(e) => {
                                   console.error('Image load error:', mediaUrl)
                                   e.currentTarget.src = '/placeholder-image.png'
                                 }}
                               />
-                              <a
-                                href={mediaUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/media:opacity-100 transition-opacity rounded-md"
+                              <div
+                                onClick={() => setMediaViewer({ isOpen: true, mediaUrl, mediaType: 'image' })}
+                                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/media:opacity-100 transition-opacity rounded-md cursor-pointer"
                               >
                                 <span className="text-white text-sm">Click to view full size</span>
-                              </a>
+                              </div>
                             </div>
                           ) : (
-                            <video
-                              key={idx}
-                              src={mediaUrl}
-                              controls
-                              className="mt-2 rounded-md max-w-full sm:max-w-[60%] max-h-[400px] shadow"
-                              preload="metadata"
-                              onError={(e) => {
-                                console.error('Video load error:', mediaUrl)
-                              }}
-                            >
-                              Your browser does not support the video tag.
-                            </video>
+                            <div key={idx} className="relative">
+                              <video
+                                src={mediaUrl}
+                                controls
+                                className="mt-2 rounded-md max-w-full sm:max-w-[60%] max-h-[400px] shadow cursor-pointer"
+                                preload="metadata"
+                                onClick={() => setMediaViewer({ isOpen: true, mediaUrl, mediaType: 'video' })}
+                                onError={(e) => {
+                                  console.error('Video load error:', mediaUrl)
+                                }}
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
                           )
                         })}
                       </div>
@@ -478,7 +500,7 @@ export default function ForumPage() {
 
               <input
                 type="text"
-                className="flex-1 px-2 sm:px-3 py-2 rounded-md border border-gray-300 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Type a message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -605,6 +627,30 @@ export default function ForumPage() {
           {renderSection()}
         </div>
       </main>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
+
+      {/* Custom Confirm Component */}
+      <Confirm
+        isOpen={confirm.isOpen}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ isOpen: false, message: '', onConfirm: () => {} })}
+      />
+
+      {/* Media Viewer Popup */}
+      <MediaViewer
+        isOpen={mediaViewer.isOpen}
+        mediaUrl={mediaViewer.mediaUrl}
+        mediaType={mediaViewer.mediaType}
+        onClose={() => setMediaViewer({ isOpen: false, mediaUrl: '', mediaType: 'image' })}
+      />
     </div>
   )
 }

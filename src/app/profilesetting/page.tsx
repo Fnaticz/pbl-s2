@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Loading from "../components/Loading";
+import Alert from "../components/Alert";
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function ProfileSettingsPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [username, setUsername] = useState("");
   const [address, setAddress] = useState("");
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -28,7 +30,7 @@ export default function ProfileSettingsPage() {
         );
       } catch (err) {
         console.error(err);
-        alert("Failed to fetch user data");
+        setAlert({ isOpen: true, message: "Failed to fetch user data", type: 'error' })
       } finally {
         setLoading(false);
       }
@@ -70,22 +72,26 @@ export default function ProfileSettingsPage() {
       const data = await res.json();
       if (!res.ok) {
         console.error("Reset failed:", data);
-        return alert(data.message || "Failed to reset avatar");
+        setAlert({ isOpen: true, message: data.message || "Failed to reset avatar", type: 'error' })
+        return
       }
 
-      alert("Avatar reset to default!");
+      setAlert({ isOpen: true, message: "Avatar reset to default!", type: 'success' })
       setUser(data.user);
       setAvatarPreview(null);
     } catch (err) {
       console.error("Reset error:", err);
-      alert("Server error, see console");
+      setAlert({ isOpen: true, message: "Server error, see console", type: 'error' })
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
-    if (!user?._id) return alert("User not found");
+    if (!user?._id) {
+      setAlert({ isOpen: true, message: "User not found", type: 'error' })
+      return
+    }
 
     setLoading(true);
     try {
@@ -111,15 +117,16 @@ export default function ProfileSettingsPage() {
       const data = await res.json();
       if (!res.ok) {
         console.error("Update failed:", data);
-        return alert(data.message || "Failed to update profile");
+        setAlert({ isOpen: true, message: data.message || "Failed to update profile", type: 'error' })
+        return
       }
 
-      alert("Profile updated successfully!");
+      setAlert({ isOpen: true, message: "Profile updated successfully!", type: 'success' })
       setUser(data.user);
-      router.push("/profile");
+      setTimeout(() => router.push("/profile"), 1500);
     } catch (err) {
       console.error("Update error:", err);
-      alert("Server error, see console");
+      setAlert({ isOpen: true, message: "Server error, see console", type: 'error' })
     } finally {
       setLoading(false);
     }
@@ -213,6 +220,14 @@ const avatarSrc = getAvatarSrc(user?.avatar);
           Cancel
         </button>
       </div>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
     </div>
   );
 }

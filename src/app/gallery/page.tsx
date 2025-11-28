@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { FaTrash, FaPlus, FaImage, FaVideo, FaUser } from "react-icons/fa";
 import Image from "next/image";
 import Loading from "../components/Loading";
+import Alert from "../components/Alert";
+import Confirm from "../components/Confirm";
 
 interface MediaItem {
   _id: string;
@@ -24,6 +26,8 @@ export default function GalleryPage() {
   const [page, setPage] = useState(1);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
+  const [confirm, setConfirm] = useState<{ isOpen: boolean; message: string; onConfirm: () => void }>({ isOpen: false, message: '', onConfirm: () => {} })
 
   useEffect(() => {
     const fetchMedia = async () => {
@@ -65,7 +69,7 @@ export default function GalleryPage() {
         setMedia((prev) => [newMedia, ...prev]);
       } else {
         const err = await response.json();
-        alert(err.message || "Upload failed");
+        setAlert({ isOpen: true, message: err.message || "Upload failed", type: 'error' })
       }
     } catch (err) {
       console.error("Upload error:", err);
@@ -73,18 +77,27 @@ export default function GalleryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this media?")) return;
-    try {
-      const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setMedia((prev) => prev.filter((item) => item._id !== id));
-      } else {
-        const err = await res.json();
-        alert(err.message || "Delete failed");
+    setConfirm({
+      isOpen: true,
+      message: "Are you sure you want to delete this media?",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
+          if (res.ok) {
+            setMedia((prev) => prev.filter((item) => item._id !== id));
+            setAlert({ isOpen: true, message: "Media deleted successfully", type: 'success' })
+          } else {
+            const err = await res.json();
+            setAlert({ isOpen: true, message: err.message || "Delete failed", type: 'error' })
+          }
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        } catch (err) {
+          console.error("Delete error:", err);
+          setAlert({ isOpen: true, message: "Failed to delete media", type: 'error' })
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        }
       }
-    } catch (err) {
-      console.error("Delete error:", err);
-    }
+    })
   };
 
   const filteredMedia = showOnlyMine
@@ -273,6 +286,22 @@ export default function GalleryPage() {
           </div>
         </div>
       )}
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
+
+      {/* Custom Confirm Component */}
+      <Confirm
+        isOpen={confirm.isOpen}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ isOpen: false, message: '', onConfirm: () => {} })}
+      />
     </div>
   );
 }

@@ -7,6 +7,8 @@ import { FaSignOutAlt, FaFileInvoiceDollar, FaTimes, FaBars, FaUser, FaClipboard
 import Link from "next/link";
 import Image from "next/image";
 import Loading from '../../components/Loading';
+import Alert from '../../components/Alert';
+import Confirm from '../../components/Confirm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -63,6 +65,8 @@ export default function MemberDashboard() {
     expiryDate: "",
     stock: 0,
   });
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
+  const [confirm, setConfirm] = useState<{ isOpen: boolean; message: string; onConfirm: () => void }>({ isOpen: false, message: '', onConfirm: () => {} })
 
   type RedeemedVoucher = {
     id: string;
@@ -95,8 +99,15 @@ export default function MemberDashboard() {
   }, [user?.id]);
 
   const handleRedeem = async (voucherId: string, pointsRequired: number) => {
-    if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return;
-    if (!user?.id) return alert("Login required");
+    setConfirm({
+      isOpen: true,
+      message: `Redeem this voucher for ${pointsRequired} points?`,
+      onConfirm: async () => {
+        if (!user?.id) {
+          setAlert({ isOpen: true, message: "Login required", type: 'warning' })
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+          return
+        }
 
     try {
       const res = await fetch("/api/voucher/redeem", {
@@ -107,7 +118,7 @@ export default function MemberDashboard() {
 
       const result = await res.json();
       if (res.ok) {
-        alert("Voucher redeemed!");
+        setAlert({ isOpen: true, message: "Voucher redeemed!", type: 'success' })
         // refresh redeemed list dan juga update vouchers/stats kalau perlu
         await loadRedeemed();
         // optional: if currently viewing vouchers of the business, refresh that list too
@@ -116,13 +127,18 @@ export default function MemberDashboard() {
           const d = await r.json();
           setVoucher(d || []);
         }
+        setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
       } else {
-        alert(result.message || "Failed to redeem");
+        setAlert({ isOpen: true, message: result.message || "Failed to redeem", type: 'error' })
+        setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
       }
     } catch (err) {
       console.error("Redeem error:", err);
-      alert("3 Server error");
+      setAlert({ isOpen: true, message: "Server error", type: 'error' })
+      setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
     }
+      }
+    })
   };
 
   useEffect(() => {
@@ -192,11 +208,11 @@ export default function MemberDashboard() {
     });
     const data = await res.json();
     if (res.ok) {
-      alert("Voucher updated!");
+      setAlert({ isOpen: true, message: "Voucher updated!", type: 'success' })
       setEditingVoucher(null);
       loadVouchers();
     } else {
-      alert(data.message || "Failed to update voucher");
+      setAlert({ isOpen: true, message: data.message || "Failed to update voucher", type: 'error' })
     }
   };
 
@@ -262,7 +278,10 @@ export default function MemberDashboard() {
 
 
   const handleSaveProfile = async () => {
-    if (!user?.id) return alert("Login required");
+    if (!user?.id) {
+      setAlert({ isOpen: true, message: "Login required", type: 'warning' })
+      return
+    }
 
     // ✅ Validasi input
     const requiredFields = [
@@ -279,7 +298,7 @@ export default function MemberDashboard() {
 
     const missing = requiredFields.find((f) => !(profile as any)[f]?.trim());
     if (missing) {
-      alert("Please fill all required fields!");
+      setAlert({ isOpen: true, message: "Please fill all required fields!", type: 'warning' })
       return;
     }
 
@@ -337,10 +356,10 @@ export default function MemberDashboard() {
       }
 
       setProfile(emptyProfile);
-      alert(data.message || "Profile saved successfully!");
+      setAlert({ isOpen: true, message: data.message || "Profile saved successfully!", type: 'success' })
     } catch (err: any) {
       console.error("❌ Save profile error:", err);
-      alert(err.message || "Failed to save profile");
+      setAlert({ isOpen: true, message: err.message || "Failed to save profile", type: 'error' })
     } finally {
       setLoading(false);
     }
@@ -348,24 +367,38 @@ export default function MemberDashboard() {
 
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this business?')) return
-
-    try {
-      const res = await fetch(`/api/business?id=${id}`, { method: 'DELETE' })
-      const data = await res.json()
-      if (res.ok) {
-        setBusinesses((prev) => prev.filter((b) => b._id !== id))
+    setConfirm({
+      isOpen: true,
+      message: 'Are you sure you want to delete this business?',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/business?id=${id}`, { method: 'DELETE' })
+          const data = await res.json()
+          if (res.ok) {
+            setBusinesses((prev) => prev.filter((b) => b._id !== id))
+            setAlert({ isOpen: true, message: data.message || 'Deleted', type: 'success' })
+          } else {
+            setAlert({ isOpen: true, message: data.message || 'Failed to delete', type: 'error' })
+          }
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        } catch (err) {
+          console.error(err)
+          setAlert({ isOpen: true, message: 'Failed to delete', type: 'error' })
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        }
       }
-      alert(data.message || 'Deleted')
-    } catch (err) {
-      console.error(err)
-      alert('Failed to delete')
-    }
+    })
   }
 
   const handleAddVoucher = async () => {
-    if (!selectedBusiness) return alert('Select a business first!')
-    if (!voucherForm.title.trim()) return alert('Title required!')
+    if (!selectedBusiness) {
+      setAlert({ isOpen: true, message: 'Select a business first!', type: 'warning' })
+      return
+    }
+    if (!voucherForm.title.trim()) {
+      setAlert({ isOpen: true, message: 'Title required!', type: 'warning' })
+      return
+    }
     try {
       const res = await fetch('/api/voucher', {
         method: 'POST',
@@ -374,7 +407,7 @@ export default function MemberDashboard() {
       })
       const data = await res.json()
       if (res.ok) {
-        alert('Voucher added!')
+        setAlert({ isOpen: true, message: 'Voucher added!', type: 'success' })
         setVoucherForm({
           title: '',
           description: '',
@@ -384,19 +417,32 @@ export default function MemberDashboard() {
         })
         setVoucher((prev) => [...prev, data.voucher])
       } else {
-        alert(data.message || 'Failed to add voucher')
+        setAlert({ isOpen: true, message: data.message || 'Failed to add voucher', type: 'error' })
       }
     } catch (err) {
       console.error(err)
-      alert('Server error')
+      setAlert({ isOpen: true, message: 'Server error', type: 'error' })
     }
   }
 
   const handleDeleteVoucher = async (id: string) => {
-    if (!confirm('Delete this voucher?')) return
-    try {
-      await fetch(`/api/voucher?id=${id}`, { method: 'DELETE' })
-      setVoucher((prev) => prev.filter((v) => v._id !== id))
+    setConfirm({
+      isOpen: true,
+      message: 'Delete this voucher?',
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/voucher?id=${id}`, { method: 'DELETE' })
+          setVoucher((prev) => prev.filter((v) => v._id !== id))
+          setAlert({ isOpen: true, message: 'Voucher deleted successfully', type: 'success' })
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        } catch (err) {
+          console.error(err)
+          setAlert({ isOpen: true, message: 'Failed to delete voucher', type: 'error' })
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        }
+      }
+    })
+  }
     } catch (err) {
       console.error('Failed to delete voucher', err)
     }
@@ -1195,6 +1241,22 @@ export default function MemberDashboard() {
           {renderSection()}
         </div>
       </main>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
+
+      {/* Custom Confirm Component */}
+      <Confirm
+        isOpen={confirm.isOpen}
+        message={confirm.message}
+        onConfirm={confirm.onConfirm}
+        onCancel={() => setConfirm({ isOpen: false, message: '', onConfirm: () => {} })}
+      />
     </div>
   )
 }
