@@ -457,17 +457,32 @@ export default function MemberDashboard() {
   const renderSection = () => {
     switch (activeTab) {
       case 'stats': {
+        // Data untuk Bar Chart - Perbandingan 3 statistik utama
+        const mainStatsData = [
+          { name: 'Event Participation', value: stats.totalEvents, color: '#dc2626' },
+          { name: 'Total Businesses', value: stats.totalBusinesses, color: '#2563eb' },
+          { name: 'Total Points', value: stats.totalPoints, color: '#eab308' }
+        ];
+        
+        // Data untuk Bar Chart - Event Participation per Bulan
         const chartData = stats.monthlyEvents.length > 0 
           ? stats.monthlyEvents 
           : [{ month: 'No Data', count: 0 }];
         
-        // Data untuk pie chart event participation vs business
+        // Data untuk Pie Chart - Event Participation vs Total Business
         const participationBusinessData = [
           { name: 'Event Participation', value: stats.totalEvents },
           { name: 'Total Businesses', value: stats.totalBusinesses }
         ];
         
-        const COLORS = ['#ef4444', '#3b82f6'];
+        // Data untuk Pie Chart - Distribusi berdasarkan Points (jika ada) atau kombinasi
+        const pointsDistributionData = [
+          { name: 'Event Participation', value: stats.totalEvents },
+          { name: 'Total Businesses', value: stats.totalBusinesses },
+          { name: 'Points Earned', value: Math.min(stats.totalPoints, 100) } // Normalize untuk visualisasi
+        ];
+        
+        const COLORS = ['#ef4444', '#3b82f6', '#eab308'];
         
         return (
           <div className="space-y-6">
@@ -489,8 +504,65 @@ export default function MemberDashboard() {
               </div>
             </div>
 
-            {/* Charts */}
+            {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-8">
+              {/* Bar Chart - Perbandingan 3 Statistik Utama */}
+              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Perbandingan Statistik Utama</h3>
+                <div className="w-full" style={{ minWidth: '280px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mainStatsData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#9ca3af" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        fontSize={11}
+                      />
+                      <YAxis stroke="#9ca3af" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                        labelStyle={{ color: '#fff' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                      <Bar dataKey="value" name="Jumlah" fill="#ef4444" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Pie Chart - Event Participation vs Total Business */}
+              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Event Participation vs Total Business</h3>
+                <div className="w-full" style={{ minWidth: '280px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={participationBusinessData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent, value }) => value > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        fontSize={12}
+                      >
+                        {participationBusinessData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
               {/* Bar Chart - Event Participation per Bulan */}
               <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg overflow-x-auto">
                 <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Event Participation per Bulan</h3>
@@ -514,36 +586,6 @@ export default function MemberDashboard() {
                       <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
                       <Bar dataKey="count" fill="#ef4444" name="Jumlah Event" />
                     </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Pie Chart - Event Participation vs Total Business */}
-              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Event Participation vs Total Business</h3>
-                <div className="w-full" style={{ minWidth: '280px' }}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={participationBusinessData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        fontSize={12}
-                      >
-                        {participationBusinessData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
-                    </PieChart>
                   </ResponsiveContainer>
                 </div>
               </div>

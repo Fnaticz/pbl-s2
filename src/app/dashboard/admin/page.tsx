@@ -12,7 +12,7 @@ import Alert from '../../components/Alert';
 import Confirm from '../../components/Confirm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IMainEvent } from '../../../../models/main-event';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 
 export default function AdminDashboard() {
@@ -480,12 +480,28 @@ export default function AdminDashboard() {
   const renderSection = () => {
     switch (activeTab) {
       case 'stats': {
+        // Data untuk Bar Chart - Semua statistik member
+        const barChartData = [
+          { name: 'Total Members', value: stats.totalMembers, color: '#2563eb' },
+          { name: 'Pending Members', value: stats.pendingMembers, color: '#eab308' },
+          { name: 'Member Aktif', value: stats.totalActiveMembers || 0, color: '#16a34a' },
+          { name: 'Total Terdaftar', value: stats.totalRegisteredMembers || 0, color: '#9333ea' }
+        ];
+        
+        // Data untuk Pie Chart - Distribusi Member Event (Aktif vs Terdaftar)
         const pieData = [
           { name: 'Member Aktif', value: stats.totalActiveMembers || 0 },
-          { name: 'Member Terdaftar', value: (stats.totalRegisteredMembers || 0) - (stats.totalActiveMembers || 0) }
+          { name: 'Member Terdaftar (Non-Aktif)', value: Math.max(0, (stats.totalRegisteredMembers || 0) - (stats.totalActiveMembers || 0)) }
+        ];
+        
+        // Data untuk Pie Chart - Status Member (Total vs Pending)
+        const statusPieData = [
+          { name: 'Approved Members', value: Math.max(0, stats.totalMembers - (stats.pendingMembers || 0)) },
+          { name: 'Pending Members', value: stats.pendingMembers || 0 }
         ];
         
         const COLORS = ['#ef4444', '#3b82f6'];
+        const STATUS_COLORS = ['#16a34a', '#eab308'];
         
         return (
           <div className="space-y-6">
@@ -513,33 +529,93 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Pie Chart - Distribusi Member */}
-            <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg mt-6">
-              <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Distribusi Member Event</h3>
-              <div className="w-full" style={{ minWidth: '280px' }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      fontSize={12}
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
-                  </PieChart>
-                </ResponsiveContainer>
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-6">
+              {/* Bar Chart - Perbandingan Semua Statistik */}
+              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Perbandingan Statistik Member</h3>
+                <div className="w-full" style={{ minWidth: '280px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={barChartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#9ca3af" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        fontSize={11}
+                      />
+                      <YAxis stroke="#9ca3af" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                        labelStyle={{ color: '#fff' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                      <Bar dataKey="value" name="Jumlah" fill="#ef4444" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Pie Chart - Distribusi Member Event */}
+              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Distribusi Member Event</h3>
+                <div className="w-full" style={{ minWidth: '280px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent, value }) => value > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        fontSize={12}
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Pie Chart - Status Member (Approved vs Pending) */}
+              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Status Member (Approved vs Pending)</h3>
+                <div className="w-full" style={{ minWidth: '280px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={statusPieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent, value }) => value > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        fontSize={12}
+                      >
+                        {statusPieData.map((entry, index) => (
+                          <Cell key={`cell-status-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
