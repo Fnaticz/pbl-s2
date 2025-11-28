@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
-import { FaSignOutAlt, FaBars, FaUser, FaPaperPlane, FaPlus, FaTrash, FaTimes } from 'react-icons/fa'
+import { FaSignOutAlt, FaBars, FaUser, FaPaperPlane, FaPlus, FaTrash, FaTimes, FaEdit } from 'react-icons/fa'
 import { ref, onChildAdded, onChildRemoved, push, remove, get } from 'firebase/database'
 import { db } from '../../../lib/firebase'
 import type { DataSnapshot } from 'firebase/database'
@@ -37,6 +37,8 @@ export default function ForumPage() {
   const [previews, setPreviews] = useState<{ url: string; file: File; type: 'image' | 'video' }[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({})
+  const [userAvatars, setUserAvatars] = useState<{ [username: string]: string | null }>({})
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -88,55 +90,121 @@ export default function ForumPage() {
     }
   }
 
+  const fetchUserAvatar = async (username: string) => {
+    if (userAvatars[username]) return userAvatars[username]
+    
+    try {
+      const res = await fetch(`/api/user/avatar?username=${encodeURIComponent(username)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setUserAvatars(prev => ({ ...prev, [username]: data.avatar }))
+        return data.avatar
+      }
+    } catch (err) {
+      console.error('Failed to fetch avatar:', err)
+    }
+    return null
+  }
+
+  const getAvatarSrc = (avatar: string | null | undefined, username: string) => {
+    if (!avatar) return "/defaultavatar.png"
+    if (avatar.startsWith("data:image")) return avatar
+    if (avatar.startsWith("http") || avatar.startsWith("//")) return avatar
+    if (avatar.startsWith("/")) return avatar
+    return `/uploads/${avatar}`
+  }
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
+
+    // Validasi file size (max 100MB per file)
+    const maxSize = 100 * 1024 * 1024 // 100MB
+    const invalidFiles = Array.from(files).filter(f => f.size > maxSize)
+    if (invalidFiles.length > 0) {
+      alert(`File terlalu besar. Maksimal 100MB per file.`)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
 
     setUploading(true)
     
     try {
       const formData = new FormData()
       for (const file of Array.from(files)) {
+        // Validasi tipe file
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+          alert(`File ${file.name} bukan gambar atau video.`)
+          continue
+        }
         formData.append('file', file)
       }
 
-      const response = await fetch('/api/forum/upload', {
+      // Cek apakah ada file yang valid
+      if (formData.getAll('file').length === 0) {
+        alert('Tidak ada file yang valid untuk diupload.')
+        setUploading(false)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+
+      const response = await fetch('/api/chat/upload-local', {
         method: 'POST',
         body: formData,
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }))
-        throw new Error(errorData.message || 'Failed to upload files')
+        let errorMessage = 'Upload gagal'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorData.error || 'Upload failed'
+          if (errorData.details) {
+            errorMessage += `: ${errorData.details}`
+          }
+        } catch {
+          errorMessage = `Server error: ${response.status} ${response.statusText}`
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
       
       if (!data.media || data.media.length === 0) {
-        throw new Error('No files were uploaded')
+        throw new Error('No files were uploaded. Server returned empty media array.')
       }
 
       // Filter dan map dengan validasi
       const uploadedMedia = data.media
-        .filter((item: { url?: string; type?: string }) => item && item.url && item.type)
+        .filter((item: { url?: string; type?: string }) => {
+          if (!item || !item.url || !item.type) {
+            console.warn('Invalid media item:', item)
+            return false
+          }
+          return true
+        })
         .map((item: { url: string; type: 'image' | 'video' }) => {
-          const matchingFile = Array.from(files).find(f => 
-            f.type.startsWith(item.type === 'video' ? 'video' : 'image')
-          ) || files[0]
+          // Gunakan URL langsung dari server (local file system)
+          const fileUrl = String(item.url)
           
           return {
-            url: String(item.url),
-            file: matchingFile,
+            url: fileUrl,
+            file: files[0], // Keep file reference for preview
             type: item.type === 'video' ? 'video' as const : 'image' as const
           }
         })
 
       if (uploadedMedia.length > 0) {
         setPreviews((prev) => [...prev, ...uploadedMedia])
+        console.log(`Successfully uploaded ${uploadedMedia.length} file(s)`)
+      } else {
+        throw new Error('No valid media files were processed.')
       }
     } catch (error) {
       console.error('Error uploading files:', error)
-      alert(error instanceof Error ? error.message : 'Gagal mengupload file. Silakan coba lagi.')
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Gagal mengupload file. Silakan coba lagi.'
+      alert(errorMessage)
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -171,7 +239,11 @@ export default function ForumPage() {
     const handleAdd = (snapshot: DataSnapshot) => {
       const msg = snapshot.val()
       if (!msg || !msg.id || !msg.user || !msg.role) return
-      setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]))
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === msg.id)) return prev
+        fetchUserAvatar(msg.user)
+        return [...prev, msg]
+      })
     }
 
     const handleRemove = (snapshot: DataSnapshot) => {
@@ -181,7 +253,28 @@ export default function ForumPage() {
 
     onChildAdded(messagesRef, handleAdd)
     onChildRemoved(messagesRef, handleRemove)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Fetch avatars for existing messages - hanya sekali per user baru
+    const newUsers = messages
+      .map(msg => msg.user)
+      .filter(username => !userAvatars[username])
+    
+    if (newUsers.length > 0) {
+      newUsers.forEach(username => {
+        fetchUserAvatar(username)
+      })
+    }
+  }, [messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null)
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [contextMenu])
 
   if (loading) return <Loading />
 
@@ -189,79 +282,138 @@ export default function ForumPage() {
     switch (activeTab) {
       case 'forum':
         return (
-          <div className="mx-auto w-full flex flex-col h-[87vh] border border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
+          <div className="mx-auto w-full flex flex-col h-[85vh] sm:h-[87vh] border border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
             <div className="bg-red-950 px-6 py-3 font-semibold text-white text-lg">Live Chat</div>
 
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-white text-black">
-              {messages.map((msg) => (
-                <div key={msg.id} className="relative group">
-                  <p className="font-semibold text-sm">
-                    {msg.user} <span className="text-xs italic text-gray-500">({msg.role})</span>
-                  </p>
-
-                  {msg.text && (
-                    <p
-                      className="bg-gray-100 p-2 rounded-md mt-1"
-                      dangerouslySetInnerHTML={{ __html: msg.text }}
+              {messages.map((msg) => {
+                const avatar = userAvatars[msg.user] || null
+                const avatarSrc = getAvatarSrc(avatar, msg.user)
+                
+                return (
+                <div 
+                  key={msg.id} 
+                  className="relative group flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  onContextMenu={(e) => {
+                    if (user?.role === 'admin') {
+                      e.preventDefault()
+                      setContextMenu({ x: e.clientX, y: e.clientY, messageId: msg.id })
+                    }
+                  }}
+                >
+                  {/* Avatar */}
+                  <div className="flex-shrink-0">
+                    <Image
+                      src={avatarSrc}
+                      alt={msg.user}
+                      width={40}
+                      height={40}
+                      className="rounded-full object-cover border-2 border-gray-300"
+                      unoptimized
                     />
-                  )}
-
-                  {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {msg.mediaUrls.map((media, idx) =>
-                        media.type === 'image' ? (
-                          <div key={idx} className="relative group/media">
-                            <Image
-                              src={media.url}
-                              alt={`Image from ${msg.user}`}
-                              width={400}
-                              height={400}
-                              className="rounded-md max-w-[60%] max-h-[400px] object-contain shadow cursor-pointer"
-                              unoptimized
-                              onError={(e) => {
-                                console.error('Image load error:', media.url)
-                                e.currentTarget.src = '/placeholder-image.png'
-                              }}
-                            />
-                            <a
-                              href={media.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/media:opacity-100 transition-opacity rounded-md"
-                            >
-                              <span className="text-white text-sm">Click to view full size</span>
-                            </a>
-                          </div>
-                        ) : (
-                          <video
-                            key={idx}
-                            src={media.url}
-                            controls
-                            className="mt-2 rounded-md max-w-[60%] max-h-[400px] shadow"
-                            preload="metadata"
-                            onError={(e) => {
-                              console.error('Video load error:', media.url)
-                            }}
-                          >
-                            Your browser does not support the video tag.
-                          </video>
-                        )
-                      )}
+                  </div>
+                  
+                  {/* Message Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-sm">
+                        {msg.user} <span className="text-xs italic text-gray-500">({msg.role})</span>
+                      </p>
                     </div>
-                  )}
 
-                  <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
+                    {msg.text && (
+                      <p
+                        className="bg-gray-100 p-2 rounded-md mt-1 break-words"
+                        dangerouslySetInnerHTML={{ __html: msg.text }}
+                      />
+                    )}
 
+                    {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {msg.mediaUrls.map((media, idx) => {
+                          // Normalize URL - handle both local and external URLs
+                          const mediaUrl = media.url.startsWith('/') 
+                            ? media.url 
+                            : (media.url.startsWith('http') 
+                              ? media.url 
+                              : `/${media.url}`)
+                          
+                          return media.type === 'image' ? (
+                            <div key={idx} className="relative group/media">
+                              <Image
+                                src={mediaUrl}
+                                alt={`Image from ${msg.user}`}
+                                width={400}
+                                height={400}
+                                className="rounded-md max-w-full sm:max-w-[60%] max-h-[400px] object-contain shadow cursor-pointer"
+                                unoptimized
+                                onError={(e) => {
+                                  console.error('Image load error:', mediaUrl)
+                                  e.currentTarget.src = '/placeholder-image.png'
+                                }}
+                              />
+                              <a
+                                href={mediaUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover/media:opacity-100 transition-opacity rounded-md"
+                              >
+                                <span className="text-white text-sm">Click to view full size</span>
+                              </a>
+                            </div>
+                          ) : (
+                            <video
+                              key={idx}
+                              src={mediaUrl}
+                              controls
+                              className="mt-2 rounded-md max-w-full sm:max-w-[60%] max-h-[400px] shadow"
+                              preload="metadata"
+                              onError={(e) => {
+                                console.error('Video load error:', mediaUrl)
+                              }}
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-400 mt-1">{msg.timestamp}</p>
+                  </div>
+
+                  {/* Delete button on hover (admin only) */}
                   {user?.role === 'admin' && (
                     <button
                       onClick={() => deleteMessage(msg.id)}
-                      className="absolute top-0 right-0 p-1 text-red-600 hidden group-hover:block"
+                      className="absolute top-2 right-2 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete message"
                     >
-                      <FaTrash />
+                      <FaTrash size={14} />
                     </button>
                   )}
                 </div>
-              ))}
+              )})}
+              
+              {/* Context Menu for right-click delete (admin only) */}
+              {contextMenu && user?.role === 'admin' && (
+                <div
+                  className="fixed bg-white border border-gray-300 rounded-lg shadow-lg z-50 py-2 min-w-[120px]"
+                  style={{ left: contextMenu.x, top: contextMenu.y }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      deleteMessage(contextMenu.messageId)
+                      setContextMenu(null)
+                    }}
+                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  >
+                    <FaTrash size={14} />
+                    <span>Hapus Pesan</span>
+                  </button>
+                </div>
+              )}
               <div ref={chatEndRef} />
             </div>
 
@@ -304,14 +456,14 @@ export default function ForumPage() {
               </div>
             )}
 
-            <div className="bg-gray-100 p-3 flex items-center gap-2 text-black">
+            <div className="bg-gray-100 p-2 sm:p-3 flex items-center gap-2 text-black">
               <button 
                 onClick={() => fileInputRef.current?.click()} 
-                className="text-gray-600 hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-gray-600 hover:text-black disabled:opacity-50 disabled:cursor-not-allowed p-2 sm:p-1"
                 disabled={uploading}
                 title="Upload photo/video"
               >
-                <FaPlus />
+                <FaPlus size={18} />
               </button>
 
               <input
@@ -326,7 +478,7 @@ export default function ForumPage() {
 
               <input
                 type="text"
-                className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-2 sm:px-3 py-2 rounded-md border border-gray-300 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Type a message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -336,11 +488,11 @@ export default function ForumPage() {
 
               <button 
                 onClick={sendMessage} 
-                className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed p-2 sm:p-1"
                 disabled={uploading || (!input.trim() && previews.length === 0)}
                 title="Send message"
               >
-                <FaPaperPlane />
+                <FaPaperPlane size={18} />
               </button>
             </div>
           </div>
@@ -377,6 +529,16 @@ export default function ForumPage() {
         >
           <FaUser />
           {sidebarOpen && 'Forum'}
+        </button>
+        <button
+          onClick={() => {
+            window.location.href = '/profilesetting'
+            setMobileSidebar(false)
+          }}
+          className="flex items-center gap-2 px-3 py-2 rounded bg-gray-800 hover:bg-red-500"
+        >
+          <FaEdit />
+          {sidebarOpen && 'Edit Profile'}
         </button>
       </div>
 

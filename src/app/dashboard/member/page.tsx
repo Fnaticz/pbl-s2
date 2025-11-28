@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Loading from '../../components/Loading';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function MemberDashboard() {
   const [loadingpage, setLoadingPage] = useState(true)
@@ -40,7 +41,12 @@ export default function MemberDashboard() {
   const [businessImages, setBusinessImages] = useState<string[]>([])
   const [businesses, setBusinesses] = useState<typeof emptyProfile[]>([])
   const [loading, setLoading] = useState(false)
-  const [stats, setStats] = useState({ totalEvents: 0, totalBusinesses: 0, totalPoints: 0 })
+  const [stats, setStats] = useState({ 
+    totalEvents: 0, 
+    totalBusinesses: 0, 
+    totalPoints: 0,
+    monthlyEvents: [] as { month: string; count: number }[]
+  })
   type HistoryEvent = {
     eventName: string;
     date: string;
@@ -70,21 +76,23 @@ export default function MemberDashboard() {
   };
   const [redeemed, setRedeemed] = useState<RedeemedVoucher[]>([]);
 
-  const loadRedeemed = async () => {
-    if (!user?.id) return;
-    try {
-      const res = await fetch(`/api/member/voucher-redemption?userId=${user.id}`);
-      const data = await res.json();
-      setRedeemed(data.redemptions || []);
-    } catch (err) {
-      console.error("Failed loading redeemed", err);
-    }
-  };
-
   // panggil loadRedeemed() saat mount (ganti useEffect yang lama)
   useEffect(() => {
-    loadRedeemed();
-  }, [user]);
+    const loadRedeemed = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch(`/api/member/voucher-redemption?userId=${user.id}`);
+        const data = await res.json();
+        setRedeemed(data.redemptions || []);
+      } catch (err) {
+        console.error("Failed loading redeemed", err);
+      }
+    };
+    
+    if (user?.id) {
+      loadRedeemed();
+    }
+  }, [user?.id]);
 
   const handleRedeem = async (voucherId: string, pointsRequired: number) => {
     if (!confirm(`Redeem this voucher for ${pointsRequired} points?`)) return;
@@ -406,26 +414,101 @@ export default function MemberDashboard() {
 
   const renderSection = () => {
     switch (activeTab) {
-      case 'stats':
+      case 'stats': {
+        const chartData = stats.monthlyEvents.length > 0 
+          ? stats.monthlyEvents 
+          : [{ month: 'No Data', count: 0 }];
+        
+        // Data untuk pie chart event participation vs business
+        const participationBusinessData = [
+          { name: 'Event Participation', value: stats.totalEvents },
+          { name: 'Total Businesses', value: stats.totalBusinesses }
+        ];
+        
+        const COLORS = ['#ef4444', '#3b82f6'];
+        
         return (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Member Stats</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="bg-gray-800 p-6 rounded-lg shadow text-center">
-                <h3 className="text-lg font-semibold mb-2">Total Event Participation</h3>
-                <p className="text-3xl font-bold">{stats.totalEvents}</p>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold mb-6">Member Dashboard - Statistik</h2>
+            
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              <div className="bg-gradient-to-br from-red-600 to-red-800 p-4 md:p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform">
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-gray-200">Event Participation</h3>
+                <p className="text-2xl md:text-4xl font-bold text-white">{stats.totalEvents}</p>
               </div>
-              <div className="bg-gray-800 p-6 rounded-lg shadow text-center">
-                <h3 className="text-lg font-semibold mb-2">Total Businesses</h3>
-                <p className="text-3xl font-bold">{stats.totalBusinesses}</p>
+              <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-4 md:p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform">
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-gray-200">Total Businesses</h3>
+                <p className="text-2xl md:text-4xl font-bold text-white">{stats.totalBusinesses}</p>
               </div>
-              <div className="bg-gray-800 p-6 rounded-lg shadow text-center">
-                <h3 className="text-lg font-semibold mb-2">Total Points</h3>
-                <p className="text-3xl font-bold text-yellow-400"> ⭐ {stats.totalPoints}</p>
+              <div className="bg-gradient-to-br from-yellow-500 to-yellow-700 p-4 md:p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform">
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-gray-200">Total Points</h3>
+                <p className="text-2xl md:text-4xl font-bold text-white">⭐ {stats.totalPoints}</p>
+              </div>
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-6 md:mt-8">
+              {/* Bar Chart - Event Participation per Bulan */}
+              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg overflow-x-auto">
+                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Event Participation per Bulan</h3>
+                <div className="w-full" style={{ minWidth: '280px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
+                      <XAxis 
+                        dataKey="month" 
+                        stroke="#9ca3af" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                        fontSize={12}
+                      />
+                      <YAxis stroke="#9ca3af" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                        labelStyle={{ color: '#fff' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                      <Bar dataKey="count" fill="#ef4444" name="Jumlah Event" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Pie Chart - Event Participation vs Total Business */}
+              <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Event Participation vs Total Business</h3>
+                <div className="w-full" style={{ minWidth: '280px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={participationBusinessData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        fontSize={12}
+                      >
+                        {participationBusinessData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
         )
+      }
 
       case 'history':
         return (

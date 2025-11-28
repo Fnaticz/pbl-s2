@@ -10,6 +10,7 @@ import Image from "next/image";
 import Loading from '../../components/Loading';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IMainEvent } from '../../../../models/main-event';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 
 export default function AdminDashboard() {
@@ -85,7 +86,12 @@ export default function AdminDashboard() {
   const [schedules, setSchedules] = useState<{ _id: string; date: string; title: string; created: string }[]>([])
   const [eventDate, setEventDate] = useState('')
   const [eventTitle, setEventTitle] = useState('')
-  const [stats, setStats] = useState({ totalMembers: 0, pendingMembers: 0 });
+  const [stats, setStats] = useState({ 
+    totalMembers: 0, 
+    pendingMembers: 0,
+    totalRegisteredMembers: 0,
+    totalActiveMembers: 0
+  });
   const [bannerReports, setBannerReports] = useState<IBanner[]>([])
 
 
@@ -449,16 +455,72 @@ export default function AdminDashboard() {
 
   const renderSection = () => {
     switch (activeTab) {
-      case 'stats':
+      case 'stats': {
+        const pieData = [
+          { name: 'Member Aktif', value: stats.totalActiveMembers || 0 },
+          { name: 'Member Terdaftar', value: (stats.totalRegisteredMembers || 0) - (stats.totalActiveMembers || 0) }
+        ];
+        
+        const COLORS = ['#ef4444', '#3b82f6'];
+        
         return (
-          <div>
-            <h2 className="text-xl font-bold mb-4">Member Statistics</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-700 text-white p-4 rounded shadow">Total Members: {stats.totalMembers}</div>
-              <div className="bg-gray-700 text-white p-4 rounded shadow">Pending Members: {stats.pendingMembers}</div>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold mb-6">Admin Dashboard - Statistik Member</h2>
+            
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-4 md:p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform">
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-gray-200">Total Members</h3>
+                <p className="text-2xl md:text-4xl font-bold text-white">{stats.totalMembers}</p>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-500 to-yellow-700 p-4 md:p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform">
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-gray-200">Pending Members</h3>
+                <p className="text-2xl md:text-4xl font-bold text-white">{stats.pendingMembers}</p>
+              </div>
+              <div className="bg-gradient-to-br from-green-600 to-green-800 p-4 md:p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform">
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-gray-200">Member Aktif</h3>
+                <p className="text-2xl md:text-4xl font-bold text-white">{stats.totalActiveMembers || 0}</p>
+                <p className="text-xs text-gray-300 mt-1">Yang telah mengikuti event</p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-600 to-purple-800 p-4 md:p-6 rounded-lg shadow-lg text-center transform hover:scale-105 transition-transform">
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-gray-200">Total Terdaftar</h3>
+                <p className="text-2xl md:text-4xl font-bold text-white">{stats.totalRegisteredMembers || 0}</p>
+                <p className="text-xs text-gray-300 mt-1">Yang mendaftar event</p>
+              </div>
+            </div>
+
+            {/* Pie Chart - Distribusi Member */}
+            <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg mt-6">
+              <h3 className="text-lg md:text-xl font-bold mb-4 text-center text-white">Distribusi Member Event</h3>
+              <div className="w-full" style={{ minWidth: '280px' }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      fontSize={12}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '12px' }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px', color: '#fff' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )
+      }
       case 'members':
         return (
           <div>

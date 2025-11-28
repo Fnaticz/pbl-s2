@@ -71,25 +71,25 @@ export default function UpcomingEvents() {
           {banners.map((event) => (
             <div
               key={event._id}
-              className="w-full flex-shrink-0 grid md:grid-cols-2 gap-8 p-8 bg-cover bg-center relative"
+              className="w-full flex-shrink-0 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 p-4 md:p-8 bg-cover bg-center relative"
               style={{ backgroundImage: `url('/loginbg.png')` }}
             >
               <div className="absolute inset-0 bg-black/60"></div>
 
-              <div className="relative z-10 flex flex-col justify-center space-y-4">
-                <h2 className="text-2xl font-bold text-red-500">{event.title}</h2>
-                <div className="flex items-center space-x-2 text-gray-200">
+              <div className="relative z-10 flex flex-col justify-center space-y-3 md:space-y-4">
+                <h2 className="text-xl md:text-2xl font-bold text-red-500 break-words">{event.title}</h2>
+                <div className="flex items-center space-x-2 text-sm md:text-base text-gray-200">
                   <span>📍</span>
-                  <span>{event.location}</span>
+                  <span className="break-words">{event.location}</span>
                 </div>
-                <div className="flex items-center space-x-2 text-gray-200">
+                <div className="flex items-center space-x-2 text-sm md:text-base text-gray-200">
                   <span>📅</span>
                   <span>{event.eventDate}</span>
                 </div>
               </div>
 
               <div
-                className="relative z-10 flex justify-center items-center cursor-pointer"
+                className="relative z-10 flex justify-center items-center cursor-pointer mt-4 md:mt-0"
                 onClick={() => setLightboxOpen(true)}
               >
                 <Image
@@ -98,7 +98,7 @@ export default function UpcomingEvents() {
                   width={320}
                   height={320}
                   unoptimized={event.imageUrl.startsWith("data:")}
-                  className="rounded-xl w-80 h-80 object-cover border-4 border-stone-700 shadow-xl"
+                  className="rounded-xl w-64 h-64 md:w-80 md:h-80 object-cover border-4 border-stone-700 shadow-xl"
                 />
               </div>
             </div>
@@ -107,10 +107,11 @@ export default function UpcomingEvents() {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-center mt-6 space-x-6">
+      <div className="flex items-center justify-center mt-4 md:mt-6 space-x-4 md:space-x-6">
         <button
           onClick={prevSlide}
-          className="bg-stone-700 hover:bg-stone-600 px-4 py-2 rounded-full shadow-lg"
+          className="bg-stone-700 hover:bg-stone-600 px-3 md:px-4 py-2 rounded-full shadow-lg text-sm md:text-base"
+          aria-label="Previous slide"
         >
           ◀
         </button>
@@ -119,15 +120,17 @@ export default function UpcomingEvents() {
             <button
               key={idx}
               onClick={() => setCurrentIndex(idx)}
-              className={`w-3 h-3 rounded-full transition ${
+              className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition ${
                 currentIndex === idx ? "bg-red-600" : "bg-gray-500"
               }`}
+              aria-label={`Go to slide ${idx + 1}`}
             ></button>
           ))}
         </div>
         <button
           onClick={nextSlide}
-          className="bg-stone-700 hover:bg-stone-600 px-4 py-2 rounded-full shadow-lg"
+          className="bg-stone-700 hover:bg-stone-600 px-3 md:px-4 py-2 rounded-full shadow-lg text-sm md:text-base"
+          aria-label="Next slide"
         >
           ▶
         </button>
@@ -135,19 +138,23 @@ export default function UpcomingEvents() {
 
       {/* Lightbox */}
       {lightboxOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="relative">
+        <div 
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div className="relative max-w-full max-h-full">
             <Image
               src={banners[currentIndex].imageUrl}
               alt="Full Poster"
               width={800}
               height={800}
               unoptimized={banners[currentIndex].imageUrl.startsWith("data:")}
-              className="max-h-[80vh] w-auto rounded-xl shadow-2xl"
+              className="max-h-[90vh] w-auto rounded-xl shadow-2xl"
             />
             <button
               onClick={() => setLightboxOpen(false)}
-              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-full"
+              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-full text-lg md:text-xl"
+              aria-label="Close lightbox"
             >
               ✕
             </button>

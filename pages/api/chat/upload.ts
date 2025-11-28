@@ -24,7 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Firebase Admin initialization error:", initError?.message);
     const errorMsg = initError?.message || "Firebase Admin Storage not available";
     
-    // Berikan error message yang lebih informatif
     if (errorMsg.includes("Missing required environment variables")) {
       return res.status(500).json({ 
         message: "Server configuration error: Missing Firebase Admin credentials",
@@ -109,7 +108,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!file) continue;
 
         const fileType = file.mimetype?.startsWith("video/") ? "video" : "image";
-        const folder = fileType === "video" ? "videos" : "images";
+        // Gunakan folder chat-media untuk semua file chat
+        const folder = "chat-media";
         const fileName = `${Date.now()}-${file.originalFilename}`;
         const storagePath = `${folder}/${fileName}`;
 
@@ -206,3 +206,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   });
 }
+
