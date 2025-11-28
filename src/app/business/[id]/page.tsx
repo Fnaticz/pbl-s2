@@ -14,8 +14,8 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
-import Alert from "../../../components/Alert";
-import Confirm from "../../../components/Confirm";
+import Alert from "../../components/Alert";
+import Confirm from "../../components/Confirm";
 
 type Business = {
   _id: string;
