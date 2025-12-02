@@ -1,22 +1,29 @@
 import mongoose, { Schema, Document, models, model } from 'mongoose';
-import { connectDB } from '../lib/mongodb';
 
 export interface IUser extends Document {
   username: string;
   emailOrPhone: string;
-  password: string;
-  address: string;
-  avatar: { type: String, default: '' }
+  /**
+   * Untuk user yang daftar via Credentials, password akan terisi.
+   * Untuk user yang daftar via Google OAuth, password bisa kosong.
+   */
+  password?: string;
+  /**
+   * Alamat tidak wajib untuk user Google OAuth.
+   */
+  address?: string;
+  avatar?: string;
   role: 'guest' | 'member' | 'admin';
-  date: Date;
+  date?: Date;
 }
 
 const UserSchema = new Schema<IUser>(
   {
     username: { type: String, required: true, unique: true },
     emailOrPhone: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    address: { type: String, required: true },
+    // password & address dibuat tidak wajib supaya user dari Google bisa disimpan
+    password: { type: String, required: false, default: '' },
+    address: { type: String, required: false, default: '' },
     avatar: { type: String, default: '' },
     role: {
       type: String,
