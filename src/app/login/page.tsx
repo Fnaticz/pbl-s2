@@ -35,6 +35,9 @@ function LoginPage() {
     else if (error === "CredentialsSignin") {
       toast.error("Username atau password salah.");
     } 
+    else if (error === "Callback") {
+      toast.error("Username atau password salah.");
+    }    
     else {
       toast.error("Terjadi kesalahan saat login.");
     }
