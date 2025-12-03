@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
@@ -10,7 +10,15 @@ import Image from 'next/image';
 import 'react-toastify/dist/ReactToastify.css';
 import Loading from '../components/Loading';
 
-export default function LoginPage() {
+export default function LoginPageWrapper() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <LoginPage />
+    </Suspense>
+  );
+}
+
+function LoginPage() {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const router = useRouter();
@@ -24,16 +32,15 @@ export default function LoginPage() {
     if (error === "not_registered") {
       toast.error("Akun Google belum terdaftar. Silakan register terlebih dahulu.");
     } 
-    
     else if (error === "CredentialsSignin") {
       toast.error("Username atau password salah.");
     } 
-    
     else {
       toast.error("Terjadi kesalahan saat login.");
     }
   }, [error]);
 
+  // Loading animation
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
@@ -57,10 +64,12 @@ export default function LoginPage() {
     checkSession();
   }, [router]);
 
+  // FORM CHANGE
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
+  // LOGIN FORM SUBMIT
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
