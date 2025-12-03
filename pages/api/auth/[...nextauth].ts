@@ -106,7 +106,7 @@ export const authOptions: AuthOptions = {
             dbUser = await User.create({
               username: name ?? (email ? email.split("@")[0] : "google-user"),
               emailOrPhone: email,
-              role: "member", // default role for Google signups
+              role: "guest", // default role for Google signups
               avatar: picture || "",
             });
           } else {
