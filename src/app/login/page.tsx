@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FcGoogle } from 'react-icons/fc';
 import Image from 'next/image';
 import 'react-toastify/dist/ReactToastify.css';
@@ -14,12 +14,32 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  // SHOW ERROR NOTIFICATIONS FROM NextAuth
+  useEffect(() => {
+    if (!error) return;
+
+    if (error === "not_registered") {
+      toast.error("Akun Google belum terdaftar. Silakan register terlebih dahulu.");
+    } 
+    
+    else if (error === "CredentialsSignin") {
+      toast.error("Username atau password salah.");
+    } 
+    
+    else {
+      toast.error("Terjadi kesalahan saat login.");
+    }
+  }, [error]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500); // simulasi fetch
+    const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
+  // CHECK SESSION
   useEffect(() => {
     const checkSession = async () => {
       const session = await getSession();
@@ -29,8 +49,11 @@ export default function LoginPage() {
         router.push('/dashboard/admin');
       } else if (session.user.role === 'member') {
         router.push('/dashboard/member');
+      } else if (session.user.role === 'guest') {
+        router.push('/');
       }
     };
+
     checkSession();
   }, [router]);
 
@@ -65,12 +88,11 @@ export default function LoginPage() {
       router.push('/dashboard/admin');
     } else if (session.user.role === 'member') {
       router.push('/dashboard/member');
-    }else if (session.user.role === 'guest') {
-        router.push('/');
+    } else if (session.user.role === 'guest') {
+      router.push('/');
     } else {
       toast.warning("Access denied.");
     }
-
   };
 
   if (loading) return <Loading />;
@@ -114,12 +136,13 @@ export default function LoginPage() {
 
         <div className="flex items-center justify-between mt-4">
           <button
-            onClick={() => signIn('google', { callbackUrl: '/' })}
+            onClick={() => signIn('google', { callbackUrl: '/login' })}
             className="flex items-center gap-2 px-8 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition"
           >
             <FcGoogle />
             Google
           </button>
+
           <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition">
             <Image src="/facebooklogo.png" alt="Facebook" width={20} height={20} className="w-5 h-5" />
             Facebook
