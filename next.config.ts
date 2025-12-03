@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
         hostname: "**.firebasestorage.googleapis.com",
       }
     ],
-    domains: ['res.cloudinary.com', 'pbl-s2.netlify.app', 'localhost'],
+    // Domain gambar yang diizinkan
+    domains: ['res.cloudinary.com', 'spartanbwx.netlify.app', 'localhost'],
   },
   typescript: {
     ignoreBuildErrors: true,

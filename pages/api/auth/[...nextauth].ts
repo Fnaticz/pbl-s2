@@ -176,4 +176,23 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-export default NextAuth(authOptions);
+/**
+ * Custom handler agar base URL NextAuth otomatis menyesuaikan domain saat ini
+ * bila NEXTAUTH_URL di environment belum di-set dengan benar.
+ *
+ * Ini membantu ketika domain Netlify berubah (mis. dari pbl-s2 ke spartanbwx)
+ * sehingga callback login/logout tidak lagi mengarah ke domain lama.
+ */
+const nextAuthHandler = NextAuth(authOptions);
+
+export default function auth(req: any, res: any) {
+  // Jika NEXTAUTH_URL belum di-set dengan benar, fallback ke host yang datang dari request
+  if (!process.env.NEXTAUTH_URL && req?.headers?.host) {
+    const proto =
+      (req.headers["x-forwarded-proto"] as string | undefined) ||
+      (req.connection && (req.connection as any).encrypted ? "https" : "http");
+    process.env.NEXTAUTH_URL = `${proto}://${req.headers.host}`;
+  }
+
+  return nextAuthHandler(req, res);
+}
