@@ -17,16 +17,19 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "spartanbwx.netlify.app",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
       }
     ],
-    // Domain gambar yang diizinkan
-    domains: ['res.cloudinary.com', 'spartanbwx.netlify.app', 'localhost'],
   },
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: false,
   },
 };
 

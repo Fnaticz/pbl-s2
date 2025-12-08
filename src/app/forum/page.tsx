@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import { FaSignOutAlt, FaBars, FaUser, FaPaperPlane, FaPlus, FaTrash, FaTimes, FaEdit } from 'react-icons/fa'
 import { ref, onChildAdded, onChildRemoved, push, remove, get } from 'firebase/database'
-import { db } from '../../../lib/firebase'
+import { db } from '../../lib/firebase'
 import type { DataSnapshot } from 'firebase/database'
 import Image from "next/image";
 import Loading from '../components/Loading';

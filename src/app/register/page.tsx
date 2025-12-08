@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Loading from '../components/Loading'
+import Alert from '../components/Alert'
 import { FcGoogle } from 'react-icons/fc'
 import { signIn } from 'next-auth/react'
 
@@ -15,8 +16,13 @@ export default function RegisterPage() {
     address: '',
   });
 
-  const [message, setMessage] = useState('');
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ 
+    isOpen: false, 
+    message: '', 
+    type: 'info' 
+  });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [passwordStrength, setPasswordStrength] =
     useState<'Weak' | 'Medium' | 'Strong' | ''>('');
 
@@ -46,27 +52,82 @@ export default function RegisterPage() {
 
     const { username, emailOrPhone, password, address } = formData;
 
+    // Validasi input
     if (!username || !emailOrPhone || !password || !address) {
-      setMessage('Please complete all fields before submitting.');
+      setAlert({ 
+        isOpen: true, 
+        message: 'Mohon lengkapi semua field sebelum submit.', 
+        type: 'warning' 
+      });
       return;
     }
 
-    setSubmitted(true);
+    // Validasi format email atau phone
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9+\-\s()]+$/;
+    const isEmail = emailRegex.test(emailOrPhone);
+    const isPhone = phoneRegex.test(emailOrPhone) && emailOrPhone.replace(/\D/g, '').length >= 10;
 
-    const res = await fetch('/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username,
-        emailOrPhone,
-        password,
-        address,
-        role: 'guest',
-      }),
-    });
+    if (!isEmail && !isPhone) {
+      setAlert({ 
+        isOpen: true, 
+        message: 'Format email atau nomor telepon tidak valid.', 
+        type: 'error' 
+      });
+      return;
+    }
 
-    const data = await res.json();
-    setMessage(data.message || 'Something went wrong');
+    // Validasi password
+    if (password.length < 6) {
+      setAlert({ 
+        isOpen: true, 
+        message: 'Password minimal 6 karakter.', 
+        type: 'error' 
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          emailOrPhone,
+          password,
+          address,
+          role: 'guest',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setSubmitted(true);
+        setAlert({ 
+          isOpen: true, 
+          message: data.message || 'Registrasi berhasil!', 
+          type: 'success' 
+        });
+      } else {
+        setAlert({ 
+          isOpen: true, 
+          message: data.message || 'Terjadi kesalahan. Silakan coba lagi.', 
+          type: 'error' 
+        });
+        setSubmitting(false);
+      }
+    } catch (error) {
+      console.error('Register error:', error);
+      setAlert({ 
+        isOpen: true, 
+        message: 'Terjadi kesalahan koneksi. Silakan coba lagi.', 
+        type: 'error' 
+      });
+      setSubmitting(false);
+    }
   };
 
   if (loading) return <Loading />;
@@ -159,16 +220,11 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                className="w-full py-2 rounded-full bg-white text-black font-bold hover:bg-red-600 hover:text-white transition"
+                disabled={submitting}
+                className="w-full py-2 rounded-full bg-white text-black font-bold hover:bg-red-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Register
+                {submitting ? 'Mendaftar...' : 'Register'}
               </button>
-
-              {message && (
-                <p className="text-center text-sm text-red-500 mt-2">
-                  {message}
-                </p>
-              )}
             </form>
 
             <div className="flex items-center justify-between mt-4">
@@ -188,6 +244,14 @@ export default function RegisterPage() {
         )}
 
       </div>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
     </div>
   );
 }

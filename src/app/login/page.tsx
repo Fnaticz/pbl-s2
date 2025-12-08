@@ -9,6 +9,7 @@ import { FcGoogle } from 'react-icons/fc';
 import Image from 'next/image';
 import 'react-toastify/dist/ReactToastify.css';
 import Loading from '../components/Loading';
+import Alert from '../components/Alert';
 
 export default function LoginPageWrapper() {
   return (
@@ -21,6 +22,12 @@ export default function LoginPageWrapper() {
 function LoginPage() {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({ username: '', password: '' });
+  const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ 
+    isOpen: false, 
+    message: '', 
+    type: 'info' 
+  });
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
@@ -29,18 +36,20 @@ function LoginPage() {
   useEffect(() => {
     if (!error) return;
 
+    let errorMessage = "Terjadi kesalahan saat login.";
     if (error === "not_registered") {
-      toast.error("Akun Google belum terdaftar. Silakan register terlebih dahulu.");
+      errorMessage = "Akun Google belum terdaftar. Silakan register terlebih dahulu.";
     } 
-    else if (error === "CredentialsSignin") {
-      toast.error("Username atau password salah.");
-    } 
-    else if (error === "Callback") {
-      toast.error("Username atau password salah.");
-    }    
-    else {
-      toast.error("Terjadi kesalahan saat login.");
+    else if (error === "CredentialsSignin" || error === "Callback") {
+      errorMessage = "Username atau password salah. Silakan coba lagi.";
     }
+
+    setAlert({ 
+      isOpen: true, 
+      message: errorMessage, 
+      type: 'error' 
+    });
+    toast.error(errorMessage);
   }, [error]);
 
   // Loading animation
@@ -76,34 +85,82 @@ function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const response = await signIn('credentials', {
-      redirect: false,
-      username: formData.username,
-      password: formData.password,
-    });
-
-    if (!response || response.error) {
-      toast.error('Username atau password salah');
+    // Validasi input
+    if (!formData.username || !formData.password) {
+      setAlert({ 
+        isOpen: true, 
+        message: 'Mohon lengkapi username dan password.', 
+        type: 'warning' 
+      });
       return;
     }
 
-    const session = await getSession();
-    if (!session?.user) {
-      toast.error('Gagal mengambil session');
-      return;
-    }
+    setSubmitting(true);
 
-    toast.success('Login berhasil');
-    router.refresh();
+    try {
+      const response = await signIn('credentials', {
+        redirect: false,
+        username: formData.username,
+        password: formData.password,
+      });
 
-    if (session.user.role === 'admin') {
-      router.push('/dashboard/admin');
-    } else if (session.user.role === 'member') {
-      router.push('/dashboard/member');
-    } else if (session.user.role === 'guest') {
-      router.push('/');
-    } else {
-      toast.warning("Access denied.");
+      if (!response || response.error) {
+        setAlert({ 
+          isOpen: true, 
+          message: 'Username atau password salah. Silakan coba lagi.', 
+          type: 'error' 
+        });
+        toast.error('Username atau password salah');
+        setSubmitting(false);
+        return;
+      }
+
+      const session = await getSession();
+      if (!session?.user) {
+        setAlert({ 
+          isOpen: true, 
+          message: 'Gagal mengambil session. Silakan coba lagi.', 
+          type: 'error' 
+        });
+        toast.error('Gagal mengambil session');
+        setSubmitting(false);
+        return;
+      }
+
+      toast.success('Login berhasil');
+      setAlert({ 
+        isOpen: true, 
+        message: 'Login berhasil! Mengalihkan...', 
+        type: 'success' 
+      });
+      
+      router.refresh();
+
+      // Redirect setelah alert ditutup
+      setTimeout(() => {
+        if (session.user.role === 'admin') {
+          router.push('/dashboard/admin');
+        } else if (session.user.role === 'member') {
+          router.push('/dashboard/member');
+        } else if (session.user.role === 'guest') {
+          router.push('/');
+        } else {
+          setAlert({ 
+            isOpen: true, 
+            message: 'Akses ditolak. Role tidak valid.', 
+            type: 'warning' 
+          });
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Login error:', error);
+      setAlert({ 
+        isOpen: true, 
+        message: 'Terjadi kesalahan koneksi. Silakan coba lagi.', 
+        type: 'error' 
+      });
+      toast.error('Terjadi kesalahan koneksi');
+      setSubmitting(false);
     }
   };
 
@@ -141,8 +198,12 @@ function LoginPage() {
             />
           </div>
 
-          <button type="submit" className="w-full py-2 rounded-full bg-white text-black font-bold hover:bg-red-600 hover:text-white transition">
-            Login
+          <button 
+            type="submit" 
+            disabled={submitting}
+            className="w-full py-2 rounded-full bg-white text-black font-bold hover:bg-red-600 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitting ? 'Masuk...' : 'Login'}
           </button>
         </form>
 
@@ -165,6 +226,14 @@ function LoginPage() {
           Or Register
         </Link>
       </div>
+
+      {/* Custom Alert Component */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
+      />
     </div>
   );
 }

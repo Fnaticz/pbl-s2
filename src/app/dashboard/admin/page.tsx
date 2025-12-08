@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { IBanner } from '../../../../models/banner';
+import type { IBanner } from '../../models/banner';
 import { FaClipboardCheck, FaTruckMonster, FaSignOutAlt, FaTimes, FaBars, FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 import { useSession } from 'next-auth/react';
 import autoTable from 'jspdf-autotable'
@@ -11,7 +11,7 @@ import Loading from '../../components/Loading';
 import Alert from '../../components/Alert';
 import Confirm from '../../components/Confirm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IMainEvent } from '../../../../models/main-event';
+import { IMainEvent } from '../../models/main-event';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 
