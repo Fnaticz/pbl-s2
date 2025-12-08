@@ -7,3 +7,5 @@
 
 [build.environment]
   NETLIFY_NEXT_JS_RUNTIME = "4.36.1"
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
