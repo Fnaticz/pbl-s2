@@ -75,6 +75,7 @@ export const authOptions: AuthOptions = {
 
   pages: {
     signIn: "/login",
+    error: "/login?error=not_registered",
   },
 
   session: {
@@ -93,36 +94,12 @@ export const authOptions: AuthOptions = {
           const name = (profile as any)?.name || "";
           const picture = (profile as any)?.picture || "";
           
-          let dbUser = await User.findOne({ emailOrPhone: email });
+          const dbUser = await User.findOne({ emailOrPhone: email });
           
-          // Jika user belum terdaftar, auto-register dengan username dari email
+          // Jika user belum terdaftar, throw error untuk redirect ke register
           if (!dbUser) {
-            console.log("Google user belum terdaftar, melakukan auto-register:", email);
-            
-            // Generate username dari email (ambil bagian sebelum @)
-            const baseUsername = email.split("@")[0];
-            let username = baseUsername;
-            let counter = 1;
-            
-            // Pastikan username unik
-            while (await User.findOne({ username })) {
-              username = `${baseUsername}${counter}`;
-              counter++;
-            }
-            
-            // Buat user baru dengan password random (tidak akan digunakan karena login via Google)
-            const randomPassword = Math.random().toString(36).slice(-12);
-            const hashedPassword = await bcrypt.hash(randomPassword, 10);
-            
-            dbUser = await User.create({
-              username,
-              emailOrPhone: email,
-              password: hashedPassword,
-              avatar: picture,
-              role: "guest",
-            });
-            
-            console.log("Auto-register berhasil untuk:", email);
+            console.log("Google login ditolak: user belum terdaftar =", email);
+            throw new Error("NOT_REGISTERED");
           }
 
           token.id = dbUser._id.toString();

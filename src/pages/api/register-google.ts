@@ -10,14 +10,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await connectDB();
 
-    const { username, password, email, avatar } = req.body;
+    const { username, password, email, avatar, address } = req.body;
 
     if (!username || !password || !email)
       return res.status(400).json({ message: "Incomplete data" });
 
+    // Cek apakah email sudah terdaftar
     const exists = await User.findOne({ emailOrPhone: email });
-    if (exists)
-      return res.status(400).json({ message: "Akun sudah terdaftar" });
+    if (exists) {
+      return res.status(400).json({ message: "Akun dengan email ini sudah terdaftar. Silakan login dengan Google atau gunakan email lain." });
+    }
+
+    // Cek apakah username sudah digunakan
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists) {
+      return res.status(400).json({ message: "Username sudah digunakan. Silakan pilih username lain." });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
 
@@ -26,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       emailOrPhone: email,
       password: hashed,
       avatar,
+      address: address || "",
       role: "guest",
     });
 

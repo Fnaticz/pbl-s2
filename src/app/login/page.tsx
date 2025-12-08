@@ -39,18 +39,27 @@ function LoginPage() {
     let errorMessage = "Terjadi kesalahan saat login.";
     if (error === "not_registered") {
       errorMessage = "Akun Google belum terdaftar. Silakan register terlebih dahulu.";
+      setAlert({ 
+        isOpen: true, 
+        message: errorMessage, 
+        type: 'error' 
+      });
+      toast.error(errorMessage);
+      // Redirect ke register setelah 2 detik
+      setTimeout(() => {
+        router.push("/register");
+      }, 2000);
     } 
     else if (error === "CredentialsSignin" || error === "Callback") {
       errorMessage = "Username atau password salah. Silakan coba lagi.";
+      setAlert({ 
+        isOpen: true, 
+        message: errorMessage, 
+        type: 'error' 
+      });
+      toast.error(errorMessage);
     }
-
-    setAlert({ 
-      isOpen: true, 
-      message: errorMessage, 
-      type: 'error' 
-    });
-    toast.error(errorMessage);
-  }, [error]);
+  }, [error, router]);
 
   // Loading animation
   useEffect(() => {
@@ -58,12 +67,13 @@ function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // CHECK SESSION
+  // CHECK SESSION - Redirect jika sudah login
   useEffect(() => {
     const checkSession = async () => {
       const session = await getSession();
       if (!session || !session.user) return;
 
+      // Jika sudah login, redirect sesuai role
       if (session.user.role === 'admin') {
         router.push('/dashboard/admin');
       } else if (session.user.role === 'member') {
@@ -213,7 +223,7 @@ function LoginPage() {
             className="flex items-center gap-2 px-8 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition"
           >
             <FcGoogle />
-            Google
+            Login with Google
           </button>
 
           <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition">

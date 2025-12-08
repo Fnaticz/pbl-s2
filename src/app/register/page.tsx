@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { getSession } from 'next-auth/react'
 import Loading from '../components/Loading'
 import Alert from '../components/Alert'
 import { FcGoogle } from 'react-icons/fc'
 import { signIn } from 'next-auth/react'
+import { toast } from 'react-toastify'
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     username: '',
@@ -26,10 +31,40 @@ export default function RegisterPage() {
   const [passwordStrength, setPasswordStrength] =
     useState<'Weak' | 'Medium' | 'Strong' | ''>('');
 
+  // CHECK SESSION - Redirect jika sudah login
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    const checkSession = async () => {
+      const session = await getSession();
+      if (!session || !session.user) {
+        const timer = setTimeout(() => setLoading(false), 1500);
+        return () => clearTimeout(timer);
+      }
+
+      // Jika sudah login, redirect sesuai role
+      if (session.user.role === 'admin') {
+        router.push('/dashboard/admin');
+      } else if (session.user.role === 'member') {
+        router.push('/dashboard/member');
+      } else if (session.user.role === 'guest') {
+        router.push('/');
+      }
+    };
+
+    checkSession();
+  }, [router]);
+
+  // Handle Google error dari login
+  useEffect(() => {
+    const googleError = searchParams.get("google_error");
+    if (googleError === "not_registered") {
+      setAlert({
+        isOpen: true,
+        message: "Akun Google belum terdaftar. Silakan lengkapi form registrasi di bawah atau gunakan tombol Register with Google.",
+        type: "warning",
+      });
+      toast.warning("Akun Google belum terdaftar. Silakan lengkapi registrasi.");
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
