@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { IncomingForm } from "formidable";
 import fs from "fs";
 import path from "path";
+import { uploadToCloudinary } from "../../../lib/cloudinary";
 
 export const config = {
   api: {
@@ -15,22 +16,17 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  // Buat folder chat-media jika belum ada
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "chat-media");
-  fs.mkdirSync(uploadDir, { recursive: true });
-
   // Ekstensi yang diizinkan
   const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
   const videoExts = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v'];
 
   const form = new IncomingForm({
-    uploadDir,
     keepExtensions: true,
     multiples: true,
     maxFileSize: 100 * 1024 * 1024, // 100MB
   });
 
-  form.parse(req, (err, fields, files) => {
+  form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error("Form parse error:", err);
       return res.status(500).json({ 
@@ -86,12 +82,38 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
           continue;
         }
 
-        // Gunakan basename dari filepath (formidable sudah simpan di uploadDir dengan keepExtensions)
-        const fileName = path.basename(file.filepath);
+        // Baca file sebagai buffer
+        let fileBuffer: Buffer;
+        try {
+          fileBuffer = fs.readFileSync(file.filepath);
+        } catch (readError: any) {
+          console.error(`Error reading file ${originalName}:`, readError);
+          continue;
+        }
 
-        // Generate URL
-        const url = `/uploads/chat-media/${fileName}`;
-        uploadResults.push({ url, type: fileType });
+        // Upload ke Cloudinary
+        try {
+          const cloudinaryResult = await uploadToCloudinary(
+            fileBuffer,
+            "chat-media",
+            fileType,
+            `chat_${Date.now()}_${Math.random().toString(36).substring(7)}`
+          );
+
+          uploadResults.push({ 
+            url: cloudinaryResult.secureUrl, 
+            type: fileType 
+          });
+
+          // Hapus file lokal setelah upload ke Cloudinary
+          if (file.filepath && fs.existsSync(file.filepath)) {
+            fs.unlinkSync(file.filepath);
+          }
+        } catch (cloudinaryError: any) {
+          console.error(`Error uploading ${originalName} to Cloudinary:`, cloudinaryError);
+          // Lanjutkan ke file berikutnya
+          continue;
+        }
       }
 
       if (uploadResults.length === 0) {

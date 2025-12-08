@@ -4,6 +4,7 @@ import { authOptions } from "../auth/[...nextauth]";
 import { connectDB } from "../../../lib/mongodb";
 import Media from "../../../models/media";
 import mongoose from "mongoose";
+import { deleteFromCloudinary, extractPublicIdFromUrl } from "../../../lib/cloudinary";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectDB();
@@ -32,6 +33,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!isOwner) {
         return res.status(403).json({ message: "You can only delete your own media" });
+      }
+
+      // Hapus dari Cloudinary jika URL adalah Cloudinary URL
+      if (media.url && media.url.includes('cloudinary.com')) {
+        try {
+          // Gunakan cloudinaryPublicId jika ada, atau extract dari URL
+          const publicId = (media as any).cloudinaryPublicId || extractPublicIdFromUrl(media.url);
+          if (publicId) {
+            await deleteFromCloudinary(publicId, media.type);
+            console.log(`Deleted from Cloudinary: ${publicId}`);
+          }
+        } catch (cloudinaryError: any) {
+          console.error("Error deleting from Cloudinary:", cloudinaryError);
+          // Lanjutkan delete dari DB meskipun Cloudinary delete gagal
+        }
       }
 
       await Media.findByIdAndDelete(id);

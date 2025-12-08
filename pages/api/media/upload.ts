@@ -3,11 +3,12 @@ import { connectDB } from "../../../lib/mongodb";
 import Media from "../../../models/media";
 import formidable, { File } from "formidable";
 import fs from "fs";
-import path from "path";
+import { uploadToCloudinary } from "../../../lib/cloudinary";
 
 export const config = {
   api: {
     bodyParser: false,
+    sizeLimit: "100mb",
   },
 };
 
@@ -18,7 +19,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   await connectDB();
 
-  const form = formidable({ multiples: false, uploadDir: path.join(process.cwd(), "/public/uploads"), keepExtensions: true });
+  const form = formidable({ 
+    multiples: false, 
+    maxFileSize: 100 * 1024 * 1024, // 100MB
+    keepExtensions: true 
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -61,21 +66,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "Missing username or type" });
       }
 
-      //Simpan media ke DB
-      const relativePath = "/uploads/" + file.newFilename;
+      // Validasi type
+      if (type !== "image" && type !== "video") {
+        return res.status(400).json({ message: "Invalid type. Must be 'image' or 'video'" });
+      }
 
+      // Baca file sebagai buffer
+      let fileBuffer: Buffer;
+      if (file.filepath) {
+        fileBuffer = fs.readFileSync(file.filepath);
+      } else {
+        return res.status(400).json({ message: "File path not found" });
+      }
+
+      // Upload ke Cloudinary
+      const cloudinaryResult = await uploadToCloudinary(
+        fileBuffer,
+        "gallery",
+        type,
+        `gallery_${Date.now()}_${username}`
+      );
+
+      // Simpan media ke DB dengan URL Cloudinary
       const newMedia = await Media.create({
         type,
-        url: relativePath,
+        url: cloudinaryResult.secureUrl,
         username,
+        cloudinaryPublicId: cloudinaryResult.publicId, // Simpan public ID untuk delete nanti
       });
 
+      // Hapus file lokal setelah upload ke Cloudinary
+      if (file.filepath && fs.existsSync(file.filepath)) {
+        fs.unlinkSync(file.filepath);
+      }
+
       return res.status(201).json(newMedia);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Save media error:", error);
-      return res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ 
+        message: "Server error",
+        error: error?.message || "Unknown error"
+      });
     }
   });
-
-
 }
