@@ -1,7 +1,7 @@
 // pages/api/business/index.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]";
+import { authOptions } from "../auth/[...nextauth]";
 import { connectDB } from '../../../lib/mongodb';
 import Business from '../../../models/business';
 

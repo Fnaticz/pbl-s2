@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]"; // sesuaikan path
+import { authOptions } from "../auth/[...nextauth]";
 import { connectDB } from '../../../lib/mongodb';
 import User from '../../../models/user';
 

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]";
+import { authOptions } from "../auth/[...nextauth]";
 import { connectDB } from '../../../lib/mongodb';
 import Media from '../../../models/media';
 import mongoose from "mongoose";

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "test": "jest"
@@ -27,7 +27,8 @@
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "react-toastify": "^11.0.5",
-    "recharts": "^3.5.1"
+    "recharts": "^3.5.1",
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

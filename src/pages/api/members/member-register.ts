@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from '../../../lib/mongodb';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]";
+import { authOptions } from "../auth/[...nextauth]";
 import mongoose from 'mongoose';
 import MemberApplication from '../../../models/member-register'; // pastikan nama file model benar
 
