@@ -13,6 +13,10 @@ export interface IUser extends Document {
    */
   address?: string;
   avatar?: string;
+  /**
+   * Google ID untuk user yang daftar via Google OAuth.
+   */
+  googleId?: string;
   role: 'guest' | 'member' | 'admin';
   emailVerified?: boolean;
   date?: Date;
@@ -26,6 +30,7 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, required: false, default: '' },
     address: { type: String, required: false, default: '' },
     avatar: { type: String, default: '' },
+    googleId: { type: String, required: false, unique: true, sparse: true },
     role: {
       type: String,
       enum: ['guest', 'member', 'admin'],

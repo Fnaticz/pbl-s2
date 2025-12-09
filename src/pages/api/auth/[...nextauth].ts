@@ -82,41 +82,76 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider === "google") {
-        await connectDB();
-
-        const email = profile?.email || "";
-        const name = profile?.name || "";
-        const avatar = profile?.picture || "";
-        const googleId = account?.providerAccountId;
-
-        const dbUser = await User.findOne({ googleId });
-
-        if (!dbUser) {
-          return `/register/google?email=${email}&name=${name}&avatar=${avatar}&googleId=${googleId}`;
+        try {
+          await connectDB();
+    
+          const email = profile?.email;
+          const name = profile?.name || "";
+          const avatar = profile?.picture || "";
+          const googleId = account?.providerAccountId;
+    
+          if (!email || !googleId) {
+            return false;
+          }
+    
+          // Check by googleId first
+          let dbUser = await User.findOne({ googleId });
+    
+          // If not found by googleId, check by email
+          if (!dbUser) {
+            dbUser = await User.findOne({ emailOrPhone: email });
+            
+            // If user exists by email but doesn't have googleId, update it
+            if (dbUser && !dbUser.googleId) {
+              dbUser.googleId = googleId;
+              await dbUser.save();
+            }
+          }
+    
+          // If user doesn't exist, redirect to registration
+          if (!dbUser) {
+            return `/register/google?status=not_registered&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&avatar=${encodeURIComponent(avatar)}&googleId=${encodeURIComponent(googleId)}`;
+          }
+    
+          // Check if email is verified (for security)
+          // Allow login even if not verified, but we can add a check here if needed
+          
+          return true;
+        } catch (error) {
+          console.error("Google signIn error:", error);
+          return false;
         }
-
-        return true;
       }
-
+    
       return true;
     },
 
     async jwt({ token, user, account, profile }) {
       if (account?.provider === "google") {
-        await connectDB();
+        try {
+          await connectDB();
 
-        const googleId = account.providerAccountId;
-        const dbUser = await User.findOne({ googleId });
+          const googleId = account.providerAccountId;
+          let dbUser = await User.findOne({ googleId });
 
-        if (!dbUser) return token;
+          // Fallback: find by email if not found by googleId
+          if (!dbUser && profile?.email) {
+            dbUser = await User.findOne({ emailOrPhone: profile.email });
+          }
 
-        token.id = dbUser._id.toString();
-        token.username = dbUser.username;
-        token.role = dbUser.role;
-        token.emailOrPhone = dbUser.emailOrPhone;
-        token.avatar = dbUser.avatar ?? profile?.picture;
+          if (!dbUser) return token;
 
-        return token;
+          token.id = dbUser._id.toString();
+          token.username = dbUser.username;
+          token.role = dbUser.role;
+          token.emailOrPhone = dbUser.emailOrPhone;
+          token.avatar = dbUser.avatar || profile?.picture || "";
+
+          return token;
+        } catch (error) {
+          console.error("JWT callback error:", error);
+          return token;
+        }
       }
 
       if (user) {
@@ -139,6 +174,14 @@ export const authOptions: AuthOptions = {
         session.user.avatar = token.avatar as string;
       }
       return session;
+    },
+
+    async redirect({ url, baseUrl }) {
+      // Allow relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allow callback URLs on the same origin
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
   },
 

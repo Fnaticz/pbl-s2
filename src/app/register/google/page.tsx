@@ -93,17 +93,27 @@ function GoogleRegisterPageContent() {
 
       if (!res.ok) {
         setSubmitting(false);
-        toast.error(data.message);
+        setAlert({ isOpen: true, message: data.message || "Terjadi kesalahan saat registrasi.", type: "error" });
+        toast.error(data.message || "Terjadi kesalahan");
         return;
       }
 
       toast.success("Registrasi Google berhasil!");
 
+      // Clear Google data cookie
       document.cookie = "googleRegisterData=; path=/; max-age=0";
 
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1200);
+      // Redirect to email verification page
+      if (data.redirect) {
+        setTimeout(() => {
+          router.push(data.redirect);
+        }, 1200);
+      } else {
+        // Fallback redirect
+        setTimeout(() => {
+          router.push(`/verify-email?email=${encodeURIComponent(googleData.email)}`);
+        }, 1200);
+      }
     } catch {
       toast.error("Terjadi kesalahan.");
       setSubmitting(false);

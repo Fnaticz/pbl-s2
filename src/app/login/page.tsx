@@ -220,7 +220,23 @@ function LoginPage() {
 
         <div className="flex items-center justify-center mt-4">
           <button
-            onClick={() => signIn('google', { callbackUrl: '/login' })}
+            onClick={async () => {
+              try {
+                // Use signIn with redirect for better flow
+                await signIn('google', { 
+                  callbackUrl: '/',
+                  redirect: true
+                });
+              } catch (error) {
+                console.error('Google login error:', error);
+                setAlert({
+                  isOpen: true,
+                  message: 'Terjadi kesalahan saat login dengan Google.',
+                  type: 'error'
+                });
+                toast.error('Terjadi kesalahan');
+              }
+            }}
             className="flex items-center gap-2 px-8 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition"
           >
             <FcGoogle />
