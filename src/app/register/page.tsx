@@ -298,7 +298,7 @@ function RegisterPageContent() {
               <button
                 onClick={() =>
                   signIn("google", {
-                    callbackUrl: "/register/google?register=true",
+                    callbackUrl: "/api/auth/handle-google-error?register=true",
                   })
                 }
                 className="flex items-center gap-2 px-8 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition"

@@ -22,7 +22,7 @@ function GoogleRegisterPageContent() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // Ambil data Google dari query params atau cookie
+  // Ambil data Google dari query params, cookie, atau session
   useEffect(() => {
     const fetchGoogleData = async () => {
       try {
@@ -30,14 +30,43 @@ function GoogleRegisterPageContent() {
         const email = searchParams.get("email");
         const name = searchParams.get("name");
         const avatar = searchParams.get("avatar");
+        const error = searchParams.get("error");
+        const register = searchParams.get("register");
 
+        // Jika ada error dan register=true, berarti user belum terdaftar
+        // Kita perlu mendapatkan data Google dari session atau cookie
+        if (error === "not_registered" && register === "true") {
+          // Coba ambil dari cookie
+          const response = await fetch("/api/get-google-data");
+          if (response.ok) {
+            const data = await response.json();
+            if (data.email && data.name) {
+              setGoogleData(data);
+              setLoading(false);
+              return;
+            }
+          }
+          
+          // Jika tidak ada di cookie, redirect ke register untuk mulai ulang
+          setAlert({
+            isOpen: true,
+            message: "Data Google tidak ditemukan. Silakan register dengan Google terlebih dahulu.",
+            type: "error",
+          });
+          setTimeout(() => {
+            router.push("/register");
+          }, 2000);
+          return;
+        }
+
+        // Jika ada data di query params
         if (email && name) {
           setGoogleData({ email, name, avatar: avatar || "" });
           setLoading(false);
           return;
         }
 
-        // Jika tidak ada di query params, cek API untuk cookie
+        // Cek cookie sebagai fallback
         const response = await fetch("/api/get-google-data");
         if (response.ok) {
           const data = await response.json();
