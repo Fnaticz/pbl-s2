@@ -17,10 +17,10 @@ export default async function handler(
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { username, password, role, emailOrPhone, address } = req.body;
+  const { username, password, emailOrPhone, address } = req.body;
 
-  if (!username || !password || !role) {
-    return res.status(400).json({ message: 'All fields are required' });
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username dan password wajib diisi' });
   }
 
   try {
@@ -48,10 +48,12 @@ export default async function handler(
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Selalu set role ke 'guest' untuk registrasi baru
+    // User harus mendaftar sebagai member melalui proses yang terpisah
     await User.create({
       username,
       password: hashedPassword,
-      role,
+      role: 'guest', // Selalu 'guest' untuk registrasi baru
       emailOrPhone,
       address,
       emailVerified: false,
