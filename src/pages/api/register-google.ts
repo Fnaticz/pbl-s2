@@ -39,8 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: "Akun Google berhasil dibuat",
       user: newUser
     });
-
-  } catch (error) {
+  } catch {
     return res.status(500).json({ message: "Server error" });
   }
 }

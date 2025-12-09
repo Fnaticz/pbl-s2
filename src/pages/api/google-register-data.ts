@@ -11,10 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { token } = req.body;
-
-    if (!token) {
-      return res.status(400).json({ message: "Missing Google token" });
-    }
+    if (!token) return res.status(400).json({ message: "Missing Google token" });
 
     const ticket = await client.verifyIdToken({
       idToken: token,
@@ -22,10 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const payload = ticket.getPayload();
-
-    if (!payload?.email) {
-      return res.status(400).json({ message: "Google token invalid" });
-    }
+    if (!payload?.email) return res.status(400).json({ message: "Google token invalid" });
 
     const googleData = {
       email: payload.email,
@@ -45,12 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     );
 
-    return res.status(200).json({
-      message: "Google data verified & saved",
-      success: true,
-      google: googleData,
-    });
-
+    return res.status(200).json({ success: true, google: googleData });
   } catch (error: any) {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
