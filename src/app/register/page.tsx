@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSession } from 'next-auth/react'
@@ -10,7 +10,7 @@ import { FcGoogle } from 'react-icons/fc'
 import { signIn } from 'next-auth/react'
 import { toast } from 'react-toastify'
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -320,5 +320,13 @@ export default function RegisterPage() {
         onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
       />
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }
