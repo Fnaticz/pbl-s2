@@ -1,46 +1,46 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import bcrypt from "bcryptjs";
-import { connectDB } from '../../lib/mongodb';
-import User from '../../models/user';
+import { connectDB } from "../../lib/mongodb";
+import User from "../../models/user";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST")
+  if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
+  }
 
   try {
     await connectDB();
 
-    const { username, password, email, avatar, address } = req.body;
+    const { googleId, email, username, address, avatar } = req.body;
 
-    if (!username || !password || !email)
-      return res.status(400).json({ message: "Incomplete data" });
-
-    // Cek apakah email sudah terdaftar
-    const exists = await User.findOne({ emailOrPhone: email });
-    if (exists) {
-      return res.status(400).json({ message: "Akun dengan email ini sudah terdaftar. Silakan login dengan Google atau gunakan email lain." });
+    if (!googleId || !email || !username) {
+      return res.status(400).json({ message: "Data tidak lengkap" });
     }
 
-    // Cek apakah username sudah digunakan
-    const usernameExists = await User.findOne({ username });
-    if (usernameExists) {
-      return res.status(400).json({ message: "Username sudah digunakan. Silakan pilih username lain." });
+    let user = await User.findOne({ emailOrPhone: email });
+
+    if (user) {
+      return res.status(200).json({
+        message: "Akun sudah ada, langsung login",
+        user
+      });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
-
-    await User.create({
+    const newUser = await User.create({
       username,
       emailOrPhone: email,
-      password: hashed,
-      avatar,
+      avatar: avatar || "",
       address: address || "",
+      googleId,
+      password: null,
       role: "guest",
     });
 
-    res.status(201).json({ message: "Register Google berhasil" });
+    return res.status(201).json({
+      message: "Akun Google berhasil dibuat",
+      user: newUser
+    });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 }
