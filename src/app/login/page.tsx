@@ -217,18 +217,13 @@ function LoginPage() {
           </button>
         </form>
 
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-center mt-4">
           <button
             onClick={() => signIn('google', { callbackUrl: '/login' })}
             className="flex items-center gap-2 px-8 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition"
           >
             <FcGoogle />
             Login with Google
-          </button>
-
-          <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm hover:bg-white/20 transition">
-            <Image src="/facebooklogo.png" alt="Facebook" width={20} height={20} className="w-5 h-5" />
-            Facebook
           </button>
         </div>
 

@@ -125,6 +125,32 @@ export default function RegisterPage() {
     setSubmitting(true);
 
     try {
+      // Cek apakah email atau phone
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isEmail = emailRegex.test(emailOrPhone);
+
+      // Jika email, kirim kode verifikasi terlebih dahulu
+      if (isEmail) {
+        const sendCodeRes = await fetch('/api/auth/send-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailOrPhone }),
+        });
+
+        const sendCodeData = await sendCodeRes.json();
+        
+        if (!sendCodeRes.ok && !sendCodeData.error?.includes('DEV MODE')) {
+          setAlert({
+            isOpen: true,
+            message: sendCodeData.message || 'Gagal mengirim kode verifikasi. Silakan coba lagi.',
+            type: 'error',
+          });
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // Lanjutkan registrasi
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -140,12 +166,18 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setSubmitted(true);
-        setAlert({ 
-          isOpen: true, 
-          message: data.message || 'Registrasi berhasil!', 
-          type: 'success' 
-        });
+        // Redirect ke halaman verifikasi email jika email valid
+        if (isEmail) {
+          router.push(`/verify-email?email=${encodeURIComponent(emailOrPhone)}`);
+        } else {
+          // Jika bukan email (phone), langsung set submitted
+          setSubmitted(true);
+          setAlert({ 
+            isOpen: true, 
+            message: data.message || 'Registrasi berhasil!', 
+            type: 'success' 
+          });
+        }
       } else {
         setAlert({ 
           isOpen: true, 

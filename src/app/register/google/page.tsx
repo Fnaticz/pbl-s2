@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import Loading from "../../components/Loading";
 import Alert from "../../components/Alert";
 
-export default function GoogleRegisterPage() {
+function GoogleRegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -252,5 +252,13 @@ export default function GoogleRegisterPage() {
         onClose={() => setAlert({ isOpen: false, message: '', type: 'info' })}
       />
     </div>
+  );
+}
+
+export default function GoogleRegisterPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <GoogleRegisterPageContent />
+    </Suspense>
   );
 }

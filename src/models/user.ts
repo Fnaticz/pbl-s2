@@ -14,6 +14,7 @@ export interface IUser extends Document {
   address?: string;
   avatar?: string;
   role: 'guest' | 'member' | 'admin';
+  emailVerified?: boolean;
   date?: Date;
 }
 
@@ -30,6 +31,7 @@ const UserSchema = new Schema<IUser>(
       enum: ['guest', 'member', 'admin'],
       default: 'guest',
     },
+    emailVerified: { type: Boolean, default: false },
     date: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -53,7 +53,8 @@ export default async function handler(
       password: hashedPassword,
       role,
       emailOrPhone,
-      address
+      address,
+      emailVerified: false,
     });
 
     return res.status(201).json({ 
