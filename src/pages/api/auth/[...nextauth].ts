@@ -70,12 +70,25 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
 
   pages: {
     signIn: "/login",
     error: "/api/auth/handle-google-error",
+  },
+  
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      // Log sign in events if needed
+    },
   },
 
   session: {
@@ -100,11 +113,19 @@ export const authOptions: AuthOptions = {
           if (!dbUser) {
             console.log("Google: user belum terdaftar, simpan data untuk register =", email);
             
-            // Simpan data ke temporary store menggunakan state dari account
-            // State akan digunakan di error handler untuk mengambil data
-            if (account.state) {
+            // Simpan data ke temporary store
+            try {
               const { saveGoogleDataForRegister } = await import('./handle-google-error');
-              saveGoogleDataForRegister(account.state, email, name, picture);
+              
+              // Simpan dengan email sebagai key (fallback yang lebih reliable)
+              saveGoogleDataForRegister(`email_${email}`, email, name, picture);
+              
+              // Simpan juga dengan state jika ada (untuk register flow)
+              if (account.state) {
+                saveGoogleDataForRegister(account.state, email, name, picture);
+              }
+            } catch (importError) {
+              console.error("Error saving Google data:", importError);
             }
             
             return false; // Return false akan trigger error callback
@@ -211,36 +232,6 @@ export default async function auth(req: any, res: any) {
       (req.connection && (req.connection as any).encrypted ? "https" : "http");
 
     process.env.NEXTAUTH_URL = `${proto}://${req.headers.host}`;
-  }
-
-  // Handle Google callback untuk menyimpan data jika user belum terdaftar
-  if (req.method === "GET" && req.url?.includes("/api/auth/callback/google")) {
-    try {
-      const result = await nextAuthHandler(req, res);
-      
-      // Check if redirect to error page
-      const location = res.getHeader("Location");
-      if (location && typeof location === "string" && location.includes("error")) {
-        // Extract state from query to get register flag
-        const state = req.query.state;
-        const register = state?.includes("register=true") || req.query.register === "true";
-        
-        if (register) {
-          // Redirect to error handler with register flag
-          return res.redirect(302, `/api/auth/handle-google-error?error=not_registered&register=true&state=${encodeURIComponent(state || "")}`);
-        }
-      }
-      
-      return result;
-    } catch (error: any) {
-      // If error is NOT_REGISTERED, redirect to error handler
-      if (error?.message === "NOT_REGISTERED") {
-        const state = req.query.state;
-        const register = state?.includes("register=true") || req.query.register === "true";
-        return res.redirect(302, `/api/auth/handle-google-error?error=not_registered&register=${register ? "true" : "false"}&state=${encodeURIComponent(state || "")}`);
-      }
-      throw error;
-    }
   }
 
   return nextAuthHandler(req, res);

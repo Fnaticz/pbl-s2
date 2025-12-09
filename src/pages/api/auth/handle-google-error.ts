@@ -29,21 +29,31 @@ export default async function handler(
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { error, register, state } = req.query;
+  const { error, register, state, email } = req.query;
 
   // Jika ini adalah error dari Google login/register
   if (error === "not_registered" || error === "AccessDenied" || error) {
     // Cek apakah ini register flow
     const isRegister = register === "true" || (state?.toString().includes("register=true") ?? false);
     
-    // Coba ambil data Google dari temporary store berdasarkan state
+    // Coba ambil data Google dari temporary store
     let googleData: { email: string; name: string; avatar: string } | null = null;
     
+    // Coba ambil berdasarkan state dulu
     if (state) {
       const stored = googleDataStore.get(state as string);
       if (stored) {
         googleData = { email: stored.email, name: stored.name, avatar: stored.avatar };
         googleDataStore.delete(state as string);
+      }
+    }
+    
+    // Jika tidak ada, coba ambil berdasarkan email (fallback)
+    if (!googleData && email) {
+      const stored = googleDataStore.get(`email_${email}`);
+      if (stored) {
+        googleData = { email: stored.email, name: stored.name, avatar: stored.avatar };
+        googleDataStore.delete(`email_${email}`);
       }
     }
     
@@ -64,6 +74,19 @@ export default async function handler(
 
     // Jika ada data Google dan ini register flow
     if (googleData && isRegister) {
+      // Cek apakah email sudah terdaftar (untuk register flow, ini seharusnya tidak terjadi)
+      // Tapi kita cek untuk memastikan
+      try {
+        await connectDB();
+        const existingUser = await User.findOne({ emailOrPhone: googleData.email });
+        if (existingUser) {
+          // Jika sudah terdaftar, redirect ke register dengan error
+          return res.redirect(302, `/register?google_error=already_registered&email=${encodeURIComponent(googleData.email)}`);
+        }
+      } catch (dbError) {
+        console.error("Error checking existing user:", dbError);
+      }
+
       // Simpan data ke cookie untuk digunakan di halaman register/google
       const googleDataStr = JSON.stringify(googleData);
       res.setHeader(

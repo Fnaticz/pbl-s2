@@ -28,6 +28,7 @@ function LoginPage() {
     type: 'info' 
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showRegisterConfirm, setShowRegisterConfirm] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
@@ -45,10 +46,10 @@ function LoginPage() {
         type: 'error' 
       });
       toast.error(errorMessage);
-      // Redirect ke register setelah 2 detik
+      // Redirect ke register setelah 3 detik
       setTimeout(() => {
         router.push("/register");
-      }, 2000);
+      }, 3000);
     } 
     else if (error === "CredentialsSignin" || error === "Callback") {
       errorMessage = "Username atau password salah. Silakan coba lagi.";
@@ -59,7 +60,7 @@ function LoginPage() {
       });
       toast.error(errorMessage);
     }
-  }, [error, router]);
+  }, [error]);
 
   // Loading animation
   useEffect(() => {

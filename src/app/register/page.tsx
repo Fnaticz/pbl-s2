@@ -53,7 +53,7 @@ function RegisterPageContent() {
     checkSession();
   }, [router]);
 
-  // Handle Google error dari login
+  // Handle Google error dari login/register
   useEffect(() => {
     const googleError = searchParams.get("google_error");
     if (googleError === "not_registered") {
@@ -63,6 +63,14 @@ function RegisterPageContent() {
         type: "warning",
       });
       toast.warning("Akun Google belum terdaftar. Silakan lengkapi registrasi.");
+    } else if (googleError === "already_registered") {
+      const email = searchParams.get("email");
+      setAlert({
+        isOpen: true,
+        message: `Akun dengan email ${email || "ini"} sudah terdaftar. Silakan login dengan Google atau gunakan email lain.`,
+        type: "error",
+      });
+      toast.error("Akun sudah terdaftar. Silakan login.");
     }
   }, [searchParams]);
 
