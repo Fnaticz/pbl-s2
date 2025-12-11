@@ -302,68 +302,75 @@ export default function MemberDashboard() {
       return;
     }
 
-    setLoading(true);
-    try {
-      // 🧩 Pisahkan gambar baru (base64) dan lama (URL)
-      const locals = profile.slideshow.filter((s) => s.startsWith("blob:"));
-      // segala non-blob dianggap sudah tersimpan (bisa URL atau data:image)
-      const remotes = profile.slideshow.filter((s) => !s.startsWith("blob:"));
+    setConfirm({
+      isOpen: true,
+      message: profile._id ? "Update this business profile?" : "Save this business profile?",
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          // 🧩 Pisahkan gambar baru (base64) dan lama (URL)
+          const locals = profile.slideshow.filter((s) => s.startsWith("blob:"));
+          // segala non-blob dianggap sudah tersimpan (bisa URL atau data:image)
+          const remotes = profile.slideshow.filter((s) => !s.startsWith("blob:"));
 
-      let uploaded: string[] = [];
-      if (locals.length) {
-        const base64s = await Promise.all(locals.map(blobUrlToBase64));
-        uploaded = await uploadImages(base64s);
+          let uploaded: string[] = [];
+          if (locals.length) {
+            const base64s = await Promise.all(locals.map(blobUrlToBase64));
+            uploaded = await uploadImages(base64s);
+          }
+
+          const finalSlideshow = [...remotes, ...uploaded];
+
+          // 🔧 Payload dikirim ke server
+          const payload = { ...profile, slideshow: finalSlideshow, userId: user.id };
+
+          const method = profile._id ? "PUT" : "POST";
+          const res = await fetch("/api/business", {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          // ✅ Parse response aman
+          let data: any = null;
+          try {
+            data = await res.json();
+          } catch {
+            data = {};
+          }
+
+          console.log("Save response:", data);
+
+          if (!res.ok) throw new Error(data.message || "Save failed");
+
+          // ✅ Pastikan format konsisten antara POST & PUT
+          // Server sebaiknya mengirim langsung objek business (bukan { business: ... })
+          const savedBusiness = data._id ? data : data.business;
+
+          if (!savedBusiness?._id) {
+            console.warn("⚠️ Missing _id in response:", data);
+          }
+
+          // 🔁 Update state tanpa error undefined
+          if (method === "POST") {
+            setBusinesses((prev) => [...prev, savedBusiness]);
+          } else {
+            setBusinesses((prev) =>
+              prev.map((b) => (b._id === savedBusiness._id ? savedBusiness : b))
+            );
+          }
+
+          setProfile(emptyProfile);
+          setAlert({ isOpen: true, message: data.message || "Profile saved successfully!", type: 'success' })
+        } catch (err: any) {
+          console.error("❌ Save profile error:", err);
+          setAlert({ isOpen: true, message: err.message || "Failed to save profile", type: 'error' })
+        } finally {
+          setLoading(false);
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} });
+        }
       }
-
-      const finalSlideshow = [...remotes, ...uploaded];
-
-      // 🔧 Payload dikirim ke server
-      const payload = { ...profile, slideshow: finalSlideshow, userId: user.id };
-
-      const method = profile._id ? "PUT" : "POST";
-      const res = await fetch("/api/business", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      // ✅ Parse response aman
-      let data: any = null;
-      try {
-        data = await res.json();
-      } catch {
-        data = {};
-      }
-
-      console.log("Save response:", data);
-
-      if (!res.ok) throw new Error(data.message || "Save failed");
-
-      // ✅ Pastikan format konsisten antara POST & PUT
-      // Server sebaiknya mengirim langsung objek business (bukan { business: ... })
-      const savedBusiness = data._id ? data : data.business;
-
-      if (!savedBusiness?._id) {
-        console.warn("⚠️ Missing _id in response:", data);
-      }
-
-      // 🔁 Update state tanpa error undefined
-      if (method === "POST") {
-        setBusinesses((prev) => [...prev, savedBusiness]);
-      } else {
-        setBusinesses((prev) =>
-          prev.map((b) => (b._id === savedBusiness._id ? savedBusiness : b))
-        );
-      }
-
-      setProfile(emptyProfile);
-      setAlert({ isOpen: true, message: data.message || "Profile saved successfully!", type: 'success' })
-    } catch (err: any) {
-      console.error("❌ Save profile error:", err);
-      setAlert({ isOpen: true, message: err.message || "Failed to save profile", type: 'error' })
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
 

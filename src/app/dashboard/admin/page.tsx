@@ -244,44 +244,51 @@ export default function AdminDashboard() {
       return
     }
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result;
+    setConfirm({
+      isOpen: true,
+      message: "Upload this banner?",
+      onConfirm: async () => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = reader.result;
 
-      try {
-        const res = await fetch("/api/banner/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: bannerName,
-            title: bannerTitle,
-            eventDate: bannerDate,
-            location: bannerLocation,
-            file: base64,
-          }),
-        });
+          try {
+            const res = await fetch("/api/banner/upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: bannerName,
+                title: bannerTitle,
+                eventDate: bannerDate,
+                location: bannerLocation,
+                file: base64,
+              }),
+            });
 
-        if (res.ok) {
-          const newBanner = await res.json();
-          setBannerReports((prev) => [...prev, newBanner]);
+            if (res.ok) {
+              const newBanner = await res.json();
+              setBannerReports((prev) => [...prev, newBanner]);
 
-          setAlert({ isOpen: true, message: "Banner uploaded!", type: 'success' })
-          setBannerTitle("");
-          setBannerDate("");
-          setBannerLocation("");
-          setBannerName("");
-          setBannerPreview(null);
-          fileInput.value = "";
-        } else {
-          setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
-        }
-      } catch (err) {
-        console.error("Upload error:", err);
-        setAlert({ isOpen: true, message: "Server error", type: 'error' })
+              setAlert({ isOpen: true, message: "Banner uploaded!", type: 'success' })
+              setBannerTitle("");
+              setBannerDate("");
+              setBannerLocation("");
+              setBannerName("");
+              setBannerPreview(null);
+              fileInput.value = "";
+            } else {
+              setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
+            }
+          } catch (err) {
+            console.error("Upload error:", err);
+            setAlert({ isOpen: true, message: "Server error", type: 'error' })
+          }
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        };
+
+        reader.readAsDataURL(file);
       }
-    };
-
-    reader.readAsDataURL(file);
+    })
   };
 
 
@@ -364,46 +371,53 @@ export default function AdminDashboard() {
       return
     }
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result;
+    setConfirm({
+      isOpen: true,
+      message: "Upload this main event?",
+      onConfirm: async () => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = reader.result;
 
-      try {
-        const res = await fetch("/api/mainevent/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: mainEventName,
-            title: mainEventTitle,
-            date: mainEventDate,
-            location: mainEventLocation,
-            desc: mainEventDesc,
-            file: base64,
-          }),
-        });
+          try {
+            const res = await fetch("/api/mainevent/upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: mainEventName,
+                title: mainEventTitle,
+                date: mainEventDate,
+                location: mainEventLocation,
+                desc: mainEventDesc,
+                file: base64,
+              }),
+            });
 
-        if (res.ok) {
-          const newMainEvent = await res.json();
-          setMainEventReports((prev) => [...prev, newMainEvent]);
+            if (res.ok) {
+              const newMainEvent = await res.json();
+              setMainEventReports((prev) => [...prev, newMainEvent]);
 
-          setAlert({ isOpen: true, message: "Main event uploaded!", type: 'success' })
-          setMainEventTitle("");
-          setMainEventDate("");
-          setMainEventLocation("");
-          setMainEventDesc("");
-          setMainEventName("");
-          setMainEventPreview(null);
-          fileInput.value = "";
-        } else {
-          setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
-        }
-      } catch (err) {
-        console.error("Upload error:", err);
-        setAlert({ isOpen: true, message: "Server error", type: 'error' })
+              setAlert({ isOpen: true, message: "Main event uploaded!", type: 'success' })
+              setMainEventTitle("");
+              setMainEventDate("");
+              setMainEventLocation("");
+              setMainEventDesc("");
+              setMainEventName("");
+              setMainEventPreview(null);
+              fileInput.value = "";
+            } else {
+              setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
+            }
+          } catch (err) {
+            console.error("Upload error:", err);
+            setAlert({ isOpen: true, message: "Server error", type: 'error' })
+          }
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+        };
+
+        reader.readAsDataURL(file);
       }
-    };
-
-    reader.readAsDataURL(file);
+    })
   };
 
   const handleViewProof = (base64: string) => {

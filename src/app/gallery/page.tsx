@@ -21,6 +21,7 @@ const ITEMS_PER_PAGE = 6;
 export default function GalleryPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [fileType, setFileType] = useState<"image" | "video">("image");
   const [page, setPage] = useState(1);
@@ -47,33 +48,61 @@ export default function GalleryPage() {
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("type", fileType);
-    formData.append(
-      "username",
-      session?.user?.username || session?.user?.emailOrPhone || "guest"
-    );
+    const fileArray = Array.from(files);
+    const fileCount = fileArray.length;
 
-    try {
-      const response = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      });
+    setConfirm({
+      isOpen: true,
+      message: `Upload ${fileCount} file${fileCount > 1 ? 's' : ''}?`,
+      onConfirm: async () => {
+        setUploading(true);
+        const formData = new FormData();
+        
+        // Append semua file
+        fileArray.forEach((file) => {
+          formData.append("file", file);
+        });
+        
+        formData.append("type", fileType);
+        formData.append(
+          "username",
+          session?.user?.username || session?.user?.emailOrPhone || "guest"
+        );
 
-      if (response.ok) {
-        const newMedia = await response.json();
-        setMedia((prev) => [newMedia, ...prev]);
-      } else {
-        const err = await response.json();
-        setAlert({ isOpen: true, message: err.message || "Upload failed", type: 'error' })
+        try {
+          const response = await fetch("/api/media/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            // Handle both single object and array response
+            const newMediaArray = Array.isArray(result) ? result : [result];
+            setMedia((prev) => [...newMediaArray, ...prev]);
+            setAlert({ 
+              isOpen: true, 
+              message: `Successfully uploaded ${newMediaArray.length} file${newMediaArray.length > 1 ? 's' : ''}!`, 
+              type: 'success' 
+            });
+          } else {
+            const err = await response.json();
+            setAlert({ isOpen: true, message: err.message || "Upload failed", type: 'error' })
+          }
+        } catch (err) {
+          console.error("Upload error:", err);
+          setAlert({ isOpen: true, message: "Server error. Please try again.", type: 'error' })
+        } finally {
+          setUploading(false);
+          // Reset input
+          e.target.value = "";
+          setConfirm({ isOpen: false, message: '', onConfirm: () => {} });
+        }
       }
-    } catch (err) {
-      console.error("Upload error:", err);
-    }
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -122,14 +151,25 @@ export default function GalleryPage() {
 
       {/* Controls */}
       <div className="flex gap-4 justify-center mb-8 flex-wrap">
-        <label className="bg-white text-black px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 shadow">
-          <FaPlus />
-          <span>Add File</span>
+        <label className={`px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 shadow ${uploading ? 'bg-gray-500 cursor-not-allowed' : 'bg-white text-black'}`}>
+          {uploading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Uploading...</span>
+            </>
+          ) : (
+            <>
+              <FaPlus />
+              <span>Add File{fileType === "image" ? "s" : ""} (Multiple)</span>
+            </>
+          )}
           <input
             type="file"
             accept={fileType === "image" ? "image/*" : "video/*"}
+            multiple
             className="hidden"
             onChange={handleFileUpload}
+            disabled={uploading}
           />
         </label>
 

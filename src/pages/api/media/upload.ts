@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await connectDB();
 
   const form = formidable({ 
-    multiples: false, 
+    multiples: true, 
     maxFileSize: 100 * 1024 * 1024, // 100MB
     keepExtensions: true 
   });
@@ -32,17 +32,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      //File handling
-      let file: File | undefined;
+      //File handling - support multiple files
       const uploaded = files.file;
+      const fileArray: File[] = Array.isArray(uploaded) ? uploaded : (uploaded ? [uploaded] : []);
 
-      if (Array.isArray(uploaded)) {
-        file = uploaded[0];
-      } else {
-        file = uploaded as File | undefined;
-      }
-
-      if (!file) {
+      if (fileArray.length === 0) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
@@ -71,36 +65,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "Invalid type. Must be 'image' or 'video'" });
       }
 
-      // Baca file sebagai buffer
-      let fileBuffer: Buffer;
-      if (file.filepath) {
-        fileBuffer = fs.readFileSync(file.filepath);
-      } else {
-        return res.status(400).json({ message: "File path not found" });
-      }
+      // Upload semua file
+      const uploadPromises = fileArray.map(async (file) => {
+        // Baca file sebagai buffer
+        let fileBuffer: Buffer;
+        if (file.filepath) {
+          fileBuffer = fs.readFileSync(file.filepath);
+        } else {
+          throw new Error("File path not found");
+        }
 
-      // Upload ke Cloudinary
-      const cloudinaryResult = await uploadToCloudinary(
-        fileBuffer,
-        "gallery",
-        type,
-        `gallery_${Date.now()}_${username}`
-      );
+        // Upload ke Cloudinary
+        const cloudinaryResult = await uploadToCloudinary(
+          fileBuffer,
+          "gallery",
+          type,
+          `gallery_${Date.now()}_${username}_${Math.random().toString(36).substring(7)}`
+        );
 
-      // Simpan media ke DB dengan URL Cloudinary
-      const newMedia = await Media.create({
-        type,
-        url: cloudinaryResult.secureUrl,
-        username,
-        cloudinaryPublicId: cloudinaryResult.publicId, // Simpan public ID untuk delete nanti
+        // Simpan media ke DB dengan URL Cloudinary
+        const newMedia = await Media.create({
+          type,
+          url: cloudinaryResult.secureUrl,
+          username,
+          cloudinaryPublicId: cloudinaryResult.publicId, // Simpan public ID untuk delete nanti
+        });
+
+        // Hapus file lokal setelah upload ke Cloudinary
+        if (file.filepath && fs.existsSync(file.filepath)) {
+          fs.unlinkSync(file.filepath);
+        }
+
+        return newMedia;
       });
 
-      // Hapus file lokal setelah upload ke Cloudinary
-      if (file.filepath && fs.existsSync(file.filepath)) {
-        fs.unlinkSync(file.filepath);
-      }
+      const uploadedMedia = await Promise.all(uploadPromises);
 
-      return res.status(201).json(newMedia);
+      // Return array jika multiple, single object jika satu file (backward compatibility)
+      return res.status(201).json(fileArray.length === 1 ? uploadedMedia[0] : uploadedMedia);
     } catch (error: any) {
       console.error("Save media error:", error);
       return res.status(500).json({ 
