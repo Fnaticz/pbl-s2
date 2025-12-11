@@ -1,7 +1,5 @@
 // pages/api/business/upload-images.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs";
-import path from "path";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
 
@@ -26,21 +24,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!Array.isArray(images) || images.length === 0)
       return res.status(400).json({ message: "No images provided" });
 
-    const userId = session.user.id;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "business", userId);
-    fs.mkdirSync(uploadDir, { recursive: true });
-
     const urls: string[] = [];
 
     for (const img of images) {
       const match = img.match(/^data:(image\/\w+);base64,(.+)$/);
       if (!match) continue;
-      const ext = match[1].split("/")[1];
+      const mime = match[1];
       const base64 = match[2];
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const filePath = path.join(uploadDir, fileName);
-      fs.writeFileSync(filePath, Buffer.from(base64, "base64"));
-      urls.push(`/uploads/business/${userId}/${fileName}`);
+      const buffer = Buffer.from(base64, "base64");
+
+      // batasan ukuran 5MB agar aman ditaruh sebagai data URL
+      if (buffer.length > 5_000_000) {
+        return res.status(400).json({ message: "Image too large (>5MB)" });
+      }
+
+      // simpan langsung data URL supaya bisa diakses di deploy tanpa storage lokal
+      urls.push(`data:${mime};base64:${base64}`);
     }
 
     return res.status(200).json({ urls });

@@ -306,7 +306,8 @@ export default function MemberDashboard() {
     try {
       // 🧩 Pisahkan gambar baru (base64) dan lama (URL)
       const locals = profile.slideshow.filter((s) => s.startsWith("blob:"));
-      const remotes = profile.slideshow.filter((s) => s.startsWith("/uploads/"));
+      // segala non-blob dianggap sudah tersimpan (bisa URL atau data:image)
+      const remotes = profile.slideshow.filter((s) => !s.startsWith("blob:"));
 
       let uploaded: string[] = [];
       if (locals.length) {

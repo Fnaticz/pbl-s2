@@ -3,8 +3,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from '../../../lib/mongodb';
 import User from '../../../models/user';
 import Business from '../../../models/business';
-import fs from "fs";
-import path from "path";
 
 export const config = {
   api: {
@@ -54,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       existingUser.avatar = null;
     }
 
-    // Jika avatar dikirim sebagai base64 (data:image...), simpan sebagai file
+    // Jika avatar dikirim sebagai base64 (data:image...), simpan langsung string agar bisa dipakai di deploy tanpa file lokal
     if (avatar && typeof avatar === "string" && avatar.startsWith("data:image")) {
       const parsed = parseBase64Image(avatar);
       if (!parsed) return res.status(400).json({ message: "Invalid image data" });
@@ -64,16 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "Avatar too large" });
       }
 
-      // ensure uploads directory exists
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
-      await fs.promises.mkdir(uploadDir, { recursive: true });
-
-      const filename = `${existingUser._id.toString()}-${Date.now()}.${parsed.ext}`;
-      const filepath = path.join(uploadDir, filename);
-
-      await fs.promises.writeFile(filepath, parsed.buffer);
-      // Simpan hanya filename ke DB (bukan base64)
-      existingUser.avatar = filename;
+      // simpan base64 langsung
+      existingUser.avatar = avatar;
     } else if (avatar === null) {
       // user wants to remove avatar
       existingUser.avatar = undefined;
