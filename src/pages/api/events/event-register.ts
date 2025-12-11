@@ -102,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "User email/phone is missing" });
       }
 
-      // handle bukti pembayaran
+      // handle bukti pembayaran (simpan base64 langsung, hindari file system agar bisa dilihat di deploy)
       let paymentProofFilename: string | null = null;
       if (paymentProof && typeof paymentProof === "string") {
         if (paymentProof.startsWith("data:image")) {
@@ -115,14 +115,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ message: "Payment proof image too large" });
           }
 
-          const uploadDir = path.join(process.cwd(), "public", "uploads", "payments");
-          await fs.promises.mkdir(uploadDir, { recursive: true });
-
-          const filename = `${session.user.id}-${Date.now()}.${parsed.ext}`;
-          const filepath = path.join(uploadDir, filename);
-          await fs.promises.writeFile(filepath, parsed.buffer);
-
-          paymentProofFilename = `/uploads/payments/${filename}`;
+          // simpan langsung base64 supaya bisa dirender di dashboard tanpa storage lokal
+          paymentProofFilename = paymentProof;
         } else {
           paymentProofFilename = paymentProof;
         }
