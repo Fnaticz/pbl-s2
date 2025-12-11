@@ -8,6 +8,7 @@ import EventApplication from '../../../models/event-register';
 import Participant from '../../../models/participant';
 import Point from '../../../models/point';
 import MainEvent from '../../../models/main-event';
+import User from '../../../models/user';
 import fs from "fs";
 import path from "path";
 
@@ -67,7 +68,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const {
-        userId,
         driverName,
         coDriverName,
         carName,
@@ -81,7 +81,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } = req.body;
 
       if (
-        !userId ||
         !driverName ||
         !carName ||
         !driverPhone ||
@@ -90,6 +89,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         !paymentProof
       ) {
         return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // pastikan data user lengkap untuk kebutuhan penyimpanan
+      const user = await User.findById(session.user.id).lean();
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const username = user.username || session.user.username;
+      const emailOrPhone = user.emailOrPhone || session.user.emailOrPhone;
+      if (!emailOrPhone) {
+        return res.status(400).json({ message: "User email/phone is missing" });
       }
 
       // handle bukti pembayaran
@@ -120,8 +130,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const registration = await EventApplication.create({
         userId: session.user.id,
-        username: session.user.username,
-        emailOrPhone: session.user.emailOrPhone,
+        username,
+        emailOrPhone,
         title: mainEvent.title,
         driverName,
         coDriverName,
