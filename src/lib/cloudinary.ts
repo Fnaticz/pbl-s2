@@ -34,36 +34,62 @@ export async function uploadToCloudinary(
   resourceType: 'image' | 'video' | 'auto' = 'auto',
   publicId?: string
 ): Promise<{ url: string; publicId: string; secureUrl: string }> {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: resourceType === 'auto' ? 'auto' : resourceType,
-        public_id: publicId,
-        overwrite: false,
-        invalidate: true,
-      },
-      (error, result) => {
-        if (error) {
-          console.error('Cloudinary upload error:', error);
-          reject(error);
-        } else if (result) {
-          resolve({
-            url: result.url,
-            publicId: result.public_id,
-            secureUrl: result.secure_url,
-          });
-        } else {
-          reject(new Error('Upload failed: No result returned'));
-        }
-      }
-    );
+  // Check if Cloudinary is configured
+  if (!process.env.CLOUDINARY_URL) {
+    throw new Error('Cloudinary is not configured. Please set CLOUDINARY_URL environment variable.');
+  }
 
-    // Convert buffer ke stream
-    const readable = new Readable();
-    readable.push(buffer);
-    readable.push(null);
-    readable.pipe(uploadStream);
+  return new Promise((resolve, reject) => {
+    try {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: resourceType === 'auto' ? 'auto' : resourceType,
+          public_id: publicId,
+          overwrite: false,
+          invalidate: true,
+          chunk_size: 6000000, // 6MB chunks for large files
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload error:', {
+              message: error.message,
+              http_code: error.http_code,
+              name: error.name
+            });
+            reject(new Error(`Cloudinary upload failed: ${error.message}`));
+          } else if (result) {
+            resolve({
+              url: result.url,
+              publicId: result.public_id,
+              secureUrl: result.secure_url,
+            });
+          } else {
+            reject(new Error('Upload failed: No result returned from Cloudinary'));
+          }
+        }
+      );
+
+      // Convert buffer ke stream
+      const readable = new Readable();
+      readable.push(buffer);
+      readable.push(null);
+      readable.pipe(uploadStream);
+      
+      // Handle stream errors
+      readable.on('error', (err) => {
+        console.error('Stream error:', err);
+        reject(new Error(`Stream error: ${err.message}`));
+      });
+      
+      uploadStream.on('error', (err) => {
+        console.error('Upload stream error:', err);
+        reject(new Error(`Upload stream error: ${err.message}`));
+      });
+    } catch (err: any) {
+      console.error('Error setting up Cloudinary upload:', err);
+      reject(new Error(`Failed to setup upload: ${err.message}`));
+    }
   });
 }
 

@@ -50,29 +50,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Upload semua images ke Cloudinary
     const uploadedImageUrls: string[] = [];
+    const uploadErrors: string[] = [];
     
     for (let i = 0; i < images.length; i++) {
       const img = images[i];
       if (typeof img !== "string") {
-        return res.status(400).json({ message: `Image ${i + 1} is not a string` });
+        uploadErrors.push(`Image ${i + 1} is not a string`);
+        continue;
       }
       if (!img.startsWith("data:image")) {
-        return res.status(400).json({ message: `Image ${i + 1} is invalid. Must be base64 image data (data:image/...).` });
+        uploadErrors.push(`Image ${i + 1} is invalid. Must be base64 image data (data:image/...).`);
+        continue;
       }
       
       try {
         // Parse base64
         const base64Data = img.split(",")[1];
         if (!base64Data) {
-          return res.status(400).json({ message: `Image ${i + 1} has invalid base64 format` });
+          uploadErrors.push(`Image ${i + 1} has invalid base64 format`);
+          continue;
         }
         
         const buffer = Buffer.from(base64Data, "base64");
         
         // Validasi ukuran (max 10MB per image)
         if (buffer.length > 10_000_000) {
-          return res.status(400).json({ message: `Image ${i + 1} is too large (max 10MB)` });
+          uploadErrors.push(`Image ${i + 1} is too large (max 10MB, got ${(buffer.length / 1_000_000).toFixed(2)}MB)`);
+          continue;
         }
+        
+        console.log(`Uploading image ${i + 1} to Cloudinary (${(buffer.length / 1_000_000).toFixed(2)}MB)...`);
         
         // Upload ke Cloudinary
         const cloudinaryResult = await uploadToCloudinary(
@@ -82,14 +89,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           `activity_${Date.now()}_${i}_${Math.random().toString(36).substring(7)}`
         );
         
+        console.log(`Image ${i + 1} uploaded successfully:`, cloudinaryResult.secureUrl);
         uploadedImageUrls.push(cloudinaryResult.secureUrl);
       } catch (uploadErr: any) {
-        console.error(`Failed to upload image ${i + 1}:`, uploadErr);
-        return res.status(500).json({ 
-          message: `Failed to upload image ${i + 1}`,
-          error: process.env.NODE_ENV === "development" ? uploadErr?.message : undefined
+        console.error(`Failed to upload image ${i + 1} to Cloudinary:`, {
+          message: uploadErr?.message,
+          name: uploadErr?.name,
+          stack: uploadErr?.stack
         });
+        uploadErrors.push(`Image ${i + 1}: ${uploadErr?.message || 'Upload failed'}`);
       }
+    }
+    
+    // Jika tidak ada image yang berhasil diupload
+    if (uploadedImageUrls.length === 0) {
+      return res.status(400).json({ 
+        message: "Failed to upload all images",
+        errors: uploadErrors
+      });
+    }
+    
+    // Jika ada beberapa yang gagal, tetap lanjutkan tapi beri warning
+    if (uploadErrors.length > 0) {
+      console.warn("Some images failed to upload:", uploadErrors);
     }
 
     const activityName = name || "activity";

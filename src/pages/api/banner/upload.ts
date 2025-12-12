@@ -83,16 +83,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         uploadedAt: new Date(),
       });
 
-      res.status(201).json(newBanner);
+      return res.status(201).json(newBanner);
     } catch (uploadErr: any) {
       console.error("Banner upload to Cloudinary error:", uploadErr);
       return res.status(500).json({ 
-        message: "Failed to upload image",
+        message: "Failed to upload image to storage",
         error: process.env.NODE_ENV === "development" ? uploadErr?.message : undefined
       });
     }
-
-    res.status(201).json(newBanner);
   } catch (err: any) {
     console.error("Banner upload error:", err);
     const errorMessage = err?.message || "Server error";

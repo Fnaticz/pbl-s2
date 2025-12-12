@@ -88,16 +88,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         createdAt: new Date(),
       });
 
-      res.status(201).json(newMainEvent);
+      return res.status(201).json(newMainEvent);
     } catch (uploadErr: any) {
       console.error("Main event upload to Cloudinary error:", uploadErr);
       return res.status(500).json({ 
-        message: "Failed to upload image",
+        message: "Failed to upload image to storage",
         error: process.env.NODE_ENV === "development" ? uploadErr?.message : undefined
       });
     }
-
-    res.status(201).json(newMainEvent);
   } catch (err: any) {
     console.error("Main event upload error:", err);
     const errorMessage = err?.message || "Server error";
