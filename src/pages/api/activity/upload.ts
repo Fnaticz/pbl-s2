@@ -16,26 +16,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
 
-  const { title, name, desc, images } = req.body;
-
-  if (!title || !name || !desc || !images || !Array.isArray(images) || images.length === 0) {
-    return res.status(400).json({ message: "Missing fields" });
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error("DB connect error:", err);
+    return res.status(500).json({ message: "Database connection error" });
   }
 
   try {
-    await connectDB();
+    const { title, name, desc, images } = req.body;
+
+    // Validasi input
+    if (!title || typeof title !== "string" || title.trim().length === 0) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    if (!desc || typeof desc !== "string" || desc.trim().length === 0) {
+      return res.status(400).json({ message: "Description is required" });
+    }
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ message: "At least one image is required" });
+    }
+
+    // Validasi setiap image adalah base64 string
+    for (let i = 0; i < images.length; i++) {
+      if (typeof images[i] !== "string" || !images[i].startsWith("data:image")) {
+        return res.status(400).json({ message: `Image ${i + 1} is invalid. Must be base64 image data.` });
+      }
+    }
+
+    const activityName = name || "activity";
 
     const newActivity = await Activity.create({
-      title,
-      name,
-      desc,
+      title: title.trim(),
+      name: activityName.trim(),
+      desc: desc.trim(),
       images,
       createdAt: new Date(),
     });
 
     res.status(201).json(newActivity);
-  } catch (err) {
+  } catch (err: any) {
     console.error("Activity upload error:", err);
-    res.status(500).json({ message: "Server error" });
+    const errorMessage = err?.message || "Server error";
+    return res.status(500).json({ 
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? errorMessage : undefined
+    });
   }
 }

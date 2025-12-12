@@ -16,27 +16,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
 
-  const { name, title, eventDate, location, file } = req.body;
-
-  if (!name || !title || !eventDate || !location || !file) {
-    return res.status(400).json({ message: "Missing fields" });
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error("DB connect error:", err);
+    return res.status(500).json({ message: "Database connection error" });
   }
 
   try {
-    await connectDB();
+    const { name, title, eventDate, location, file } = req.body;
+
+    // Validasi input
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    if (!title || typeof title !== "string" || title.trim().length === 0) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    if (!eventDate || typeof eventDate !== "string" || eventDate.trim().length === 0) {
+      return res.status(400).json({ message: "Event date is required" });
+    }
+
+    if (!location || typeof location !== "string" || location.trim().length === 0) {
+      return res.status(400).json({ message: "Location is required" });
+    }
+
+    if (!file || typeof file !== "string") {
+      return res.status(400).json({ message: "Image file is required" });
+    }
+
+    // Validasi base64 image
+    if (!file.startsWith("data:image")) {
+      return res.status(400).json({ message: "Invalid image format. Must be base64 image data." });
+    }
 
     const newBanner = await Banner.create({
-      name,
-      title,
-      eventDate,
-      location,
+      name: name.trim(),
+      title: title.trim(),
+      eventDate: eventDate.trim(),
+      location: location.trim(),
       imageUrl: file,
       uploadedAt: new Date(),
     });
 
     res.status(201).json(newBanner);
-  } catch (err) {
+  } catch (err: any) {
     console.error("Banner upload error:", err);
-    res.status(500).json({ message: "Server error" });
+    const errorMessage = err?.message || "Server error";
+    return res.status(500).json({ 
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? errorMessage : undefined
+    });
   }
 }

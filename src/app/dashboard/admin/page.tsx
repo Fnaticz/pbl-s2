@@ -277,11 +277,12 @@ export default function AdminDashboard() {
               setBannerPreview(null);
               fileInput.value = "";
             } else {
-              setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
+              const errData = await res.json().catch(() => ({}));
+              setAlert({ isOpen: true, message: errData.message || "Upload failed", type: 'error' })
             }
           } catch (err) {
             console.error("Upload error:", err);
-            setAlert({ isOpen: true, message: "Server error", type: 'error' })
+            setAlert({ isOpen: true, message: err instanceof Error ? err.message : "Server error", type: 'error' })
           }
           setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
         };
@@ -347,11 +348,12 @@ export default function AdminDashboard() {
             setActivityDesc("");
             setActivityImages([]);
           } else {
-            setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
+            const errData = await res.json().catch(() => ({}));
+            setAlert({ isOpen: true, message: errData.message || "Upload failed", type: 'error' })
           }
         } catch (error) {
           console.error("Upload error:", error);
-          setAlert({ isOpen: true, message: "Server error", type: 'error' })
+          setAlert({ isOpen: true, message: error instanceof Error ? error.message : "Server error", type: 'error' })
         }
         setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
       }
@@ -406,11 +408,12 @@ export default function AdminDashboard() {
               setMainEventPreview(null);
               fileInput.value = "";
             } else {
-              setAlert({ isOpen: true, message: "Upload failed", type: 'error' })
+              const errData = await res.json().catch(() => ({}));
+              setAlert({ isOpen: true, message: errData.message || "Upload failed", type: 'error' })
             }
           } catch (err) {
             console.error("Upload error:", err);
-            setAlert({ isOpen: true, message: "Server error", type: 'error' })
+            setAlert({ isOpen: true, message: err instanceof Error ? err.message : "Server error", type: 'error' })
           }
           setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
         };
@@ -1322,7 +1325,7 @@ export default function AdminDashboard() {
 
             {/* Multiple file input */}
             <div className="mb-2">
-              <label className="block text-sm font-semibold mb-1">Activity Images (Multiple)</label>
+              <label className="block text-sm font-semibold mb-1">Activity Images</label>
               <label
                 htmlFor="activity-files"
                 className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow inline-block"

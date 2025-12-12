@@ -25,26 +25,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "No images provided" });
 
     const urls: string[] = [];
+    const errors: string[] = [];
 
-    for (const img of images) {
-      const match = img.match(/^data:(image\/\w+);base64,(.+)$/);
-      if (!match) continue;
-      const mime = match[1];
-      const base64 = match[2];
-      const buffer = Buffer.from(base64, "base64");
-
-      // batasan ukuran 5MB agar aman ditaruh sebagai data URL
-      if (buffer.length > 5_000_000) {
-        return res.status(400).json({ message: "Image too large (>5MB)" });
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      
+      if (typeof img !== "string") {
+        errors.push(`Image ${i + 1} is not a valid string`);
+        continue;
       }
 
-      // simpan langsung data URL supaya bisa diakses di deploy tanpa storage lokal
-      urls.push(`data:${mime};base64:${base64}`);
+      const match = img.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (!match) {
+        errors.push(`Image ${i + 1} is not a valid base64 image`);
+        continue;
+      }
+
+      const mime = match[1];
+      const base64 = match[2];
+      
+      try {
+        const buffer = Buffer.from(base64, "base64");
+
+        // batasan ukuran 5MB agar aman ditaruh sebagai data URL
+        if (buffer.length > 5_000_000) {
+          errors.push(`Image ${i + 1} is too large (>5MB)`);
+          continue;
+        }
+
+        // simpan langsung data URL supaya bisa diakses di deploy tanpa storage lokal
+        urls.push(`data:${mime};base64,${base64}`);
+      } catch (err) {
+        errors.push(`Image ${i + 1} failed to process: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }
+
+    if (urls.length === 0) {
+      return res.status(400).json({ 
+        message: "No valid images processed", 
+        errors: errors.length > 0 ? errors : undefined 
+      });
+    }
+
+    if (errors.length > 0) {
+      // Return success but with warnings
+      return res.status(200).json({ 
+        urls, 
+        warnings: errors 
+      });
     }
 
     return res.status(200).json({ urls });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Upload error:", err);
-    return res.status(500).json({ message: "Upload failed" });
+    const errorMessage = err?.message || "Upload failed";
+    return res.status(500).json({ 
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? errorMessage : undefined
+    });
   }
 }
