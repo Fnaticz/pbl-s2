@@ -27,11 +27,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { title, name, desc, images } = req.body;
 
+    // Calculate total size for logging
+    let totalSizeMB = 0;
+    if (Array.isArray(images)) {
+      images.forEach((img: string) => {
+        if (typeof img === "string" && img.startsWith("data:image")) {
+          const base64Data = img.split(",")[1];
+          if (base64Data) {
+            totalSizeMB += Buffer.byteLength(base64Data, "base64") / 1_000_000;
+          }
+        }
+      });
+    }
+
     console.log("Activity upload request received:", {
       hasTitle: !!title,
       hasName: !!name,
       hasDesc: !!desc,
       imagesCount: images?.length || 0,
+      totalSizeMB: totalSizeMB.toFixed(2),
       imagesType: Array.isArray(images) ? "array" : typeof images
     });
 
@@ -51,6 +65,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Upload semua images ke Cloudinary
     const uploadedImageUrls: string[] = [];
     const uploadErrors: string[] = [];
+    const startTime = Date.now();
+    
+    console.log(`Starting upload of ${images.length} images...`);
     
     for (let i = 0; i < images.length; i++) {
       const img = images[i];
@@ -72,34 +89,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         
         const buffer = Buffer.from(base64Data, "base64");
+        const fileSizeMB = buffer.length / 1_000_000;
         
         // Validasi ukuran (max 10MB per image)
         if (buffer.length > 10_000_000) {
-          uploadErrors.push(`Image ${i + 1} is too large (max 10MB, got ${(buffer.length / 1_000_000).toFixed(2)}MB)`);
+          uploadErrors.push(`Image ${i + 1} is too large (max 10MB, got ${fileSizeMB.toFixed(2)}MB)`);
           continue;
         }
         
-        console.log(`Uploading image ${i + 1} to Cloudinary (${(buffer.length / 1_000_000).toFixed(2)}MB)...`);
+        console.log(`[${i + 1}/${images.length}] Uploading ${fileSizeMB.toFixed(2)}MB to Cloudinary...`);
+        const uploadStartTime = Date.now();
         
-        // Upload ke Cloudinary
+        // Upload ke Cloudinary dengan unique ID per image
+        const uniqueId = `${Date.now()}_${i}_${Math.random().toString(36).substring(7)}`;
         const cloudinaryResult = await uploadToCloudinary(
           buffer,
           "activities",
           "image",
-          `activity_${Date.now()}_${i}_${Math.random().toString(36).substring(7)}`
+          `activity_${uniqueId}`
         );
         
-        console.log(`Image ${i + 1} uploaded successfully:`, cloudinaryResult.secureUrl);
+        const uploadTime = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
+        console.log(`[${i + 1}/${images.length}] ✓ Uploaded in ${uploadTime}s: ${cloudinaryResult.secureUrl.substring(0, 50)}...`);
+        
         uploadedImageUrls.push(cloudinaryResult.secureUrl);
+        
+        // Cleanup memory - clear buffer reference
+        // Note: Buffer akan di-GC otomatis, tapi kita bisa membantu dengan null reference
+        // (tidak perlu karena sudah di-scope)
+        
+        // Small delay between uploads to avoid rate limiting (optional)
+        if (i < images.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+        }
       } catch (uploadErr: any) {
-        console.error(`Failed to upload image ${i + 1} to Cloudinary:`, {
+        console.error(`[${i + 1}/${images.length}] ✗ Failed to upload:`, {
           message: uploadErr?.message,
           name: uploadErr?.name,
-          stack: uploadErr?.stack
+          http_code: uploadErr?.http_code
         });
         uploadErrors.push(`Image ${i + 1}: ${uploadErr?.message || 'Upload failed'}`);
       }
     }
+    
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`Upload completed in ${totalTime}s. Success: ${uploadedImageUrls.length}/${images.length}`);
     
     // Jika tidak ada image yang berhasil diupload
     if (uploadedImageUrls.length === 0) {

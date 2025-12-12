@@ -48,7 +48,8 @@ export async function uploadToCloudinary(
           public_id: publicId,
           overwrite: false,
           invalidate: true,
-          chunk_size: 6000000, // 6MB chunks for large files
+          chunk_size: 6000000, // 6MB chunks for large files (5MB files will use 1 chunk)
+          timeout: 120000, // 120 seconds timeout for large files
         },
         (error, result) => {
           if (error) {
