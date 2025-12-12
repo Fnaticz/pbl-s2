@@ -26,6 +26,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { title, name, desc, images } = req.body;
 
+    console.log("Activity upload request received:", {
+      hasTitle: !!title,
+      hasName: !!name,
+      hasDesc: !!desc,
+      imagesCount: images?.length || 0,
+      imagesType: Array.isArray(images) ? "array" : typeof images
+    });
+
     // Validasi input
     if (!title || typeof title !== "string" || title.trim().length === 0) {
       return res.status(400).json({ message: "Title is required" });
@@ -41,12 +49,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Validasi setiap image adalah base64 string
     for (let i = 0; i < images.length; i++) {
-      if (typeof images[i] !== "string" || !images[i].startsWith("data:image")) {
-        return res.status(400).json({ message: `Image ${i + 1} is invalid. Must be base64 image data.` });
+      const img = images[i];
+      if (typeof img !== "string") {
+        return res.status(400).json({ message: `Image ${i + 1} is not a string` });
+      }
+      if (!img.startsWith("data:image")) {
+        return res.status(400).json({ message: `Image ${i + 1} is invalid. Must be base64 image data (data:image/...).` });
+      }
+      // Validasi ukuran base64 (max 10MB per image)
+      const base64Data = img.split(",")[1];
+      if (base64Data && base64Data.length > 10_000_000) {
+        return res.status(400).json({ message: `Image ${i + 1} is too large (max 10MB)` });
       }
     }
 
     const activityName = name || "activity";
+
+    console.log("Creating activity with:", {
+      title: title.trim(),
+      name: activityName.trim(),
+      descLength: desc.trim().length,
+      imagesCount: images.length
+    });
 
     const newActivity = await Activity.create({
       title: title.trim(),
@@ -56,9 +80,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: new Date(),
     });
 
+    console.log("Activity created successfully:", newActivity._id);
+
     res.status(201).json(newActivity);
   } catch (err: any) {
-    console.error("Activity upload error:", err);
+    console.error("Activity upload error details:", {
+      message: err?.message,
+      stack: err?.stack,
+      name: err?.name,
+      code: err?.code
+    });
+    
+    // Handle specific MongoDB errors
+    if (err?.name === "ValidationError") {
+      return res.status(400).json({ 
+        message: "Validation error",
+        error: process.env.NODE_ENV === "development" ? err.message : undefined
+      });
+    }
+    
     const errorMessage = err?.message || "Server error";
     return res.status(500).json({ 
       message: "Server error",

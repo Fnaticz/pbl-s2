@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { IBanner } from '../../models/banner';
 import { FaClipboardCheck, FaTruckMonster, FaSignOutAlt, FaTimes, FaBars, FaUser, FaClipboardList, FaImages, FaMoneyBill, FaCalendarAlt, FaList, FaTrash, FaPlus } from 'react-icons/fa'
 import { useSession } from 'next-auth/react';
 import autoTable from 'jspdf-autotable'
@@ -11,7 +10,6 @@ import Loading from '../../components/Loading';
 import Alert from '../../components/Alert';
 import Confirm from '../../components/Confirm';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IMainEvent } from '../../models/main-event';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 
@@ -77,12 +75,13 @@ export default function AdminDashboard() {
   const [mainEventLocation, setMainEventLocation] = useState('')
   const [mainEventDesc, setMainEventDesc] = useState('')
   const [mainEventImages, setMainEventImages] = useState<string[]>([])
-  const [mainEventReports, setMainEventReports] = useState<IMainEvent[]>([])
+  const [mainEventReports, setMainEventReports] = useState<{ _id: string; title: string; date: string; location: string; desc: string; name: string; imageUrl: string; createdAt: Date }[]>([])
   const [activityName, setActivityName] = useState('')
   const [activityTitle, setActivityTitle] = useState('')
   const [activityDesc, setActivityDesc] = useState('')
   const [activityImages, setActivityImages] = useState<string[]>([])
   const [activityReports, setActivityReports] = useState<{ _id: string; title: string; name: string; desc: string; date: string; preview: string; imageUrl: string; images?: string[]; createdAt: Date }[]>([])
+  const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set())
   const [financeRecords, setFinanceRecords] = useState<{ _id: string; description: string; amount: number; date: string }[]>([])
   const [totalAmount, setTotalAmount] = useState<number | null>(null)
   const [alert, setAlert] = useState<{ isOpen: boolean; message: string; type?: 'success' | 'error' | 'warning' | 'info' }>({ isOpen: false, message: '', type: 'info' })
@@ -96,7 +95,7 @@ export default function AdminDashboard() {
     totalRegisteredMembers: 0,
     totalActiveMembers: 0
   });
-  const [bannerReports, setBannerReports] = useState<IBanner[]>([])
+  const [bannerReports, setBannerReports] = useState<{ _id: string; name: string; title: string; eventDate: string; location: string; imageUrl: string; uploadedAt: Date }[]>([])
 
 
   const fetchMembers = async () => {
@@ -586,7 +585,7 @@ export default function AdminDashboard() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent, value }) => value > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                        label={({ name, percent, value }) => value > 0 && percent !== undefined ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
@@ -616,7 +615,7 @@ export default function AdminDashboard() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent, value }) => value > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                        label={({ name, percent, value }) => value > 0 && percent !== undefined ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
@@ -1394,67 +1393,147 @@ export default function AdminDashboard() {
             </div>
 
             <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Activity Reports</h3>
-              {activityReports.map((a) => (
-                <div
-                  key={a._id}
-                  className="bg-gray-800 text-white p-3 mb-2 rounded"
-                >
-                  {/* render multiple images */}
-                  {a.images?.map((img: string, idx: number) => (
-                    <Image
-                      key={idx}
-                      src={img}
-                      alt={`Activity ${idx}`}
-                      width={600}
-                      height={400}
-                      unoptimized={img.startsWith("data:") || img.startsWith("blob:")}
-                      className="w-full max-w-sm rounded mb-2"
-                    />
-                  ))}
-
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-400">{a.name}</p>
-                      <p>
-                        <strong>{a.title}</strong>
-                      </p>
-                      <p>{a.desc}</p>
-                      <p className="text-xs text-gray-400">
-                        Added: {new Date(a.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={async () => {
-                        setConfirm({
-                          isOpen: true,
-                          message: "Delete this activity?",
-                          onConfirm: async () => {
-                            const res = await fetch("/api/activity/delete", {
-                              method: "DELETE",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ id: a._id }),
-                            });
-                            if (res.ok) {
-                              setActivityReports((prev) =>
-                                prev.filter((act) => act._id !== a._id)
-                              );
-                              setAlert({ isOpen: true, message: "Activity deleted successfully", type: 'success' })
-                            } else {
-                              setAlert({ isOpen: true, message: "Failed to delete activity", type: 'error' })
-                            }
-                            setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
-                          }
-                        })
-                      }}
-                      className="text-red-500 hover:text-red-700"
+              <h3 className="text-lg font-semibold mb-4">Activity Reports</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activityReports.map((a) => {
+                  const isExpanded = expandedActivities.has(a._id);
+                  const firstImage = a.images?.[0];
+                  const remainingImages = a.images?.slice(1) || [];
+                  
+                  return (
+                    <div
+                      key={a._id}
+                      className="bg-gray-800 text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
                     >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      {/* Header dengan judul dan tombol */}
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-400 mb-1">{a.name}</p>
+                          <h4 className="font-bold text-lg mb-1 line-clamp-2">{a.title}</h4>
+                          <p className="text-xs text-gray-400">
+                            {new Date(a.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            setConfirm({
+                              isOpen: true,
+                              message: "Delete this activity?",
+                              onConfirm: async () => {
+                                try {
+                                  const res = await fetch("/api/activity/delete", {
+                                    method: "DELETE",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: a._id }),
+                                  });
+                                  if (res.ok) {
+                                    setActivityReports((prev) =>
+                                      prev.filter((act) => act._id !== a._id)
+                                    );
+                                    setExpandedActivities((prev) => {
+                                      const newSet = new Set(prev);
+                                      newSet.delete(a._id);
+                                      return newSet;
+                                    });
+                                    setAlert({ isOpen: true, message: "Activity deleted successfully", type: 'success' })
+                                  } else {
+                                    const errData = await res.json().catch(() => ({}));
+                                    setAlert({ isOpen: true, message: errData.message || "Failed to delete activity", type: 'error' })
+                                  }
+                                } catch (err) {
+                                  setAlert({ isOpen: true, message: "Failed to delete activity", type: 'error' })
+                                }
+                                setConfirm({ isOpen: false, message: '', onConfirm: () => {} })
+                              }
+                            })
+                          }}
+                          className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0"
+                          title="Delete"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+
+                      {/* Gambar pertama selalu ditampilkan */}
+                      {firstImage && (
+                        <div className="mb-3">
+                          <Image
+                            src={firstImage}
+                            alt={`${a.title} - Image 1`}
+                            width={400}
+                            height={300}
+                            unoptimized={firstImage.startsWith("data:") || firstImage.startsWith("blob:")}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                        </div>
+                      )}
+
+                      {/* Description - collapse by default */}
+                      {isExpanded && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-300 line-clamp-3">{a.desc}</p>
+                        </div>
+                      )}
+
+                      {/* Remaining images - hanya tampil saat expanded */}
+                      {isExpanded && remainingImages.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                          {remainingImages.map((img: string, idx: number) => (
+                            <Image
+                              key={idx + 1}
+                              src={img}
+                              alt={`${a.title} - Image ${idx + 2}`}
+                              width={400}
+                              height={300}
+                              unoptimized={img.startsWith("data:") || img.startsWith("blob:")}
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Toggle button */}
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-700">
+                        <button
+                          onClick={() => {
+                            setExpandedActivities((prev) => {
+                              const newSet = new Set(prev);
+                              if (isExpanded) {
+                                newSet.delete(a._id);
+                              } else {
+                                newSet.add(a._id);
+                              }
+                              return newSet;
+                            });
+                          }}
+                          className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
+                        >
+                          {isExpanded ? (
+                            <>
+                              <span>Show Less</span>
+                              <span>▲</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Show More</span>
+                              {remainingImages.length > 0 && (
+                                <span className="text-xs">({remainingImages.length} more image{remainingImages.length > 1 ? 's' : ''})</span>
+                              )}
+                              <span>▼</span>
+                            </>
+                          )}
+                        </button>
+                        {!isExpanded && a.desc && (
+                          <p className="text-xs text-gray-500 line-clamp-1 flex-1 ml-2">{a.desc}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {activityReports.length === 0 && (
+                <p className="text-center text-gray-400 py-8">No activities yet. Add your first activity above!</p>
+              )}
             </div>
           </div>
         );
