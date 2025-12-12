@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from '../../../lib/mongodb';
 import MainEvent from '../../../models/main-event';
+import { uploadToCloudinary } from '../../../lib/cloudinary';
 
 export const config = {
   api: {
@@ -56,15 +57,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "Invalid image format. Must be base64 image data." });
     }
 
-    const newMainEvent = await MainEvent.create({
-      title: title.trim(),
-      date: date.trim(),
-      location: location.trim(),
-      name: name.trim(),
-      desc: desc.trim(),
-      imageUrl: file,
-      createdAt: new Date(),
-    });
+    // Upload ke Cloudinary
+    try {
+      const base64Data = file.split(",")[1];
+      if (!base64Data) {
+        return res.status(400).json({ message: "Invalid base64 format" });
+      }
+      
+      const buffer = Buffer.from(base64Data, "base64");
+      
+      // Validasi ukuran (max 10MB)
+      if (buffer.length > 10_000_000) {
+        return res.status(400).json({ message: "Image is too large (max 10MB)" });
+      }
+      
+      const cloudinaryResult = await uploadToCloudinary(
+        buffer,
+        "main-events",
+        "image",
+        `mainevent_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      );
+
+      const newMainEvent = await MainEvent.create({
+        title: title.trim(),
+        date: date.trim(),
+        location: location.trim(),
+        name: name.trim(),
+        desc: desc.trim(),
+        imageUrl: cloudinaryResult.secureUrl,
+        createdAt: new Date(),
+      });
+
+      res.status(201).json(newMainEvent);
+    } catch (uploadErr: any) {
+      console.error("Main event upload to Cloudinary error:", uploadErr);
+      return res.status(500).json({ 
+        message: "Failed to upload image",
+        error: process.env.NODE_ENV === "development" ? uploadErr?.message : undefined
+      });
+    }
 
     res.status(201).json(newMainEvent);
   } catch (err: any) {

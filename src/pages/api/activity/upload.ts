@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from '../../../lib/mongodb';
 import Activity from '../../../models/activity';
+import { uploadToCloudinary } from '../../../lib/cloudinary';
 
 export const config = {
   api: {
@@ -47,7 +48,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "At least one image is required" });
     }
 
-    // Validasi setiap image adalah base64 string
+    // Upload semua images ke Cloudinary
+    const uploadedImageUrls: string[] = [];
+    
     for (let i = 0; i < images.length; i++) {
       const img = images[i];
       if (typeof img !== "string") {
@@ -56,10 +59,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!img.startsWith("data:image")) {
         return res.status(400).json({ message: `Image ${i + 1} is invalid. Must be base64 image data (data:image/...).` });
       }
-      // Validasi ukuran base64 (max 10MB per image)
-      const base64Data = img.split(",")[1];
-      if (base64Data && base64Data.length > 10_000_000) {
-        return res.status(400).json({ message: `Image ${i + 1} is too large (max 10MB)` });
+      
+      try {
+        // Parse base64
+        const base64Data = img.split(",")[1];
+        if (!base64Data) {
+          return res.status(400).json({ message: `Image ${i + 1} has invalid base64 format` });
+        }
+        
+        const buffer = Buffer.from(base64Data, "base64");
+        
+        // Validasi ukuran (max 10MB per image)
+        if (buffer.length > 10_000_000) {
+          return res.status(400).json({ message: `Image ${i + 1} is too large (max 10MB)` });
+        }
+        
+        // Upload ke Cloudinary
+        const cloudinaryResult = await uploadToCloudinary(
+          buffer,
+          "activities",
+          "image",
+          `activity_${Date.now()}_${i}_${Math.random().toString(36).substring(7)}`
+        );
+        
+        uploadedImageUrls.push(cloudinaryResult.secureUrl);
+      } catch (uploadErr: any) {
+        console.error(`Failed to upload image ${i + 1}:`, uploadErr);
+        return res.status(500).json({ 
+          message: `Failed to upload image ${i + 1}`,
+          error: process.env.NODE_ENV === "development" ? uploadErr?.message : undefined
+        });
       }
     }
 
@@ -69,14 +98,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       title: title.trim(),
       name: activityName.trim(),
       descLength: desc.trim().length,
-      imagesCount: images.length
+      imagesCount: uploadedImageUrls.length
     });
 
     const newActivity = await Activity.create({
       title: title.trim(),
       name: activityName.trim(),
       desc: desc.trim(),
-      images,
+      images: uploadedImageUrls,
       createdAt: new Date(),
     });
 

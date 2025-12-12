@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectDB } from '../../../lib/mongodb';
 import Banner from '../../../models/banner';
+import { uploadToCloudinary } from '../../../lib/cloudinary';
 
 export const config = {
   api: {
@@ -52,14 +53,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "Invalid image format. Must be base64 image data." });
     }
 
-    const newBanner = await Banner.create({
-      name: name.trim(),
-      title: title.trim(),
-      eventDate: eventDate.trim(),
-      location: location.trim(),
-      imageUrl: file,
-      uploadedAt: new Date(),
-    });
+    // Upload ke Cloudinary
+    try {
+      const base64Data = file.split(",")[1];
+      if (!base64Data) {
+        return res.status(400).json({ message: "Invalid base64 format" });
+      }
+      
+      const buffer = Buffer.from(base64Data, "base64");
+      
+      // Validasi ukuran (max 10MB)
+      if (buffer.length > 10_000_000) {
+        return res.status(400).json({ message: "Image is too large (max 10MB)" });
+      }
+      
+      const cloudinaryResult = await uploadToCloudinary(
+        buffer,
+        "banners",
+        "image",
+        `banner_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      );
+
+      const newBanner = await Banner.create({
+        name: name.trim(),
+        title: title.trim(),
+        eventDate: eventDate.trim(),
+        location: location.trim(),
+        imageUrl: cloudinaryResult.secureUrl,
+        uploadedAt: new Date(),
+      });
+
+      res.status(201).json(newBanner);
+    } catch (uploadErr: any) {
+      console.error("Banner upload to Cloudinary error:", uploadErr);
+      return res.status(500).json({ 
+        message: "Failed to upload image",
+        error: process.env.NODE_ENV === "development" ? uploadErr?.message : undefined
+      });
+    }
 
     res.status(201).json(newBanner);
   } catch (err: any) {

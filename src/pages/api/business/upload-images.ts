@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
+import { uploadToCloudinary } from '../../../lib/cloudinary';
 
 export const config = {
   api: {
@@ -41,22 +42,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         continue;
       }
 
-      const mime = match[1];
       const base64 = match[2];
       
       try {
         const buffer = Buffer.from(base64, "base64");
 
-        // batasan ukuran 5MB agar aman ditaruh sebagai data URL
-        if (buffer.length > 5_000_000) {
-          errors.push(`Image ${i + 1} is too large (>5MB)`);
+        // batasan ukuran 10MB
+        if (buffer.length > 10_000_000) {
+          errors.push(`Image ${i + 1} is too large (>10MB)`);
           continue;
         }
 
-        // simpan langsung data URL supaya bisa diakses di deploy tanpa storage lokal
-        urls.push(`data:${mime};base64,${base64}`);
+        // Upload ke Cloudinary
+        const cloudinaryResult = await uploadToCloudinary(
+          buffer,
+          "business",
+          "image",
+          `business_${Date.now()}_${i}_${Math.random().toString(36).substring(7)}`
+        );
+        
+        urls.push(cloudinaryResult.secureUrl);
       } catch (err) {
-        errors.push(`Image ${i + 1} failed to process: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        errors.push(`Image ${i + 1} failed to upload: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
     }
 

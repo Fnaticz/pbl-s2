@@ -459,9 +459,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchActivities = async () => {
-      const res = await fetch('/api/activity');
-      const data = await res.json();
-      setActivityReports(data);
+      try {
+        const res = await fetch('/api/activity');
+        const data = await res.json();
+        // Pastikan selalu array
+        setActivityReports(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch activities:', err);
+        setActivityReports([]);
+      }
     };
 
     fetchActivities();

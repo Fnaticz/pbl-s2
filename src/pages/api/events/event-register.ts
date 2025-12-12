@@ -9,8 +9,7 @@ import Participant from '../../../models/participant';
 import Point from '../../../models/point';
 import MainEvent from '../../../models/main-event';
 import User from '../../../models/user';
-import fs from "fs";
-import path from "path";
+import { uploadToCloudinary } from '../../../lib/cloudinary';
 
 export const config = {
   api: {
@@ -102,8 +101,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "User email/phone is missing" });
       }
 
-      // handle bukti pembayaran (simpan base64 langsung, hindari file system agar bisa dilihat di deploy)
-      let paymentProofFilename: string | null = null;
+      // handle bukti pembayaran - upload ke Cloudinary
+      let paymentProofUrl: string | null = null;
       if (paymentProof && typeof paymentProof === "string") {
         if (paymentProof.startsWith("data:image")) {
           const parsed = parseBase64Image(paymentProof);
@@ -111,14 +110,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ message: "Invalid payment proof image" });
           }
 
-          if (parsed.buffer.length > 4_000_000) {
-            return res.status(400).json({ message: "Payment proof image too large" });
+          if (parsed.buffer.length > 10_000_000) {
+            return res.status(400).json({ message: "Payment proof image too large (max 10MB)" });
           }
 
-          // simpan langsung base64 supaya bisa dirender di dashboard tanpa storage lokal
-          paymentProofFilename = paymentProof;
+          try {
+            // Upload ke Cloudinary
+            const cloudinaryResult = await uploadToCloudinary(
+              parsed.buffer,
+              "payments",
+              "image",
+              `payment_${session.user.id}_${Date.now()}`
+            );
+            paymentProofUrl = cloudinaryResult.secureUrl;
+          } catch (uploadErr: any) {
+            console.error("Payment proof upload error:", uploadErr);
+            return res.status(500).json({ 
+              message: "Failed to upload payment proof",
+              error: process.env.NODE_ENV === "development" ? uploadErr?.message : undefined
+            });
+          }
         } else {
-          paymentProofFilename = paymentProof;
+          // Jika sudah URL, gunakan langsung
+          paymentProofUrl = paymentProof;
         }
       }
 
@@ -136,7 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         address,
         teamName,
         paymentStatus: paymentStatus === "paid" ? "paid" : "unpaid",
-        paymentProof: paymentProofFilename,
+        paymentProof: paymentProofUrl,
         status: "pending",
       });
 
